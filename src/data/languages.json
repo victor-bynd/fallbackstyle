@@ -1,0 +1,57 @@
+[
+  {
+    "id": "en-US",
+    "name": "English (Latin Basic)",
+    "script": "Latin",
+    "pangram": "Snapchat Hits 250 Million Monthly Active Users"
+  },
+  {
+    "id": "lt-LT",
+    "name": "Lithuanian (Latin Extended)",
+    "script": "Latin",
+    "pangram": "Snapchat sasniedz 250 miljonus ikmēneša aktīvo lietotāju"
+  },
+  {
+    "id": "vi-VN",
+    "name": "Vietnamese (Stacked Diacritics)",
+    "script": "Latin",
+    "pangram": "Snapchat đạt 250 triệu người dùng hoạt động hằng tháng"
+  },
+  {
+    "id": "el-GR",
+    "name": "Greek (Hellenic Script)",
+    "script": "Greek",
+    "pangram": "Το Snapchat φτάνει τους 250 εκατομμύρια μηνιαίους ενεργούς χρήστες"
+  },
+  {
+    "id": "ru-RU",
+    "name": "Russian (Cyrillic Script)",
+    "script": "Cyrillic",
+    "pangram": "Snapchat хиты 250 миллион ежемесячно"
+  },
+  {
+    "id": "ar-SA",
+    "name": "Arabic (Right-to-Left)",
+    "script": "Arabic",
+    "dir": "rtl",
+    "pangram": "سناب شات يصل إلى 250 مليون مستخدم نشط شهريًا"
+  },
+  {
+    "id": "bn-IN",
+    "name": "Bengali (Complex Indic)",
+    "script": "Bengali",
+    "pangram": "Snapchat-এর মাসিক সক্রিয় ব্যবহারকারীর সংখ্যা ২৫০ মিলিয়নে পৌঁছেছে"
+  },
+  {
+    "id": "zh-CN",
+    "name": "Chinese (Simplified)",
+    "script": "Hans",
+    "pangram": "Snapchat 月活跃用户数达到 2.5 亿。"
+  },
+  {
+    "id": "ja-JP",
+    "name": "Japanese (Kanji/Hiragana/Katakana)",
+    "script": "Kana/Kanji",
+    "pangram": "Snapchatの月間アクティブユーザー数が2億5000万人に達した。"
+  }
+]
