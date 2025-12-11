@@ -4,7 +4,7 @@ region: nyc
 static_sites:
   - name: localize-type-web
     github:
-      repo: YOUR_GITHUB_USERNAME/localize-type
+      repo: victor-bynd/localize-type
       branch: main
       deploy_on_push: true
     
