@@ -207,10 +207,26 @@ const FontTabs = () => {
                                                             min="25"
                                                             max="300"
                                                             step="5"
-                                                            value={effectiveSettings?.scale || fontScales.fallback}
+                                                            value={font.scale !== undefined ? font.scale : fontScales.fallback}
                                                             onChange={(e) => {
-                                                                const val = parseInt(e.target.value) || 25;
-                                                                updateFallbackFontOverride(font.id, 'scale', Math.max(25, Math.min(300, val)));
+                                                                const val = e.target.value;
+                                                                if (val === '') {
+                                                                    updateFallbackFontOverride(font.id, 'scale', '');
+                                                                } else {
+                                                                    const parsed = parseFloat(val);
+                                                                    updateFallbackFontOverride(font.id, 'scale', parsed);
+                                                                }
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                let val = parseFloat(e.target.value);
+                                                                if (isNaN(val)) {
+                                                                    // If empty/invalid, reset to undefined to use global fallback
+                                                                    resetFallbackFontOverrides(font.id);
+                                                                } else {
+                                                                    // Clamp value
+                                                                    val = Math.max(25, Math.min(300, val));
+                                                                    updateFallbackFontOverride(font.id, 'scale', val);
+                                                                }
                                                             }}
                                                             onClick={e => e.stopPropagation()}
                                                             className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
@@ -237,14 +253,45 @@ const FontTabs = () => {
                                             <div>
                                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                                     <span>Line Height</span>
-                                                    <span className="font-mono">{effectiveSettings?.lineHeight || lineHeight} <span className="text-slate-400">(min {lineHeight})</span></span>
+                                                    <div className="flex items-center gap-1">
+                                                        <input
+                                                            type="number"
+                                                            min="50"
+                                                            max="400"
+                                                            step="5"
+                                                            value={font.lineHeight !== undefined && font.lineHeight !== '' ? Math.round(font.lineHeight * 100) : Math.round(lineHeight * 100)}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === '') {
+                                                                    updateFallbackFontOverride(font.id, 'lineHeight', '');
+                                                                } else {
+                                                                    const parsed = parseFloat(val);
+                                                                    // Store as unitless/em for consistency, but allow intermediate states if needed?
+                                                                    // Actually update immediately: 150 -> 1.5
+                                                                    updateFallbackFontOverride(font.id, 'lineHeight', parsed / 100);
+                                                                }
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                let val = parseFloat(e.target.value);
+                                                                if (isNaN(val)) {
+                                                                    updateFallbackFontOverride(font.id, 'lineHeight', undefined);
+                                                                } else {
+                                                                    val = Math.max(50, Math.min(400, val));
+                                                                    updateFallbackFontOverride(font.id, 'lineHeight', val / 100);
+                                                                }
+                                                            }}
+                                                            onClick={e => e.stopPropagation()}
+                                                            className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
+                                                        />
+                                                        <span className="font-mono">%</span>
+                                                    </div>
                                                 </div>
                                                 <input
                                                     type="range"
                                                     min="0.5"
                                                     max="4.0"
-                                                    step="0.1"
-                                                    value={effectiveSettings?.lineHeight || lineHeight}
+                                                    step="0.05"
+                                                    value={font.lineHeight !== undefined && font.lineHeight !== '' ? font.lineHeight : lineHeight}
                                                     onChange={(e) => {
                                                         const val = parseFloat(e.target.value);
                                                         updateFallbackFontOverride(font.id, 'lineHeight', val);
