@@ -93,23 +93,6 @@ const SidebarHeaderConfig = ({ onBack }) => {
                                     className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                 />
                             </div>
-
-                            {/* Letter Spacing Control */}
-                            <div>
-                                <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                    <span>Letter Spacing</span>
-                                    <span className="font-mono text-slate-400">{style.letterSpacing}em</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="-0.1"
-                                    max="0.5"
-                                    step="0.01"
-                                    value={style.letterSpacing || 0}
-                                    onChange={(e) => updateHeaderStyle(tag, 'letterSpacing', parseFloat(e.target.value))}
-                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                />
-                            </div>
                         </div>
                     );
                 })}
