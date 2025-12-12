@@ -11,7 +11,6 @@ const FontTabs = () => {
         reorderFonts,
         getFontColor,
         getEffectiveFontSettings,
-        baseFontSize,
         fontScales,
         lineHeight,
         updateFallbackFontOverride,
@@ -111,7 +110,7 @@ const FontTabs = () => {
                                 </svg>
                             </button>
                         )}
-                        <div className={`flex items-center gap-2 mb-1 ${!isPrimary ? '-ml-[3px]' : ''}`}>
+                        <div className={`flex items-center gap-1 mb-1 ${!isPrimary ? '-ml-[3px]' : ''}`}>
                             <div
                                 className="text-slate-400 cursor-move flex-shrink-0 hover:text-indigo-600 transition-colors p-1 -ml-1 rounded hover:bg-slate-100"
                                 title="Drag to reorder"
@@ -238,12 +237,12 @@ const FontTabs = () => {
                                             <div>
                                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                                     <span>Line Height</span>
-                                                    <span className="font-mono">{effectiveSettings?.lineHeight || lineHeight}</span>
+                                                    <span className="font-mono">{effectiveSettings?.lineHeight || lineHeight} <span className="text-slate-400">(min {lineHeight})</span></span>
                                                 </div>
                                                 <input
                                                     type="range"
-                                                    min="0.8"
-                                                    max="3.0"
+                                                    min="0.5"
+                                                    max="4.0"
                                                     step="0.1"
                                                     value={effectiveSettings?.lineHeight || lineHeight}
                                                     onChange={(e) => {
