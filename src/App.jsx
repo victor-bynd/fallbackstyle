@@ -41,8 +41,8 @@ const MainContent = () => {
       {!fontObject ? (
         <div className="h-screen flex flex-col items-center justify-center p-4">
           <div className="max-w-xl w-full">
-            <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">Localize Type</h1>
-            <p className="text-center text-gray-500 mb-8">Localization Stress-Testing for Fonts</p>
+            <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">Beautify Your Fallbacks</h1>
+            <p className="text-center text-gray-500 mb-8">Stress-test your fallback fonts for beautiful localized typography.</p>
             <FontUploader />
           </div>
         </div>

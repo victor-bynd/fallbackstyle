@@ -16,9 +16,7 @@ export const TypoProvider = ({ children }) => {
             fontObject: null,
             fontUrl: null,
             fileName: null,
-            baseFontSize: 60,
-            scale: 100,
-            lineHeight: 1.2
+            baseFontSize: 60
         }
     ]);
     const [activeFont, setActiveFont] = useState('primary');
@@ -99,6 +97,11 @@ export const TypoProvider = ({ children }) => {
         setFonts(prev => [...prev, fontData]);
     };
 
+    // Add multiple fallback fonts (batch)
+    const addFallbackFonts = (fontsDataArray) => {
+        setFonts(prev => [...prev, ...fontsDataArray]);
+    };
+
     // Remove a fallback font
     const removeFallbackFont = (fontId) => {
         setFonts(prev => prev.filter(f => f.id !== fontId));
@@ -109,25 +112,29 @@ export const TypoProvider = ({ children }) => {
     };
 
     // Reorder fonts (move a font from oldIndex to newIndex)
+    // Reorder fonts (move a font from oldIndex to newIndex)
     const reorderFonts = (oldIndex, newIndex) => {
         setFonts(prev => {
             const newFonts = [...prev];
-            // Find primary font index (should always be first, but be safe)
-            const primaryIndex = newFonts.findIndex(f => f.type === 'primary');
-            
-            // Don't allow reordering if trying to move primary or move to primary position
-            if (oldIndex === primaryIndex || newIndex === primaryIndex) {
-                return prev;
-            }
-            
-            // Only allow reordering fallback fonts
-            if (newFonts[oldIndex].type !== 'fallback' || (newIndex > 0 && newFonts[newIndex]?.type === 'primary')) {
-                return prev;
-            }
-            
+
+            // Perform the move
             const [movedFont] = newFonts.splice(oldIndex, 1);
             newFonts.splice(newIndex, 0, movedFont);
-            return newFonts;
+
+            // Reassign types based on new position
+            // Index 0 is always Primary, others are Fallback
+            const finalFonts = newFonts.map((font, index) => ({
+                ...font,
+                type: index === 0 ? 'primary' : 'fallback'
+            }));
+
+            // Sync legacy state if Primary changed
+            const newPrimary = finalFonts[0];
+            setFontObject(newPrimary.fontObject);
+            setFontUrl(newPrimary.fontUrl);
+            setFileName(newPrimary.fileName);
+
+            return finalFonts;
         });
     };
 
@@ -136,8 +143,8 @@ export const TypoProvider = ({ children }) => {
 
     // Update a fallback font's override settings
     const updateFallbackFontOverride = (fontId, field, value) => {
-        setFonts(prev => prev.map(f => 
-            f.id === fontId 
+        setFonts(prev => prev.map(f =>
+            f.id === fontId
                 ? { ...f, [field]: value }
                 : f
         ));
@@ -145,10 +152,10 @@ export const TypoProvider = ({ children }) => {
 
     // Reset a fallback font's overrides to use global settings
     const resetFallbackFontOverrides = (fontId) => {
-        setFonts(prev => prev.map(f => 
+        setFonts(prev => prev.map(f =>
             f.id === fontId && f.type === 'fallback'
-                ? { 
-                    ...f, 
+                ? {
+                    ...f,
                     baseFontSize: undefined,
                     scale: undefined,
                     lineHeight: undefined
@@ -226,16 +233,59 @@ export const TypoProvider = ({ children }) => {
         return fallbackFontOverrides[langId] || null;
     };
 
+    // Font Identification Colors
+    const DEFAULT_PALETTE = [
+        '#0f172a', // Primary: Slate-900
+        '#16a34a', // Fallback 1: Green-600
+        '#2563eb', // Fallback 2: Blue-600
+        '#9333ea', // Fallback 3: Purple-600
+        '#d97706', // Fallback 4: Amber-600
+        '#0891b2', // Fallback 5: Cyan-600
+        '#db2777', // Fallback 6: Pink-600
+        '#4f46e5', // Fallback 7: Indigo-600
+        '#0d9488', // Fallback 8: Teal-600
+        '#ea580c', // Fallback 9: Orange-600
+        '#dc2626', // Fallback 10: Red-600
+    ];
+
+    const [fontColors, setFontColors] = useState(DEFAULT_PALETTE);
+
+    const updateFontColor = (index, color) => {
+        setFontColors(prev => {
+            const newColors = [...prev];
+            // Ensure array is long enough if setting a high index (though unlikely with current UI)
+            while (newColors.length <= index) {
+                newColors.push(DEFAULT_PALETTE[newColors.length % DEFAULT_PALETTE.length]);
+            }
+            newColors[index] = color;
+            return newColors;
+        });
+    };
+
+    const getFontColor = (index) => {
+        // If we have a stored color for this index, use it
+        if (fontColors[index]) {
+            return fontColors[index];
+        }
+        // Fallback or if array isn't long enough yet (defensive)
+        return DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
+    };
+
     return (
         <TypoContext.Provider value={{
             // NEW: Multi-font system
             fonts,
             setFonts,
+            fontColors, // Expose colors state
+            setFontColors,
+            updateFontColor,
+            getFontColor, // Expose helper
             activeFont,
             setActiveFont,
             getPrimaryFont,
             getActiveFont,
             addFallbackFont,
+            addFallbackFonts,
             removeFallbackFont,
             reorderFonts,
             updateFallbackFontOverride,

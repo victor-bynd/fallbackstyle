@@ -4,18 +4,48 @@ import { useTypo } from '../context/TypoContext';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 
 const FontUploader = () => {
-    const { loadFont } = useTypo();
+    const { loadFont, addFallbackFonts } = useTypo();
 
-    const handleFile = async (file) => {
-        try {
-            if (!file) return;
+    const handleFiles = async (fileList) => {
+        if (!fileList || fileList.length === 0) return;
 
-            const font = await parseFontFile(file);
-            const url = createFontUrl(file);
-            loadFont(font, url, file.name);
-        } catch (err) {
-            console.error('Error parsing font:', err);
-            alert('Failed to parse font file. Please ensure it is a valid TTF, OTF, WOFF, or WOFF2 file.');
+        const files = Array.from(fileList);
+        const processedFonts = [];
+        let errorCount = 0;
+
+        // Process all files
+        for (const file of files) {
+            try {
+                const font = await parseFontFile(file);
+                const url = createFontUrl(file);
+                processedFonts.push({ font, url, file });
+            } catch (err) {
+                console.error(`Error parsing font ${file.name}:`, err);
+                errorCount++;
+            }
+        }
+
+        if (processedFonts.length > 0) {
+            // First font becomes Primary
+            const primary = processedFonts[0];
+            loadFont(primary.font, primary.url, primary.file.name);
+
+            // Remaining fonts become Fallbacks
+            if (processedFonts.length > 1) {
+                const fallbacks = processedFonts.slice(1).map(item => ({
+                    id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'fallback',
+                    fontObject: item.font,
+                    fontUrl: item.url,
+                    fileName: item.file.name,
+                    name: item.file.name
+                }));
+                addFallbackFonts(fallbacks);
+            }
+        }
+
+        if (errorCount > 0) {
+            alert(`Failed to parse ${errorCount} font file(s).`);
         }
     };
 
@@ -23,8 +53,8 @@ const FontUploader = () => {
         e.preventDefault();
         e.stopPropagation();
 
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
         }
     }, []);
 
@@ -34,8 +64,8 @@ const FontUploader = () => {
     }, []);
 
     const onInputChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFile(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+            handleFiles(e.target.files);
         }
     };
 
@@ -59,6 +89,7 @@ const FontUploader = () => {
                 id="font-input"
                 className="hidden"
                 accept=".ttf,.otf,.woff,.woff2"
+                multiple
                 onChange={onInputChange}
             />
 
@@ -69,10 +100,10 @@ const FontUploader = () => {
             </div>
 
             <h3 className="text-xl font-bold mb-2 text-slate-800 group-hover:text-indigo-600 transition-colors">
-                Drop Font File Here
+                Drop Font Files Here
             </h3>
             <p className="text-slate-500 text-sm max-w-sm mb-6">
-                Drag & drop your font file, or click to browse.
+                Drag & drop multiple files, or click to browse.
             </p>
 
             <div className="flex gap-2">

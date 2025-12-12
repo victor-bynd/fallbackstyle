@@ -4,37 +4,60 @@ import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import clsx from 'clsx';
 
 const FallbackFontAdder = ({ onClose, onAdd }) => {
-    const { addFallbackFont } = useTypo();
+    const { addFallbackFont, addFallbackFonts } = useTypo();
     const [mode, setMode] = useState('name'); // 'name' or 'upload'
     const [fontName, setFontName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleFile = async (file) => {
-        if (!file) return;
-        
+    const handleFiles = async (fileList) => {
+        if (!fileList || fileList.length === 0) return;
+
         setIsProcessing(true);
+        const fontsToAdd = [];
+        let errorCount = 0;
+
         try {
-            const font = await parseFontFile(file);
-            const url = createFontUrl(file);
-            const fontId = `fallback-${Date.now()}`;
-            
-            addFallbackFont({
-                id: fontId,
-                type: 'fallback',
-                fontObject: font,
-                fontUrl: url,
-                fileName: file.name,
-                name: file.name,
-                baseFontSize: 60,
-                scale: 100,
-                lineHeight: 1.2
+            const promises = Array.from(fileList).map(async (file) => {
+                try {
+                    const font = await parseFontFile(file);
+                    const url = createFontUrl(file);
+                    const fontId = `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                    return {
+                        id: fontId,
+                        type: 'fallback',
+                        fontObject: font,
+                        fontUrl: url,
+                        fileName: file.name,
+                        name: file.name
+                    };
+                } catch (err) {
+                    console.error(`Error parsing font ${file.name}:`, err);
+                    errorCount++;
+                    return null;
+                }
             });
-            
-            onAdd && onAdd();
-            onClose();
+
+            const results = await Promise.all(promises);
+            const validFonts = results.filter(f => f !== null);
+
+            if (validFonts.length > 0) {
+                if (validFonts.length === 1) {
+                    addFallbackFont(validFonts[0]);
+                } else {
+                    addFallbackFonts(validFonts);
+                }
+                onAdd && onAdd();
+                onClose();
+            }
+
+            if (errorCount > 0) {
+                alert(`Failed to parse ${errorCount} font file(s). Please ensure they are valid TTF, OTF, WOFF, or WOFF2 files.`);
+            }
+
         } catch (err) {
-            console.error('Error parsing font:', err);
-            alert('Failed to parse font file. Please ensure it is a valid TTF, OTF, WOFF, or WOFF2 file.');
+            console.error('General error processing fonts:', err);
+            alert('An unexpected error occurred while processing fonts.');
         } finally {
             setIsProcessing(false);
         }
@@ -53,10 +76,7 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
             fontObject: null,
             fontUrl: null,
             fileName: null,
-            name: fontName.trim(),
-            baseFontSize: 60,
-            scale: 100,
-            lineHeight: 1.2
+            name: fontName.trim()
         });
 
         onAdd && onAdd();
@@ -66,8 +86,8 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
     const onDrop = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
         }
     };
 
@@ -77,8 +97,8 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
     };
 
     const onInputChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFile(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+            handleFiles(e.target.files);
         }
     };
 
@@ -178,6 +198,7 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                         id="fallback-font-input"
                         className="hidden"
                         accept=".ttf,.otf,.woff,.woff2"
+                        multiple
                         onChange={onInputChange}
                         disabled={isProcessing}
                     />
@@ -196,10 +217,10 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                     </div>
 
                     <h4 className="text-sm font-bold mb-1 text-slate-800">
-                        {isProcessing ? 'Processing...' : 'Drop Font File Here'}
+                        {isProcessing ? 'Processing Fonts...' : 'Drop Font Files Here'}
                     </h4>
                     <p className="text-slate-500 text-xs mb-4">
-                        Drag & drop or click to browse
+                        Drag & drop multiple files or click to browse
                     </p>
 
                     <div className="flex gap-2">

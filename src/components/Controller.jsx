@@ -34,22 +34,16 @@ const Controller = () => {
     const hasOverrides = Object.keys(lineHeightOverrides).length > 0;
     const hasFallbackFontOverrides = Object.keys(fallbackFontOverrides).length > 0;
     const activeFontObj = getActiveFont();
-    const isPrimary = activeFont === 'primary';
+    const isPrimary = activeFontObj?.type === 'primary';
     const effectiveSettings = getEffectiveFontSettings(activeFont);
-    
-    // Check if fallback font has any overrides
-    const hasFallbackOverrides = !isPrimary && activeFontObj && (
-        activeFontObj.baseFontSize !== undefined ||
-        activeFontObj.scale !== undefined ||
-        activeFontObj.lineHeight !== undefined
-    );
+
+
 
     return (
         <div className="w-80 bg-white border-r border-gray-200 p-6 flex flex-col gap-6 h-screen sticky top-0 overflow-y-auto z-10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.05)]">
             {/* Static Header - Always Visible */}
             <div>
-                <h2 className="text-2xl font-bold mb-1 text-slate-800 tracking-tight">Localize Type</h2>
-                <p className="text-slate-500 text-sm font-medium">Stress-test your fonts</p>
+                <h2 className="text-2xl font-bold mb-1 text-slate-800 tracking-tight">Beautify Your Fallbacks</h2>
             </div>
 
             {/* Font Tabs */}
@@ -60,69 +54,7 @@ const Controller = () => {
                 <SidebarHeaderConfig onBack={() => setSidebarMode('main')} />
             ) : (
                 <>
-                    {/* Fallback Overrides Section - Only shown when viewing fallback font */}
-                    {!isPrimary && (
-                        <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                                    FALLBACK OVERRIDES
-                                </label>
-                                {hasFallbackOverrides && (
-                                    <button
-                                        onClick={() => resetFallbackFontOverrides(activeFont)}
-                                        className="text-[9px] text-rose-500 font-bold hover:text-rose-700 hover:underline"
-                                        title="Reset to global settings"
-                                    >
-                                        Reset
-                                    </button>
-                                )}
-                            </div>
-                            <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                <div>
-                                    <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                        <span>Font Scale %</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-slate-400 font-mono text-[10px]">{Math.round((effectiveSettings?.baseFontSize || baseFontSize) * ((effectiveSettings?.scale || fontScales.active) / 100))}px</span>
-                                            <span>{effectiveSettings?.scale || fontScales.active}%</span>
-                                        </div>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="25"
-                                        max="300"
-                                        step="5"
-                                        value={effectiveSettings?.scale || fontScales.active}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value);
-                                            updateFallbackFontOverride(activeFont, 'scale', val);
-                                        }}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                    />
-                                    <p className="text-[9px] text-slate-400 mt-1">Global: {fontScales.active}%</p>
-                                </div>
 
-                                <div>
-                                    <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                        <span>Line Height</span>
-                                        <span>{effectiveSettings?.lineHeight || lineHeight}</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="0.8"
-                                        max="3.0"
-                                        step="0.1"
-                                        value={effectiveSettings?.lineHeight || lineHeight}
-                                        onChange={(e) => {
-                                            const val = parseFloat(e.target.value);
-                                            updateFallbackFontOverride(activeFont, 'lineHeight', val);
-                                        }}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                    />
-                                    <p className="text-[9px] text-slate-400 mt-1">Global: {lineHeight}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Global Typography Settings - Always visible */}
                     <div>
@@ -150,7 +82,7 @@ const Controller = () => {
 
                                     <div>
                                         <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                            <span>Fallback Scale %</span>
+                                            <span>GlobalFallback Scale %</span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-slate-400 font-mono text-[10px]">{Math.round(baseFontSize * (fontScales.fallback / 100))}px</span>
                                                 <span>{fontScales.fallback}%</span>
@@ -257,37 +189,7 @@ const Controller = () => {
                         </div>
                     )}
 
-                    <div>
-                        <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
-                            Colors
-                        </label>
-                        <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-slate-600 font-medium">Text Color</span>
-                                <div className="p-1 bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:border-gray-300">
-                                    <input
-                                        type="color"
-                                        value={colors.primary}
-                                        onChange={(e) => setColors(prev => ({ ...prev, primary: e.target.value }))}
-                                        className="block w-6 h-6 cursor-pointer"
-                                        title="Choose text color"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-slate-600 font-medium">Missing Glyph Text</span>
-                                <div className="p-1 bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:border-gray-300">
-                                    <input
-                                        type="color"
-                                        value={colors.missing}
-                                        onChange={(e) => setColors(prev => ({ ...prev, missing: e.target.value }))}
-                                        className="block w-6 h-6 cursor-pointer"
-                                        title="Choose missing glyph color"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                 </>
             )}
         </div>

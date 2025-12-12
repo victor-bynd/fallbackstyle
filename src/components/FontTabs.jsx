@@ -3,7 +3,23 @@ import { useTypo } from '../context/TypoContext';
 import FallbackFontAdder from './FallbackFontAdder';
 
 const FontTabs = () => {
-    const { fonts, activeFont, setActiveFont, removeFallbackFont, reorderFonts } = useTypo();
+    const {
+        fonts,
+        activeFont,
+        setActiveFont,
+        removeFallbackFont,
+        reorderFonts,
+        getFontColor,
+        getEffectiveFontSettings,
+        baseFontSize,
+        fontScales,
+        lineHeight,
+        updateFallbackFontOverride,
+        resetFallbackFontOverrides,
+        colors,
+        updateFontColor,
+        setColors
+    } = useTypo();
     const [showAdder, setShowAdder] = useState(false);
     const [draggedIndex, setDraggedIndex] = useState(null);
     const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -16,17 +32,11 @@ const FontTabs = () => {
     };
 
     const handleDragStart = (e, index) => {
-        const font = fonts[index];
-        // Only allow dragging fallback fonts
-        if (font.type === 'fallback') {
-            setDraggedIndex(index);
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', index);
-            // Make the dragged element semi-transparent
-            e.currentTarget.style.opacity = '0.5';
-        } else {
-            e.preventDefault();
-        }
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', index);
+        // Make the dragged element semi-transparent
+        e.currentTarget.style.opacity = '0.5';
     };
 
     const handleDragEnd = (e) => {
@@ -38,10 +48,9 @@ const FontTabs = () => {
     const handleDragOver = (e, index) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        
-        const font = fonts[index];
-        // Only allow dropping on fallback fonts (not primary)
-        if (font.type === 'fallback' && draggedIndex !== null && draggedIndex !== index) {
+
+        // Allow dropping on any position other than self
+        if (draggedIndex !== null && draggedIndex !== index) {
             setDragOverIndex(index);
         }
     };
@@ -53,19 +62,14 @@ const FontTabs = () => {
     const handleDrop = (e, dropIndex) => {
         e.preventDefault();
         setDragOverIndex(null);
-        
+
         if (draggedIndex === null || draggedIndex === dropIndex) {
             return;
         }
 
-        const draggedFont = fonts[draggedIndex];
-        const dropFont = fonts[dropIndex];
-        
-        // Only allow reordering fallback fonts
-        if (draggedFont.type === 'fallback' && dropFont.type === 'fallback') {
-            reorderFonts(draggedIndex, dropIndex);
-        }
-        
+        // Allow reordering all fonts
+        reorderFonts(draggedIndex, dropIndex);
+
         setDraggedIndex(null);
     };
 
@@ -76,20 +80,17 @@ const FontTabs = () => {
                 const isPrimary = font.type === 'primary';
                 const isDragging = draggedIndex === index;
                 const isDragOver = dragOverIndex === index;
-                const isDraggable = !isPrimary;
+                const isDraggable = true;
 
                 return (
                     <div
                         key={font.id}
-                        draggable={isDraggable}
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragEnd={handleDragEnd}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, index)}
                         className={`
                             bg-slate-50 rounded-lg p-4 border transition-all relative
-                            ${isPrimary ? 'cursor-pointer' : 'cursor-move'}
+                            ${isPrimary ? 'cursor-pointer' : ''}
                             ${isActive
                                 ? 'border-indigo-500 ring-2 ring-indigo-500/20'
                                 : 'border-slate-200 hover:border-slate-300'
@@ -111,13 +112,17 @@ const FontTabs = () => {
                             </button>
                         )}
                         <div className={`flex items-center gap-2 mb-1 ${!isPrimary ? '-ml-[3px]' : ''}`}>
-                            {!isPrimary && (
-                                <div className="text-slate-400 cursor-move flex-shrink-0" title="Drag to reorder">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                        <path d="M7 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM7 8a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM7 14a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 8a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 14a2 2 0 1 1 0 4a2 2 0 0 1 0-4Z" />
-                                    </svg>
-                                </div>
-                            )}
+                            <div
+                                className="text-slate-400 cursor-move flex-shrink-0 hover:text-indigo-600 transition-colors p-1 -ml-1 rounded hover:bg-slate-100"
+                                title="Drag to reorder"
+                                draggable={isDraggable}
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                                    <path d="M7 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM7 8a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM7 14a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 8a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 14a2 2 0 1 1 0 4a2 2 0 0 1 0-4Z" />
+                                </svg>
+                            </div>
                             <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                                 {font.type === 'primary' ? 'Primary Font' : 'Fallback Font'}
                             </div>
@@ -126,20 +131,148 @@ const FontTabs = () => {
                             {font.fileName || font.name || 'No font uploaded'}
                         </div>
                         {font.fontObject && (
-                            <div className={`text-xs text-slate-400 mt-2 flex items-center gap-1 ${!isPrimary ? '' : ''}`}>
-                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <div className={`text-xs text-slate-400 mt-2 flex items-center gap-2 ${!isPrimary ? '' : ''}`}>
+                                <div className="relative w-3 h-3 flex-shrink-0 cursor-pointer group">
+                                    <div
+                                        className="absolute inset-0 rounded-full ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-shadow"
+                                        style={{ backgroundColor: getFontColor(index) }}
+                                    />
+                                    <input
+                                        type="color"
+                                        value={getFontColor(index)}
+                                        onChange={(e) => updateFontColor(index, e.target.value)}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        title={`Change color for ${isPrimary ? 'Primary' : 'Fallback'} font`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
                                 {font.fontObject.numGlyphs} glyphs
                             </div>
                         )}
                         {!font.fontObject && font.name && (
-                            <div className={`text-xs text-slate-400 mt-2 flex items-center gap-1 ${!isPrimary ? '' : ''}`}>
-                                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                            <div className={`text-xs text-slate-400 mt-2 flex items-center gap-2 ${!isPrimary ? '' : ''}`}>
+                                <div className="relative w-3 h-3 flex-shrink-0 cursor-pointer group">
+                                    <div
+                                        className="absolute inset-0 rounded-full ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-shadow"
+                                        style={{ backgroundColor: getFontColor(index) }}
+                                    />
+                                    <input
+                                        type="color"
+                                        value={getFontColor(index)}
+                                        onChange={(e) => updateFontColor(index, e.target.value)}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        title={`Change color for ${isPrimary ? 'Primary' : 'Fallback'} font`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
                                 System/Web Font
+                            </div>
+                        )}
+
+                        {!isPrimary && isActive && (
+                            <div className="mt-4 pt-3 border-t border-slate-200/60 animate-in fade-in slide-in-from-top-2 duration-200">
+                                {(() => {
+                                    const effectiveSettings = getEffectiveFontSettings(font.id);
+                                    const hasOverrides = effectiveSettings && (
+                                        (effectiveSettings.scale !== fontScales.fallback) ||
+                                        (effectiveSettings.lineHeight !== lineHeight)
+                                    );
+
+                                    return (
+                                        <div className="space-y-3" onClick={e => e.stopPropagation()}>
+                                            {/* Header with Reset */}
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                                                    Overrides
+                                                </span>
+                                                {hasOverrides && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            resetFallbackFontOverrides(font.id);
+                                                        }}
+                                                        className="text-[9px] text-rose-500 font-bold hover:text-rose-700 hover:underline"
+                                                    >
+                                                        Reset
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Font Scale Slider */}
+                                            <div>
+                                                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                                    <span>Scale</span>
+                                                    <span className="font-mono">{effectiveSettings?.scale || fontScales.fallback}%</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="25"
+                                                    max="300"
+                                                    step="5"
+                                                    value={effectiveSettings?.scale || fontScales.fallback}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        updateFallbackFontOverride(font.id, 'scale', val);
+                                                    }}
+                                                    onClick={e => e.stopPropagation()}
+                                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 block"
+                                                />
+                                            </div>
+
+                                            {/* Line Height Slider */}
+                                            <div>
+                                                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                                    <span>Line Height</span>
+                                                    <span className="font-mono">{effectiveSettings?.lineHeight || lineHeight}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0.8"
+                                                    max="3.0"
+                                                    step="0.1"
+                                                    value={effectiveSettings?.lineHeight || lineHeight}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        updateFallbackFontOverride(font.id, 'lineHeight', val);
+                                                    }}
+                                                    onClick={e => e.stopPropagation()}
+                                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 block"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>
                 );
             })}
+
+            {/* Static System Fallback Tab */}
+            <div className="bg-slate-50/50 rounded-lg p-4 border border-slate-200 border-dashed relative select-none">
+                <div className="flex items-center gap-2 mb-1">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                        Final Fallback
+                    </div>
+                </div>
+
+                <div className="text-xs text-slate-400 mt-2 flex items-center gap-2">
+                    <div className="relative w-3 h-3 flex-shrink-0 cursor-pointer group">
+                        <div
+                            className="absolute inset-0 rounded-full ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-shadow"
+                            style={{ backgroundColor: colors.missing }}
+                        />
+                        <input
+                            type="color"
+                            value={colors.missing}
+                            onChange={(e) => setColors(prev => ({ ...prev, missing: e.target.value }))}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            title="Change system fallback color"
+                        />
+                    </div>
+                    System Default
+                </div>
+            </div>
 
             {/* Add Fallback Font Button */}
             <button
