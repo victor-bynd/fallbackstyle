@@ -16,8 +16,12 @@ function generateFontFaceRules(fonts, includeFontFace, fontScales) {
             const fontFamily = font.fileName.replace(/\.[^/.]+$/, ''); // Remove extension
             const isFallback = font.type === 'fallback';
 
-            // Calculate font-size-adjust value (scale percentage as decimal)
-            const sizeAdjust = isFallback ? (fontScales.fallback / 100) : 1;
+            // Use font-specific scale if set, otherwise use global fallback scale
+            let sizeAdjust = 1; // Default for primary fonts
+            if (isFallback) {
+                // Check if this font has a specific scale override, otherwise use global
+                sizeAdjust = (font.scale ?? fontScales.fallback) / 100;
+            }
 
             rules.push(`@font-face {
   font-family: '${fontFamily}';
@@ -46,6 +50,32 @@ function generateHeaderStyles(headerStyles, baseFontSize) {
     });
 
     return `/* Header Styles */\n${rules.join('\n\n')}\n\n`;
+}
+
+/**
+ * Generate fallback font line-height overrides
+ */
+function generateFallbackFontLineHeights(context) {
+    const { fonts, lineHeight } = context;
+
+    const fallbackFonts = fonts.filter(f => f.type === 'fallback');
+    if (fallbackFonts.length === 0) return '';
+
+    const rules = [];
+
+    fallbackFonts.forEach(font => {
+        // Only generate if this font has a line-height override
+        if (font.lineHeight && font.lineHeight !== lineHeight) {
+            const fontFamily = font.fileName?.replace(/\.[^/.]+$/, '') || 'sans-serif';
+            const className = fontFamily.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+            rules.push(`.font-${className} {
+  line-height: ${font.lineHeight};
+}`);
+        }
+    });
+
+    return rules.length > 0 ? `/* Fallback Font Line Height Overrides */\n${rules.join('\n\n')}\n\n` : '';
 }
 
 /**
@@ -97,6 +127,7 @@ export function generateCSS(context, languages = [], options = {}) {
     // Generate sections
     css += generateFontFaceRules(context.fonts, includeFontFace, context.fontScales);
     css += generateHeaderStyles(context.headerStyles, context.baseFontSize);
+    css += generateFallbackFontLineHeights(context);
     css += generateLanguageOverrides(context, languages);
 
     // Minify if needed
