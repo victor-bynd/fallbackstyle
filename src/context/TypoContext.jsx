@@ -28,12 +28,12 @@ export const TypoProvider = ({ children }) => {
     const [isFallbackLinked, setIsFallbackLinked] = useState(true);
 
     const [headerStyles, setHeaderStyles] = useState({
-        h1: { scale: 1.0, lineHeight: 1.2 },
-        h2: { scale: 0.8, lineHeight: 1.2 },
-        h3: { scale: 0.6, lineHeight: 1.2 },
-        h4: { scale: 0.5, lineHeight: 1.2 },
-        h5: { scale: 0.4, lineHeight: 1.2 },
-        h6: { scale: 0.3, lineHeight: 1.2 }
+        h1: { scale: 1.0, lineHeight: 1.2, letterSpacing: 0 },
+        h2: { scale: 0.8, lineHeight: 1.2, letterSpacing: 0 },
+        h3: { scale: 0.6, lineHeight: 1.2, letterSpacing: 0 },
+        h4: { scale: 0.5, lineHeight: 1.2, letterSpacing: 0 },
+        h5: { scale: 0.4, lineHeight: 1.2, letterSpacing: 0 },
+        h6: { scale: 0.3, lineHeight: 1.2, letterSpacing: 0 }
     });
 
     // Content Overrides
@@ -61,6 +61,7 @@ export const TypoProvider = ({ children }) => {
     };
 
     const [lineHeight, setLineHeight] = useState(1.2);
+    const [letterSpacing, setLetterSpacing] = useState(0);
     const [textCase, setTextCase] = useState('none');
     const [viewMode, setViewMode] = useState('h1');
     const [gridColumns, setGridColumns] = useState(1);
@@ -291,6 +292,8 @@ export const TypoProvider = ({ children }) => {
             setFontScales,
             lineHeight,
             setLineHeight,
+            letterSpacing,
+            setLetterSpacing,
             lineHeightOverrides,
             updateLineHeightOverride,
             resetAllLineHeightOverrides,

@@ -134,11 +134,39 @@ const LanguageCard = ({ language }) => {
     const renderedText = useMemo(() => {
         if (!fontObject) return null;
 
+        // Check if this language has a fallback override
+        const currentFallbackFontId = getFallbackFontForLanguage(language.id);
+        const hasOverride = currentFallbackFontId && currentFallbackFontId !== 'cascade';
+
         // Get primary font effective settings
         const primaryFont = fonts.find(f => f.type === 'primary');
         // Fallback to 'primary' ID if not found (though should be found)
         const primarySettings = getEffectiveFontSettings(primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
         const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
+
+        // If there's an override, use that font for ALL text
+        if (hasOverride) {
+            const overrideFont = fallbackFontStack[0]; // Should be the only font in stack
+            if (overrideFont) {
+                const overrideSettings = overrideFont.settings || { baseFontSize, scale: fontScales.fallback, lineHeight };
+                const overrideFontSize = overrideSettings.baseFontSize * (overrideSettings.scale / 100);
+                const fontIndex = fonts.findIndex(f => f.id === overrideFont.fontId);
+                const fontColor = fontIndex >= 0 ? getFontColor(fontIndex) : colors.fallback;
+
+                return contentToRender.split('').map((char, index) => (
+                    <span
+                        key={index}
+                        style={{
+                            fontFamily: fallbackFontStackString,
+                            color: fontColor,
+                            fontSize: `${overrideFontSize}px`
+                        }}
+                    >
+                        {char}
+                    </span>
+                ));
+            }
+        }
 
         // Use the dynamic content
         return contentToRender.split('').map((char, index) => {
@@ -386,6 +414,7 @@ const LanguageCard = ({ language }) => {
                                                     fontSize: `${headerStyle.scale}em`,
                                                     fontWeight: 700,
                                                     lineHeight: headerStyle.lineHeight,
+                                                    letterSpacing: `${headerStyle.letterSpacing || 0}em`,
                                                     textTransform: textCase
                                                 }}
                                             >
@@ -406,6 +435,7 @@ const LanguageCard = ({ language }) => {
                                     fontSize: `${headerStyles[viewMode].scale}em`,
                                     fontWeight: 700,
                                     lineHeight: headerStyles[viewMode].lineHeight,
+                                    letterSpacing: `${headerStyles[viewMode].letterSpacing || 0}em`,
                                     textTransform: textCase
                                 }}
                             >

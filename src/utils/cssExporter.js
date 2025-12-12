@@ -46,6 +46,7 @@ function generateHeaderStyles(headerStyles, baseFontSize) {
         rules.push(`${tag} {
   font-size: ${fontSize}px;
   line-height: ${style.lineHeight};
+  letter-spacing: ${style.letterSpacing}em;
 }`);
     });
 
