@@ -8,6 +8,21 @@ export const TypoProvider = ({ children }) => {
     const [fileName, setFileName] = useState(null);
     const [fallbackFont, setFallbackFont] = useState('sans-serif');
 
+    // NEW: Multi-font system state (alongside existing state for now)
+    const [fonts, setFonts] = useState([
+        {
+            id: 'primary',
+            type: 'primary',
+            fontObject: null,
+            fontUrl: null,
+            fileName: null,
+            baseFontSize: 60,
+            scale: 100,
+            lineHeight: 1.2
+        }
+    ]);
+    const [activeFont, setActiveFont] = useState('primary');
+
     // New Scaling State
     const [baseFontSize, setBaseFontSize] = useState(60);
     const [fontScales, setFontScales] = useState({ active: 100, fallback: 100 });
@@ -62,10 +77,21 @@ export const TypoProvider = ({ children }) => {
     ];
 
     const loadFont = (font, url, name) => {
+        // Update old state (for backward compatibility)
         setFontObject(font);
         setFontUrl(url);
         setFileName(name);
+
+        // Update new fonts array
+        setFonts(prev => prev.map(f =>
+            f.type === 'primary'
+                ? { ...f, fontObject: font, fontUrl: url, fileName: name }
+                : f
+        ));
     };
+
+    // Helper to get primary font from fonts array
+    const getPrimaryFont = () => fonts.find(f => f.type === 'primary');
 
     const updateLineHeightOverride = (langId, value) => {
         setLineHeightOverrides(prev => ({
@@ -91,6 +117,14 @@ export const TypoProvider = ({ children }) => {
 
     return (
         <TypoContext.Provider value={{
+            // NEW: Multi-font system
+            fonts,
+            setFonts,
+            activeFont,
+            setActiveFont,
+            getPrimaryFont,
+
+            // Existing values
             fontObject,
             fontUrl,
             fileName,

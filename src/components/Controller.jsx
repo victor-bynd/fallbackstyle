@@ -1,6 +1,7 @@
 import { useTypo } from '../context/TypoContext';
 import { useState } from 'react';
 import SidebarHeaderConfig from './SidebarHeaderConfig';
+import FontTabs from './FontTabs';
 
 const Controller = () => {
     const {
@@ -36,6 +37,9 @@ const Controller = () => {
                 <h2 className="text-2xl font-bold mb-1 text-slate-800 tracking-tight">Localize Type</h2>
                 <p className="text-slate-500 text-sm font-medium">Stress-test your fonts</p>
             </div>
+
+            {/* Font Tabs */}
+            <FontTabs />
 
             {/* Dynamic Content Area */}
             {sidebarMode === 'headers' ? (
