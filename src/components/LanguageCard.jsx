@@ -278,7 +278,8 @@ const LanguageCard = ({ language }) => {
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 mr-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Override</span>
                         <select
                             value={currentFallbackFontId || 'cascade'}
                             onChange={(e) => {
@@ -289,10 +290,10 @@ const LanguageCard = ({ language }) => {
                                     setFallbackFontOverride(language.id, value);
                                 }
                             }}
-                            className="text-[10px] bg-white border border-gray-200 rounded px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer min-w-[100px]"
+                            className="text-[10px] bg-white border border-gray-200 rounded px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer w-auto max-w-[120px]"
                             title="Select Fallback Font"
                         >
-                            <option value="cascade">Fallback: Cascade</option>
+                            <option value="cascade">Default</option>
                             {fonts.filter(f => f.type === 'fallback').map(font => (
                                 <option key={font.id} value={font.id}>
                                     {font.fileName || font.name || 'Unnamed Font'}

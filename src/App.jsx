@@ -55,7 +55,7 @@ const MainContent = () => {
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               {/* Text Casing Dropdown */}
               <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex items-center px-3 h-[42px]">
-                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mr-2">Casing:</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-2">Casing:</span>
                 <select
                   value={textCase}
                   onChange={(e) => setTextCase(e.target.value)}
@@ -70,7 +70,7 @@ const MainContent = () => {
 
               {/* Grid Control */}
               <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex items-center px-3 h-[42px]">
-                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mr-2">Columns:</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-2">Columns:</span>
                 <select
                   value={gridColumns}
                   onChange={(e) => setGridColumns(parseInt(e.target.value))}
