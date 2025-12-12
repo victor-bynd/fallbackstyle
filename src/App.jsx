@@ -5,7 +5,7 @@ import LanguageCard from './components/LanguageCard';
 import languages from './data/languages.json';
 
 const MainContent = () => {
-  const { fontObject, fontUrl, gridColumns, setGridColumns, viewMode, setViewMode, textCase, setTextCase } = useTypo();
+  const { fontObject, fontUrl, fonts, gridColumns, setGridColumns, viewMode, setViewMode, textCase, setTextCase } = useTypo();
 
   const tabs = [
     { id: 'all', label: 'All' },
@@ -19,21 +19,30 @@ const MainContent = () => {
 
   return (
     <div className="flex-1 bg-slate-50 min-h-screen">
-      {/* Dynamic Style Injection for the uploaded font */}
-      {fontUrl && (
-        <style>{`
+      {/* Dynamic Style Injection for uploaded fonts */}
+      <style>{`
+        ${fontUrl ? `
           @font-face {
             font-family: 'UploadedFont';
             src: url('${fontUrl}');
           }
-        `}</style>
-      )}
+        ` : ''}
+        ${fonts
+          .filter(f => f.type === 'fallback' && f.fontUrl)
+          .map(font => `
+            @font-face {
+              font-family: 'FallbackFont-${font.id}';
+              src: url('${font.fontUrl}');
+            }
+          `)
+          .join('')}
+      `}</style>
 
       {!fontObject ? (
         <div className="h-screen flex flex-col items-center justify-center p-4">
           <div className="max-w-xl w-full">
-            <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">Localize Type</h1>
-            <p className="text-center text-gray-500 mb-8">Localization Stress-Testing for Fonts</p>
+            <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">Beautify Your Fallbacks</h1>
+            <p className="text-center text-gray-500 mb-8">Stress-test your fallback fonts for beautiful localized typography.</p>
             <FontUploader />
           </div>
         </div>
@@ -41,7 +50,6 @@ const MainContent = () => {
         <div className="p-8 md:p-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-800">Languages</h1>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 items-center">
