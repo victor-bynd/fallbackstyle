@@ -7,25 +7,16 @@ import CSSExporter from './CSSExporter';
 const Controller = () => {
     const {
         fontObject,
-        colors,
-        setColors,
         lineHeight,
         setLineHeight,
         lineHeightOverrides,
         resetAllLineHeightOverrides,
         fallbackFontOverrides,
         resetAllFallbackFontOverrides,
-        isFallbackLinked,
         setIsFallbackLinked,
         baseFontSize,
-        setBaseFontSize,
         fontScales,
         setFontScales,
-        activeFont,
-        getActiveFont,
-        updateFallbackFontOverride,
-        resetFallbackFontOverrides,
-        getEffectiveFontSettings,
         setHeaderStyles
     } = useTypo();
 
@@ -36,9 +27,6 @@ const Controller = () => {
 
     const hasOverrides = Object.keys(lineHeightOverrides).length > 0;
     const hasFallbackFontOverrides = Object.keys(fallbackFontOverrides).length > 0;
-    const activeFontObj = getActiveFont();
-    const isPrimary = activeFontObj?.type === 'primary';
-    const effectiveSettings = getEffectiveFontSettings(activeFont);
 
 
 
@@ -147,7 +135,12 @@ const Controller = () => {
                     </div>
 
                     {/* Font Tabs */}
-                    <FontTabs />
+                    <div>
+                        <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
+                            Font Stack
+                        </label>
+                        <FontTabs />
+                    </div>
 
                     {/* Reset All Overrides Section */}
                     {(hasOverrides || hasFallbackFontOverrides) && (
@@ -176,10 +169,13 @@ const Controller = () => {
                         </div>
                     )}
 
+                    {/* Spacer to push button to bottom */}
+                    <div className="flex-1"></div>
+
                     {/* Export CSS Button - Bottom of Sidebar */}
                     <button
                         onClick={() => setShowCSSExporter(true)}
-                        className="w-full mt-4 bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                        className="w-full bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="16 18 22 12 16 6"></polyline>

@@ -7,20 +7,16 @@ const LanguageCard = ({ language }) => {
         fallbackFont,
         fonts,
         colors,
-        fontSizes,
         lineHeight,
         baseFontSize,
         fontScales,
-        lineHeightOverrides,
         fallbackScaleOverrides,
-        fallbackFontOverrides,
         setFallbackFontOverride,
         clearFallbackFontOverride,
         getFallbackFontForLanguage,
         textCase,
         fallbackOptions,
         viewMode,
-        headerScales,
         textOverrides,
         setTextOverride,
         resetTextOverride,
@@ -31,10 +27,6 @@ const LanguageCard = ({ language }) => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
-
-    if (!fontSizes || !headerScales) return null;
-
-    const fallbackLabel = fallbackOptions.find(opt => opt.value === fallbackFont)?.label || fallbackFont;
 
     // Build fallback font stack from fonts array with their settings
     // If language has override, use only that font; otherwise use cascade
@@ -166,7 +158,7 @@ const LanguageCard = ({ language }) => {
                                 usedFallback = fallback;
                                 break;
                             }
-                        } catch (e) {
+                        } catch {
                             // Ignore errors, continue to next
                         }
                     } else {
@@ -217,7 +209,7 @@ const LanguageCard = ({ language }) => {
 
             return <span key={index} style={{ color: getFontColor(0) }}>{char}</span>;
         });
-    }, [fontObject, contentToRender, fallbackFontStack, fallbackFontStackString, colors, baseFontSize, fontScales, fallbackScaleOverrides, language.id, getEffectiveFontSettings, getFallbackFontForLanguage, getFontColor, fonts]);
+    }, [fontObject, contentToRender, fallbackFontStack, fallbackFontStackString, colors, baseFontSize, fontScales, fallbackScaleOverrides, language.id, getEffectiveFontSettings, getFontColor, fonts, lineHeight]);
 
     if (!fontObject) return null;
 
@@ -373,8 +365,12 @@ const LanguageCard = ({ language }) => {
                 // Fallback to 'primary' if somehow not found
                 const primarySettings = getEffectiveFontSettings(primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
                 const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
+                // Apply fallback line height if a specific fallback font is selected
+                const containerLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
+                    ? getEffectiveFontSettings(currentFallbackFontId).lineHeight
+                    : undefined;
                 return (
-                    <div className="p-4" style={{ fontSize: `${primaryFontSize}px` }}>
+                    <div className="p-4" style={{ fontSize: `${primaryFontSize}px`, lineHeight: containerLineHeight }}>
                         {viewMode === 'all' && (
                             <div className="space-y-2">
                                 {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((tag) => {

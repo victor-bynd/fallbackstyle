@@ -6,7 +6,7 @@ import { parseFontFile, createFontUrl } from '../services/FontLoader';
 const FontUploader = () => {
     const { loadFont, addFallbackFonts } = useTypo();
 
-    const handleFiles = async (fileList) => {
+    const handleFiles = useCallback(async (fileList) => {
         if (!fileList || fileList.length === 0) return;
 
         const files = Array.from(fileList);
@@ -47,7 +47,7 @@ const FontUploader = () => {
         if (errorCount > 0) {
             alert(`Failed to parse ${errorCount} font file(s).`);
         }
-    };
+    }, [loadFont, addFallbackFonts]);
 
     const onDrop = useCallback((e) => {
         e.preventDefault();
@@ -56,7 +56,7 @@ const FontUploader = () => {
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             handleFiles(e.dataTransfer.files);
         }
-    }, []);
+    }, [handleFiles]);
 
     const onDragOver = useCallback((e) => {
         e.preventDefault();

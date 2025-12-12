@@ -13,7 +13,6 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
         if (!fileList || fileList.length === 0) return;
 
         setIsProcessing(true);
-        const fontsToAdd = [];
         let errorCount = 0;
 
         try {
