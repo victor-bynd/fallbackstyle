@@ -5,20 +5,28 @@ const LanguageCard = ({ language }) => {
     const {
         fontObject,
         fallbackFont,
+        fonts,
         colors,
         fontSizes,
         lineHeight,
+        baseFontSize,
+        fontScales,
         lineHeightOverrides,
         updateLineHeightOverride,
         fallbackScaleOverrides,
         updateFallbackScaleOverride,
+        fallbackFontOverrides,
+        setFallbackFontOverride,
+        clearFallbackFontOverride,
+        getFallbackFontForLanguage,
         textCase,
         fallbackOptions,
         viewMode,
         headerScales,
         textOverrides,
         setTextOverride,
-        resetTextOverride
+        resetTextOverride,
+        getEffectiveFontSettings
     } = useTypo();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +35,81 @@ const LanguageCard = ({ language }) => {
     if (!fontSizes || !headerScales) return null;
 
     const fallbackLabel = fallbackOptions.find(opt => opt.value === fallbackFont)?.label || fallbackFont;
+
+    // Build fallback font stack from fonts array with their settings
+    // If language has override, use only that font; otherwise use cascade
+    const buildFallbackFontStack = () => {
+        const overrideFontId = getFallbackFontForLanguage(language.id);
+        
+        // If language has override, use only that font
+        if (overrideFontId) {
+            if (overrideFontId === 'legacy') {
+                // Legacy fallback font
+                return [{
+                    fontFamily: fallbackFont || 'sans-serif',
+                    fontId: 'legacy',
+                    settings: { baseFontSize, scale: fontScales.fallback, lineHeight }
+                }];
+            } else {
+                // Find the override font in fonts array
+                const overrideFont = fonts.find(f => f.id === overrideFontId);
+                if (overrideFont) {
+                    if (overrideFont.fontUrl) {
+                        return [{
+                            fontFamily: `'FallbackFont-${overrideFont.id}'`,
+                            fontId: overrideFont.id,
+                            settings: getEffectiveFontSettings(overrideFont.id)
+                        }];
+                    } else if (overrideFont.name) {
+                        return [{
+                            fontFamily: overrideFont.name,
+                            fontId: overrideFont.id,
+                            settings: getEffectiveFontSettings(overrideFont.id)
+                        }];
+                    }
+                }
+            }
+        }
+        
+        // No override - use cascade (original behavior)
+        const fallbackFonts = fonts.filter(f => f.type === 'fallback');
+        const fontStack = [];
+        
+        fallbackFonts.forEach(font => {
+            if (font.fontUrl) {
+                fontStack.push({
+                    fontFamily: `'FallbackFont-${font.id}'`,
+                    fontId: font.id,
+                    settings: getEffectiveFontSettings(font.id)
+                });
+            } else if (font.name) {
+                fontStack.push({
+                    fontFamily: font.name,
+                    fontId: font.id,
+                    settings: getEffectiveFontSettings(font.id)
+                });
+            }
+        });
+        
+        // Add the legacy fallback font at the end
+        if (fallbackFont) {
+            fontStack.push({
+                fontFamily: fallbackFont,
+                fontId: 'legacy',
+                settings: { baseFontSize, scale: fontScales.fallback, lineHeight }
+            });
+        }
+        
+        return fontStack;
+    };
+
+    const fallbackFontStack = buildFallbackFontStack();
+    const fallbackFontStackString = fallbackFontStack.length > 0 
+        ? fallbackFontStack.map(f => f.fontFamily).join(', ') 
+        : 'sans-serif';
+    
+    // Get current fallback font selection for this language
+    const currentFallbackFontId = getFallbackFontForLanguage(language.id);
 
     // Determine the content to render: Override > Pangram
     const contentToRender = textOverrides[language.id] || language.pangram;
@@ -55,12 +138,21 @@ const LanguageCard = ({ language }) => {
     const renderedText = useMemo(() => {
         if (!fontObject) return null;
 
+        // Get primary font effective settings
+        const primarySettings = getEffectiveFontSettings('primary') || { baseFontSize, scale: fontScales.active, lineHeight };
+        const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
+
         // Use the dynamic content
         return contentToRender.split('').map((char, index) => {
             const glyphIndex = fontObject.charToGlyphIndex(char);
             const isMissing = glyphIndex === 0;
 
-            if (isMissing) {
+            if (isMissing && fallbackFontStack.length > 0) {
+                // Use the first fallback font's settings
+                const firstFallback = fallbackFontStack[0];
+                const fallbackSettings = firstFallback.settings || { baseFontSize, scale: fontScales.fallback, lineHeight };
+                const fallbackFontSize = fallbackSettings.baseFontSize * (fallbackSettings.scale / 100);
+                
                 // Apply language-specific fallback scale override
                 const scaleMultiplier = (fallbackScaleOverrides[language.id] || 100) / 100;
 
@@ -68,12 +160,10 @@ const LanguageCard = ({ language }) => {
                     <span
                         key={index}
                         style={{
-                            fontFamily: fallbackFont,
+                            fontFamily: fallbackFontStackString,
                             color: colors.missing,
-                            backgroundColor: colors.missingBg,
-                            fontSize: `${(fontSizes.fallback / fontSizes.active) * scaleMultiplier}em`,
+                            fontSize: `${(fallbackFontSize / primaryFontSize) * scaleMultiplier}em`,
                         }}
-                        className="rounded"
                     >
                         {char}
                     </span>
@@ -82,7 +172,7 @@ const LanguageCard = ({ language }) => {
 
             return <span key={index}>{char}</span>;
         });
-    }, [fontObject, contentToRender, fallbackFont, colors, fontSizes, fallbackScaleOverrides, language.id]);
+    }, [fontObject, contentToRender, fallbackFontStack, fallbackFontStackString, colors, baseFontSize, fontScales, fallbackScaleOverrides, language.id, getEffectiveFontSettings, getFallbackFontForLanguage]);
 
     if (!fontObject) return null;
 
@@ -159,6 +249,46 @@ const LanguageCard = ({ language }) => {
                 </div>
             )}
 
+            {/* Fallback Font Selector */}
+            <div className="px-5 py-2 bg-slate-50/30 border-b border-gray-100/50 flex flex-wrap items-center gap-x-[42px] gap-y-3 overflow-hidden group hover:bg-slate-50/80 transition-colors">
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap min-w-[120px]">
+                        Fallback Font:
+                    </span>
+                    <select
+                        value={currentFallbackFontId || 'cascade'}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === 'cascade') {
+                                clearFallbackFontOverride(language.id);
+                            } else {
+                                setFallbackFontOverride(language.id, value);
+                            }
+                        }}
+                        className="text-[10px] bg-white border border-gray-200 rounded px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer min-w-[140px]"
+                    >
+                        <option value="cascade">Cascade (Default)</option>
+                        {fonts.filter(f => f.type === 'fallback').map(font => (
+                            <option key={font.id} value={font.id}>
+                                {font.fileName || font.name || 'Unnamed Font'}
+                            </option>
+                        ))}
+                        {fallbackFont && (
+                            <option value="legacy">Legacy: {fallbackOptions.find(opt => opt.value === fallbackFont)?.label || fallbackFont}</option>
+                        )}
+                    </select>
+                    {currentFallbackFontId && currentFallbackFontId !== 'cascade' && (
+                        <button
+                            onClick={() => clearFallbackFontOverride(language.id)}
+                            className="text-[10px] text-rose-500 hover:text-rose-700 font-bold px-1"
+                            title="Reset to cascade"
+                        >
+                            ×
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* Local Line Height & Fallback Scale Override Sliders */}
             <div className="px-5 py-2 bg-slate-50/30 border-b border-gray-100/50 flex flex-wrap items-center gap-x-[42px] gap-y-3 overflow-hidden group hover:bg-slate-50/80 transition-colors">
                 {/* Line Height Slider */}
@@ -223,7 +353,11 @@ const LanguageCard = ({ language }) => {
             </div>
 
             {/* Set Base Font Size on Container */}
-            <div className="p-4" style={{ fontSize: `${fontSizes.active}px` }}>
+            {(() => {
+                const primarySettings = getEffectiveFontSettings('primary') || { baseFontSize, scale: fontScales.active, lineHeight };
+                const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
+                return (
+            <div className="p-4" style={{ fontSize: `${primaryFontSize}px` }}>
                 {viewMode === 'all' && (
                     <div className="space-y-2">
                         {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((tag, i) => {
@@ -266,6 +400,8 @@ const LanguageCard = ({ language }) => {
                     </div>
                 )}
             </div>
+                );
+            })()}
         </div>
     );
 };

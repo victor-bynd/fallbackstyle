@@ -62,6 +62,7 @@ export const TypoProvider = ({ children }) => {
     const [gridColumns, setGridColumns] = useState(1);
     const [lineHeightOverrides, setLineHeightOverrides] = useState({});
     const [fallbackScaleOverrides, setFallbackScaleOverrides] = useState({});
+    const [fallbackFontOverrides, setFallbackFontOverrides] = useState({});
     const [colors, setColors] = useState({
         primary: '#0f172a',
         missing: '#ff0000',
@@ -93,6 +94,90 @@ export const TypoProvider = ({ children }) => {
     // Helper to get primary font from fonts array
     const getPrimaryFont = () => fonts.find(f => f.type === 'primary');
 
+    // Add a new fallback font
+    const addFallbackFont = (fontData) => {
+        setFonts(prev => [...prev, fontData]);
+    };
+
+    // Remove a fallback font
+    const removeFallbackFont = (fontId) => {
+        setFonts(prev => prev.filter(f => f.id !== fontId));
+        // If the removed font was active, switch to primary
+        if (activeFont === fontId) {
+            setActiveFont('primary');
+        }
+    };
+
+    // Reorder fonts (move a font from oldIndex to newIndex)
+    const reorderFonts = (oldIndex, newIndex) => {
+        setFonts(prev => {
+            const newFonts = [...prev];
+            // Find primary font index (should always be first, but be safe)
+            const primaryIndex = newFonts.findIndex(f => f.type === 'primary');
+            
+            // Don't allow reordering if trying to move primary or move to primary position
+            if (oldIndex === primaryIndex || newIndex === primaryIndex) {
+                return prev;
+            }
+            
+            // Only allow reordering fallback fonts
+            if (newFonts[oldIndex].type !== 'fallback' || (newIndex > 0 && newFonts[newIndex]?.type === 'primary')) {
+                return prev;
+            }
+            
+            const [movedFont] = newFonts.splice(oldIndex, 1);
+            newFonts.splice(newIndex, 0, movedFont);
+            return newFonts;
+        });
+    };
+
+    // Get the active font object
+    const getActiveFont = () => fonts.find(f => f.id === activeFont);
+
+    // Update a fallback font's override settings
+    const updateFallbackFontOverride = (fontId, field, value) => {
+        setFonts(prev => prev.map(f => 
+            f.id === fontId 
+                ? { ...f, [field]: value }
+                : f
+        ));
+    };
+
+    // Reset a fallback font's overrides to use global settings
+    const resetFallbackFontOverrides = (fontId) => {
+        setFonts(prev => prev.map(f => 
+            f.id === fontId && f.type === 'fallback'
+                ? { 
+                    ...f, 
+                    baseFontSize: undefined,
+                    scale: undefined,
+                    lineHeight: undefined
+                }
+                : f
+        ));
+    };
+
+    // Get effective settings for a font (uses overrides if available, otherwise global)
+    const getEffectiveFontSettings = (fontId) => {
+        const font = fonts.find(f => f.id === fontId);
+        if (!font) return null;
+
+        if (font.type === 'primary') {
+            return {
+                baseFontSize,
+                scale: fontScales.active,
+                lineHeight
+            };
+        } else {
+            // Fallback font: use overrides if set, otherwise use global fallback scale
+            return {
+                baseFontSize: font.baseFontSize ?? baseFontSize,
+                scale: font.scale ?? fontScales.fallback,
+                lineHeight: font.lineHeight ?? lineHeight
+            };
+        }
+    };
+
     const updateLineHeightOverride = (langId, value) => {
         setLineHeightOverrides(prev => ({
             ...prev,
@@ -115,6 +200,32 @@ export const TypoProvider = ({ children }) => {
         setFallbackScaleOverrides({});
     };
 
+    // Per-locale fallback font overrides
+    const setFallbackFontOverride = (langId, fontId) => {
+        setFallbackFontOverrides(prev => ({
+            ...prev,
+            [langId]: fontId
+        }));
+    };
+
+    const clearFallbackFontOverride = (langId) => {
+        setFallbackFontOverrides(prev => {
+            const next = { ...prev };
+            delete next[langId];
+            return next;
+        });
+    };
+
+    const resetAllFallbackFontOverrides = () => {
+        setFallbackFontOverrides({});
+    };
+
+    // Get the fallback font to use for a specific language
+    // Returns fontId if overridden, or null to use cascade
+    const getFallbackFontForLanguage = (langId) => {
+        return fallbackFontOverrides[langId] || null;
+    };
+
     return (
         <TypoContext.Provider value={{
             // NEW: Multi-font system
@@ -123,6 +234,13 @@ export const TypoProvider = ({ children }) => {
             activeFont,
             setActiveFont,
             getPrimaryFont,
+            getActiveFont,
+            addFallbackFont,
+            removeFallbackFont,
+            reorderFonts,
+            updateFallbackFontOverride,
+            resetFallbackFontOverrides,
+            getEffectiveFontSettings,
 
             // Existing values
             fontObject,
@@ -146,6 +264,11 @@ export const TypoProvider = ({ children }) => {
             fallbackScaleOverrides,
             updateFallbackScaleOverride,
             resetAllFallbackScaleOverrides,
+            fallbackFontOverrides,
+            setFallbackFontOverride,
+            clearFallbackFontOverride,
+            resetAllFallbackFontOverrides,
+            getFallbackFontForLanguage,
             gridColumns,
             setGridColumns,
             textCase,
