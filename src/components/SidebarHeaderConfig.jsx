@@ -18,10 +18,6 @@ const SidebarHeaderConfig = ({ onBack }) => {
         updateHeaderStyle(tag, 'lineHeight', parseFloat(value));
     };
 
-    const setAllHeaderFontStyles = (styleId) => {
-        ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => setHeaderFontStyle(tag, styleId));
-    };
-
     return (
         <div className="flex flex-col gap-6 animate-fade-in">
             {/* Header / Back Button */}
@@ -78,8 +74,8 @@ const SidebarHeaderConfig = ({ onBack }) => {
                                     <button
                                         onClick={() => setHeaderFontStyle(tag, 'primary')}
                                         className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all ${currentStyle === 'primary'
-                                                ? 'bg-white text-indigo-600 shadow-sm'
-                                                : 'text-slate-400 hover:text-slate-600'
+                                            ? 'bg-white text-indigo-600 shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600'
                                             }`}
                                     >
                                         Primary
@@ -87,8 +83,8 @@ const SidebarHeaderConfig = ({ onBack }) => {
                                     <button
                                         onClick={() => setHeaderFontStyle(tag, 'secondary')}
                                         className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all ${currentStyle === 'secondary'
-                                                ? 'bg-white text-indigo-600 shadow-sm'
-                                                : 'text-slate-400 hover:text-slate-600'
+                                            ? 'bg-white text-indigo-600 shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600'
                                             }`}
                                     >
                                         Secondary

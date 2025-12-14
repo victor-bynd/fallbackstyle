@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 
 const LanguageSelectorModal = ({ onClose }) => {
@@ -154,6 +155,10 @@ const LanguageSelectorModal = ({ onClose }) => {
             </div>
         </div>
     );
+};
+
+LanguageSelectorModal.propTypes = {
+    onClose: PropTypes.func.isRequired
 };
 
 export default LanguageSelectorModal;

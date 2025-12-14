@@ -16,9 +16,9 @@ const FontUploader = () => {
         // Process all files
         for (const file of files) {
             try {
-                const font = await parseFontFile(file);
+                const { font, metadata } = await parseFontFile(file);
                 const url = createFontUrl(file);
-                processedFonts.push({ font, url, file });
+                processedFonts.push({ font, metadata, url, file });
             } catch (err) {
                 console.error(`Error parsing font ${file.name}:`, err);
                 errorCount++;
@@ -28,18 +28,23 @@ const FontUploader = () => {
         if (processedFonts.length > 0) {
             // First font becomes Primary
             const primary = processedFonts[0];
-            loadFont(primary.font, primary.url, primary.file.name);
+            loadFont(primary.font, primary.url, primary.file.name, primary.metadata);
 
             // Remaining fonts become Fallbacks
             if (processedFonts.length > 1) {
-                const fallbacks = processedFonts.slice(1).map(item => ({
-                    id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    type: 'fallback',
-                    fontObject: item.font,
-                    fontUrl: item.url,
-                    fileName: item.file.name,
-                    name: item.file.name
-                }));
+                const fallbacks = processedFonts.slice(1).map(item => {
+                    return {
+                        id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        type: 'fallback',
+                        fontObject: item.font,
+                        fontUrl: item.url,
+                        fileName: item.file.name,
+                        name: item.file.name,
+                        axes: item.metadata.axes,
+                        isVariable: item.metadata.isVariable,
+                        staticWeight: item.metadata.staticWeight ?? null
+                    };
+                });
                 addFallbackFonts(fallbacks);
             }
         }

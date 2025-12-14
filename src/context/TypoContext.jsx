@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
 import { fallbackOptions, DEFAULT_PALETTE } from '../data/constants';
 import languages from '../data/languages.json';
+import { resolveWeightForFont } from '../utils/weightUtils';
 
 const TypoContext = createContext();
 
@@ -16,11 +17,17 @@ export const TypoProvider = ({ children }) => {
                 fontUrl: null,
                 fileName: null,
                 name: null,
-                baseFontSize: 60
+                baseFontSize: 60,
+                // Weight metadata
+                axes: null,
+                isVariable: false,
+                staticWeight: null
+                // selectedWeight removed, will use weightOverride if needed
             }
         ],
         activeFont: 'primary',
         baseFontSize: 60,
+        weight: 400, // Global weight for this style
         fontScales: { active: 100, fallback: 100 },
         isFallbackLinked: true,
         lineHeight: 1.2,
@@ -143,6 +150,14 @@ export const TypoProvider = ({ children }) => {
         }));
     };
 
+    const weight = activeStyle.weight;
+    const setWeight = (valueOrUpdater) => {
+        updateStyleState(activeFontStyleId, prev => ({
+            ...prev,
+            weight: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.weight) : valueOrUpdater
+        }));
+    };
+
     const fallbackFont = activeStyle.fallbackFont;
     const setFallbackFont = (valueOrUpdater) => {
         updateStyleState(activeFontStyleId, prev => ({
@@ -212,7 +227,10 @@ export const TypoProvider = ({ children }) => {
                     seen.add(id);
                     return true;
                 });
-        } catch {
+        } catch (err) {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Failed to load visible languages from localStorage:', err);
+            }
             return defaultIds;
         }
     });
@@ -220,8 +238,11 @@ export const TypoProvider = ({ children }) => {
     useEffect(() => {
         try {
             localStorage.setItem(VISIBLE_LANGUAGE_IDS_STORAGE_KEY, JSON.stringify(visibleLanguageIds));
-        } catch {
-            // Ignore persistence failures (private mode, quota, etc.)
+        } catch (err) {
+            // Ignore persistence failures (private mode, quota exceeded, etc.)
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Failed to save visible languages to localStorage:', err);
+            }
         }
     }, [visibleLanguageIds]);
 
@@ -262,15 +283,36 @@ export const TypoProvider = ({ children }) => {
 
     const visibleLanguages = languages.filter(l => visibleLanguageIds.includes(l.id));
 
-    const loadFont = (font, url, name) => {
+    const loadFont = (font, url, name, metadata = {}) => {
         const styleId = activeFontStyleId;
+        const initialWeight = metadata.axes?.weight?.default ?? metadata.staticWeight ?? 400;
 
         updateStyleState(styleId, prev => ({
             ...prev,
+            weight: (prev.fonts || []).some(f => f.type === 'primary')
+                ? resolveWeightForFont(
+                    {
+                        fontObject: font,
+                        axes: metadata.axes,
+                        staticWeight: metadata.staticWeight ?? null
+                    },
+                    prev.weight
+                )
+                : initialWeight,
             fonts: (prev.fonts || []).some(f => f.type === 'primary')
                 ? prev.fonts.map(f =>
                     f.type === 'primary'
-                        ? { ...f, fontObject: font, fontUrl: url, fileName: name, name }
+                        ? {
+                            ...f,
+                            fontObject: font,
+                            fontUrl: url,
+                            fileName: name,
+                            name,
+                            axes: metadata.axes,
+                            isVariable: metadata.isVariable,
+                            staticWeight: metadata.staticWeight ?? null
+                            // No selectedWeight, use global weight
+                        }
                         : f
                 )
                 : [
@@ -279,7 +321,11 @@ export const TypoProvider = ({ children }) => {
                         fontObject: font,
                         fontUrl: url,
                         fileName: name,
-                        name
+                        name,
+                        axes: metadata.axes,
+                        isVariable: metadata.isVariable,
+                        staticWeight: metadata.staticWeight ?? null
+                        // No selectedWeight, defaults to global
                     },
                     ...(prev.fonts || [])
                 ],
@@ -298,14 +344,17 @@ export const TypoProvider = ({ children }) => {
             return {
                 baseFontSize: style.baseFontSize,
                 scale: style.fontScales.active,
-                lineHeight: style.lineHeight
+                lineHeight: style.lineHeight,
+                weight: resolveWeightForFont(font, style.weight) // Use global weight (resolved for this font)
             };
         }
 
+        // Fallback font
         return {
             baseFontSize: font.baseFontSize ?? style.baseFontSize,
             scale: font.scale ?? style.fontScales.fallback,
-            lineHeight: font.lineHeight ?? style.lineHeight
+            lineHeight: font.lineHeight ?? style.lineHeight,
+            weight: resolveWeightForFont(font, font.weightOverride ?? style.weight) // Use override OR global (resolved for this font)
         };
     };
 
@@ -420,7 +469,8 @@ export const TypoProvider = ({ children }) => {
                     ...f,
                     baseFontSize: undefined,
                     scale: undefined,
-                    lineHeight: undefined
+                    lineHeight: undefined,
+                    weightOverride: undefined
                 }
                 : f
         ));
@@ -435,14 +485,16 @@ export const TypoProvider = ({ children }) => {
             return {
                 baseFontSize,
                 scale: fontScales.active,
-                lineHeight
+                lineHeight,
+                weight: resolveWeightForFont(font, weight) // Global weight (resolved for this font)
             };
         } else {
             // Fallback font: use overrides if set, otherwise use global fallback scale
             return {
                 baseFontSize: font.baseFontSize ?? baseFontSize,
                 scale: font.scale ?? fontScales.fallback,
-                lineHeight: font.lineHeight ?? lineHeight
+                lineHeight: font.lineHeight ?? lineHeight,
+                weight: resolveWeightForFont(font, font.weightOverride ?? weight) // Override OR global (resolved for this font)
             };
         }
     };
@@ -572,6 +624,21 @@ export const TypoProvider = ({ children }) => {
         return palette[index] || DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
     };
 
+    const updateFontWeight = (fontId, newWeight) => {
+        // Check if font is primary
+        const isPrimary = fonts.find(f => f.id === fontId)?.type === 'primary';
+
+        if (isPrimary) {
+            setWeight(newWeight); // Update global weight
+        } else {
+            setFonts(prev => prev.map(f =>
+                f.id === fontId
+                    ? { ...f, weightOverride: newWeight }
+                    : f
+            ));
+        }
+    };
+
     const resetGlobalFallbackScaleForStyle = (styleId) => {
         updateStyleState(styleId, prev => ({
             ...prev,
@@ -591,12 +658,15 @@ export const TypoProvider = ({ children }) => {
                         ...f,
                         baseFontSize: undefined,
                         scale: undefined,
-                        lineHeight: undefined
+                        lineHeight: undefined,
+                        weightOverride: undefined
                     }
                     : f
             )
         }));
     };
+
+
 
     const copyFontsFromPrimaryToSecondary = () => {
         const primaryFonts = fontStyles.primary?.fonts || [];
@@ -610,6 +680,7 @@ export const TypoProvider = ({ children }) => {
             baseFontSize: undefined,
             scale: undefined,
             lineHeight: undefined,
+            weightOverride: undefined,
             // The first font from Primary becomes the Primary for Secondary (type 'primary')
             // All subsequent fonts become fallback (type 'fallback')
             type: index === 0 ? 'primary' : 'fallback'
@@ -682,7 +753,6 @@ export const TypoProvider = ({ children }) => {
             resetAllFallbackFontOverridesForStyle,
             resetGlobalFallbackScaleForStyle,
             resetFallbackFontOverridesForStyle,
-            resetFallbackFontOverridesForStyle,
             copyFontsFromPrimaryToSecondary,
 
             // NEW: Multi-font system
@@ -703,6 +773,7 @@ export const TypoProvider = ({ children }) => {
             updateFallbackFontOverride,
             resetFallbackFontOverrides,
             getEffectiveFontSettings,
+            updateFontWeight,
 
             // Existing values
             fontObject,
@@ -722,6 +793,8 @@ export const TypoProvider = ({ children }) => {
             setLineHeight,
             letterSpacing,
             setLetterSpacing,
+            weight,
+            setWeight,
             lineHeightOverrides,
             updateLineHeightOverride,
             resetAllLineHeightOverrides,

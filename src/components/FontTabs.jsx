@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 import FallbackFontAdder from './FallbackFontAdder';
-import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import { buildWeightSelectOptions, resolveWeightToAvailableOption } from '../utils/weightUtils';
 import {
     DndContext,
     closestCenter,
@@ -11,7 +12,6 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import {
-    arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
@@ -24,6 +24,7 @@ const SortableFontCard = ({
     index,
     isActive,
     activeFontStyleId,
+    globalWeight,
     getFontColor,
     updateFontColor,
     getEffectiveFontSettings,
@@ -32,7 +33,8 @@ const SortableFontCard = ({
     updateFallbackFontOverride,
     resetFallbackFontOverrides,
     setActiveFont,
-    handleRemove
+    handleRemove,
+    updateFontWeight
 }) => {
     const {
         attributes,
@@ -52,6 +54,13 @@ const SortableFontCard = ({
     };
 
     const isPrimary = font.type === 'primary';
+
+    const effectiveWeight = getEffectiveFontSettings(font.id)?.weight ?? 400;
+    const weightOptions = buildWeightSelectOptions(font);
+    const resolvedWeight = resolveWeightToAvailableOption(font, effectiveWeight);
+
+    const isInheritingGlobalWeight = font.type === 'fallback' && font.weightOverride === undefined;
+    const isGlobalWeightUnavailable = isInheritingGlobalWeight && typeof globalWeight === 'number' && effectiveWeight !== globalWeight;
 
     return (
         <div
@@ -138,13 +147,15 @@ const SortableFontCard = ({
                 </div>
             )}
 
+            {/* Weight Control */}
             {!isPrimary && isActive && (
                 <div className="mt-4 pt-3 border-t border-slate-200/60 animate-in fade-in slide-in-from-top-2 duration-200 cursor-auto">
                     {(() => {
                         const effectiveSettings = getEffectiveFontSettings(font.id);
                         const hasOverrides = effectiveSettings && (
                             (effectiveSettings.scale !== fontScales.fallback) ||
-                            (effectiveSettings.lineHeight !== lineHeight)
+                            (effectiveSettings.lineHeight !== lineHeight) ||
+                            (font.weightOverride !== undefined)
                         );
 
                         return (
@@ -165,6 +176,45 @@ const SortableFontCard = ({
                                             Reset
                                         </button>
                                     )}
+                                </div>
+
+                                {/* Weight Override */}
+                                <div>
+                                    <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                        <span>Weight</span>
+                                        {font.weightOverride !== undefined && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    updateFallbackFontOverride(font.id, 'weightOverride', undefined);
+                                                }}
+                                                className="text-[9px] text-slate-400 hover:text-rose-500"
+                                                title="Reset to Global Weight"
+                                                type="button"
+                                            >
+                                                ↺
+                                            </button>
+                                        )}
+                                    </div>
+                                    {isGlobalWeightUnavailable && (
+                                        <div className="text-[10px] text-amber-600 mb-1">
+                                            Global weight {globalWeight} not available; using {effectiveWeight}.
+                                        </div>
+                                    )}
+                                    <select
+                                        value={resolvedWeight}
+                                        onChange={(e) => {
+                                            const raw = e.target.value;
+                                            updateFontWeight(font.id, parseInt(raw));
+                                        }}
+                                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+                                    >
+                                        {weightOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 {/* Font Scale Slider */}
@@ -273,8 +323,37 @@ const SortableFontCard = ({
     );
 };
 
+SortableFontCard.propTypes = {
+    font: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        type: PropTypes.string.isRequired,
+        fontObject: PropTypes.object,
+        fileName: PropTypes.string,
+        name: PropTypes.string,
+        scale: PropTypes.number,
+        lineHeight: PropTypes.number,
+        axes: PropTypes.object,
+        isVariable: PropTypes.bool,
+        weightOverride: PropTypes.number,
+        staticWeight: PropTypes.number
+    }).isRequired,
+    index: PropTypes.number.isRequired,
+    isActive: PropTypes.bool.isRequired,
+    activeFontStyleId: PropTypes.string.isRequired,
+    globalWeight: PropTypes.number,
+    getFontColor: PropTypes.func.isRequired,
+    updateFontColor: PropTypes.func.isRequired,
+    getEffectiveFontSettings: PropTypes.func.isRequired,
+    fontScales: PropTypes.object.isRequired,
+    lineHeight: PropTypes.number.isRequired,
+    updateFallbackFontOverride: PropTypes.func.isRequired,
+    resetFallbackFontOverrides: PropTypes.func.isRequired,
+    setActiveFont: PropTypes.func.isRequired,
+    handleRemove: PropTypes.func.isRequired,
+    updateFontWeight: PropTypes.func.isRequired
+};
+
 const FontTabs = () => {
-    const fileInputRef = useRef(null);
     const {
         activeFontStyleId,
         fonts,
@@ -292,7 +371,8 @@ const FontTabs = () => {
         updateFontColor,
         setColors,
         copyFontsFromPrimaryToSecondary,
-        loadFont
+        updateFontWeight,
+        weight
     } = useTypo();
     const [showAdder, setShowAdder] = useState(false);
 
@@ -302,24 +382,6 @@ const FontTabs = () => {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
-
-    const handleSecondaryFontUpload = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            const font = await parseFontFile(file);
-            const url = createFontUrl(file);
-            loadFont(font, url, file.name);
-        } catch (err) {
-            console.error('Error loading font:', err);
-            alert('Failed to load font file.');
-        } finally {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
 
     const handleRemove = (e, fontId) => {
         e.stopPropagation();
@@ -360,6 +422,7 @@ const FontTabs = () => {
                             index={index}
                             isActive={font.id === activeFont}
                             activeFontStyleId={activeFontStyleId}
+                            globalWeight={weight}
                             getFontColor={getFontColor}
                             updateFontColor={updateFontColor}
                             getEffectiveFontSettings={getEffectiveFontSettings}
@@ -369,6 +432,7 @@ const FontTabs = () => {
                             resetFallbackFontOverrides={resetFallbackFontOverrides}
                             setActiveFont={setActiveFont}
                             handleRemove={handleRemove}
+                            updateFontWeight={updateFontWeight}
                         />
                     ))}
                 </SortableContext>

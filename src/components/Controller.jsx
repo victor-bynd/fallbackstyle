@@ -5,6 +5,7 @@ import FontTabs from './FontTabs';
 import CSSExporter from './CSSExporter';
 import OverridesManager from './OverridesManager';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import { buildWeightSelectOptions, resolveWeightToAvailableOption } from '../utils/weightUtils';
 
 const Controller = () => {
     const {
@@ -25,7 +26,11 @@ const Controller = () => {
         setHeaderStyles,
         headerFontStyleMap,
         fontStyles,
-        loadFont
+        loadFont,
+        weight,
+        setWeight,
+        getPrimaryFont,
+        updateFontWeight
     } = useTypo();
 
     const isSecondaryEmpty = activeFontStyleId === 'secondary' && (!fontStyles?.secondary?.fonts || fontStyles.secondary.fonts.length === 0);
@@ -38,6 +43,10 @@ const Controller = () => {
     const lhInputValue = isEditingLh ? lhInput : Math.round(lineHeight * 100).toString();
 
     if (!fontObject) return null;
+
+    const primary = getPrimaryFont();
+    const weightOptions = buildWeightSelectOptions(primary);
+    const resolvedWeight = resolveWeightToAvailableOption(primary, weight);
 
     const hasOverrides = Object.keys(lineHeightOverrides).length > 0;
     return (
@@ -95,9 +104,9 @@ const Controller = () => {
                                             if (!file) return;
 
                                             try {
-                                                const font = await parseFontFile(file);
+                                                const { font, metadata } = await parseFontFile(file);
                                                 const url = createFontUrl(file);
-                                                loadFont(font, url, file.name);
+                                                loadFont(font, url, file.name, metadata);
                                                 e.target.value = '';
                                             } catch (err) {
                                                 console.error('Error loading font:', err);
@@ -108,6 +117,32 @@ const Controller = () => {
                                 </label>
                             ) : (
                                 <div className="space-y-4">
+                                    {/* Global Weight Control */}
+                                    <div>
+                                        <div className="flex justify-between text-xs text-slate-600 mb-1">
+                                            <span>Global Weight</span>
+                                            <span className="text-slate-400 font-mono text-[10px]">{weight}</span>
+                                        </div>
+                                        <select
+                                            value={resolvedWeight}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                if (primary) {
+                                                    updateFontWeight(primary.id, val);
+                                                } else {
+                                                    setWeight(val);
+                                                }
+                                            }}
+                                            className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+                                        >
+                                            {weightOptions.map(opt => (
+                                                <option key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
                                     <div>
                                         <div className="flex justify-between text-xs text-slate-600 mb-1">
                                             <span>Fallback Size Adjust</span>

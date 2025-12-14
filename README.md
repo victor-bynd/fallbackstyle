@@ -26,12 +26,14 @@ This tool is especially helpful when your primary 'brand' font is highly stylize
   - Includes Select all / Select none / Reset
   - Your selection persists in the browser (via `localStorage`)
 - **Typography controls**
+  - Global font weight (propagates to all fonts in the stack)
   - Global fallback size adjust
   - Global line height and letter spacing
   - Text casing (normal/lowercase/uppercase/capitalize)
   - Header presets and a dedicated Header Style editor (H1-H6 scale/line-height/letter-spacing)
 - **Overrides (global, per-font, per-language)**
-  - Per-fallback-font overrides: size adjust and line height
+  - Per-fallback-font overrides: weight, size adjust, and line height
+  - Weight overrides: fallback fonts inherit global weight but can override individually
   - Per-language fallback selection (choose a specific fallback font or use the cascade)
   - Per-language custom text editing
   - Override manager to review and reset active overrides
@@ -72,6 +74,7 @@ Visit `http://localhost:5173` to view the app.
    - Drag and drop one or more font files (`.ttf`, `.otf`, `.woff`, `.woff2`).
    - The first file becomes the Primary font. The rest become Fallback fonts.
 2. **Tune global typography** (left sidebar)
+   - Adjust global font weight (applies to all fonts)
    - Adjust global fallback size
    - Adjust line height and letter spacing
    - Switch between H1–H6 (or “All”) to preview different header presets
@@ -80,7 +83,8 @@ Visit `http://localhost:5173` to view the app.
    - The app remembers your selection across refreshes
 4. **Manage the font stack**
    - Reorder fonts via drag & drop to change cascade priority
-   - Configure per-fallback overrides (size/line height)
+   - Configure per-fallback overrides (weight, size, and line height)
+   - Fallback fonts inherit the global weight but can override individually
    - Set per-font colors to quickly see which font is used for each glyph
 5. **Per-language overrides** (on each language card)
    - Pick a specific fallback font for a locale (or keep “Default” to use the cascade)

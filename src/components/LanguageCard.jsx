@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 
 const LanguageCard = ({ language }) => {
     const {
         fontObject,
         colors,
-        fallbackOptions,
         headerFontStyleMap,
         headerStyles,
         textCase,
@@ -20,8 +20,6 @@ const LanguageCard = ({ language }) => {
         getEffectiveFontSettingsForStyle,
         getFontColorForStyle,
         fontStyles,
-        setFallbackFontOverride,
-        clearFallbackFontOverride,
         activeFontStyleId
     } = useTypo();
 
@@ -190,12 +188,16 @@ const LanguageCard = ({ language }) => {
                         usedFallback = fallbackFontStack[fallbackFontStack.length - 1];
                     }
 
-                    const fallbackSettings = usedFallback.settings || { baseFontSize, scale: fontScales.fallback, lineHeight };
+                    const fallbackSettings = usedFallback.settings || { baseFontSize, scale: fontScales.fallback, lineHeight, weight: 400 };
                     const fallbackFontSize = fallbackSettings.baseFontSize * (fallbackSettings.scale / 100);
 
                     const fonts = getFontsForStyle(styleId);
                     const fontIndex = fonts.findIndex(f => f.id === usedFallback.fontId);
                     const fontColor = fontIndex >= 0 ? getFontColorForStyle(styleId, fontIndex) : colors.missing;
+
+                    const fontObj = fonts[fontIndex];
+                    const isVariable = fontObj?.isVariable;
+                    const weight = fallbackSettings.weight || 400;
 
                     return (
                         <span
@@ -205,6 +207,8 @@ const LanguageCard = ({ language }) => {
                                 color: fontColor,
                                 fontSize: `${(fallbackFontSize / primaryFontSize) * scaleMultiplier}em`,
                                 lineHeight: fallbackSettings.lineHeight,
+                                fontWeight: weight,
+                                fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined
                             }}
                         >
                             {char}
@@ -366,7 +370,8 @@ const LanguageCard = ({ language }) => {
                                             fontFamily: `UploadedFont-${styleIdForTag}`,
                                             color: colors.primary,
                                             fontSize: `${finalSizePx}px`,
-                                            fontWeight: 700,
+                                            fontWeight: primarySettings.weight || 400,
+                                            fontVariationSettings: primaryFont?.isVariable ? `'wght' ${primarySettings.weight || 400}` : undefined,
                                             lineHeight: forcedLineHeight ?? headerStyle.lineHeight,
                                             letterSpacing: `${headerStyle.letterSpacing || 0}em`,
                                             textTransform: textCase
@@ -394,8 +399,10 @@ const LanguageCard = ({ language }) => {
                         const fontScales = style?.fontScales || { active: 100, fallback: 100 };
                         const lineHeight = style?.lineHeight ?? 1.2;
 
-                        const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
+                        const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight, weight: 400 };
                         const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
+                        const weight = primarySettings.weight || 400;
+                        const isVariable = primaryFont?.isVariable;
 
                         // Calculate Final Pixel Size
                         const finalSizePx = primaryFontSize * headerStyle.scale;
@@ -411,7 +418,8 @@ const LanguageCard = ({ language }) => {
                                     fontFamily: `UploadedFont-${styleIdForTag}`,
                                     color: colors.primary,
                                     fontSize: `${finalSizePx}px`,
-                                    fontWeight: 700,
+                                    fontWeight: weight,
+                                    fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
                                     lineHeight: forcedLineHeight ?? headerStyle.lineHeight,
                                     letterSpacing: `${headerStyle.letterSpacing || 0}em`,
                                     textTransform: textCase
@@ -425,6 +433,14 @@ const LanguageCard = ({ language }) => {
             </div>
         </div>
     );
+};
+
+LanguageCard.propTypes = {
+    language: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        sampleText: PropTypes.string.isRequired
+    }).isRequired
 };
 
 export default LanguageCard;

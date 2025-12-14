@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import clsx from 'clsx';
@@ -18,7 +19,7 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
         try {
             const promises = Array.from(fileList).map(async (file) => {
                 try {
-                    const font = await parseFontFile(file);
+                    const { font, metadata } = await parseFontFile(file);
                     const url = createFontUrl(file);
                     const fontId = `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -28,7 +29,10 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                         fontObject: font,
                         fontUrl: url,
                         fileName: file.name,
-                        name: file.name
+                        name: file.name,
+                        axes: metadata.axes,
+                        isVariable: metadata.isVariable,
+                        staticWeight: metadata.staticWeight ?? null
                     };
                 } catch (err) {
                     console.error(`Error parsing font ${file.name}:`, err);
@@ -233,6 +237,11 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
             )}
         </div>
     );
+};
+
+FallbackFontAdder.propTypes = {
+    onClose: PropTypes.func.isRequired,
+    onAdd: PropTypes.func.isRequired
 };
 
 export default FallbackFontAdder;

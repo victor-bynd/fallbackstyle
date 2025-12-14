@@ -31,14 +31,15 @@ const OverridesManager = () => {
         const fonts = getFontsForStyle(styleId);
 
         const fontLevelOverrides = fonts
-            .filter(f => f.type === 'fallback' && (f.scale !== undefined || f.lineHeight !== undefined))
+            .filter(f => f.type === 'fallback' && (f.scale !== undefined || f.lineHeight !== undefined || f.weightOverride !== undefined))
             .map(f => ({
                 type: 'font-level',
                 fontId: f.id,
                 fontName: f.fileName?.replace(/\.[^/.]+$/, '') || f.name || 'Unnamed Font',
                 overrides: {
                     scale: f.scale !== undefined,
-                    lineHeight: f.lineHeight !== undefined
+                    lineHeight: f.lineHeight !== undefined,
+                    weight: f.weightOverride !== undefined
                 }
             }));
 
@@ -151,9 +152,10 @@ const OverridesManager = () => {
                                     <div key={override.fontId} className="p-3 flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="text-xs font-semibold text-slate-700 truncate">{override.fontName}</div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">
-                                                {override.overrides.scale && <span className="mr-2">• Size Adjust</span>}
+                                            <div className="text-[10px] text-slate-500 mt-0.5 flex gap-2">
+                                                {override.overrides.scale && <span>• Size Adjust</span>}
                                                 {override.overrides.lineHeight && <span>• Line Height</span>}
+                                                {override.overrides.weight && <span>• Weight</span>}
                                             </div>
                                         </div>
                                         <button
