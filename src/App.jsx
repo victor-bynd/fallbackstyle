@@ -6,12 +6,40 @@ import Controller from './components/Controller';
 import LanguageCard from './components/LanguageCard';
 import LanguageSelectorModal from './components/LanguageSelectorModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import TextCasingSelector from './components/TextCasingSelector';
+import ViewModeSelector from './components/ViewModeSelector';
 
 const MainContent = ({ sidebarMode, setSidebarMode }) => {
-  const { fontObject, fontStyles, gridColumns, setGridColumns, viewMode, setViewMode, textCase, setTextCase, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors } = useTypo();
+  const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors } = useTypo();
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showListSettings, setShowListSettings] = useState(false);
   const listSettingsRef = useRef(null);
+  const toolbarRef = useRef(null);
+  const [isToolbarVisible, setIsToolbarVisible] = useState(true);
+
+  // Scroll detection for toolbar
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsToolbarVisible(entry.isIntersecting);
+      },
+      {
+        root: null,
+        threshold: 0,
+        rootMargin: "0px" // Trigger when it leaves the viewport completely
+      }
+    );
+
+    if (toolbarRef.current) {
+      observer.observe(toolbarRef.current);
+    }
+
+    return () => {
+      if (toolbarRef.current) {
+        observer.unobserve(toolbarRef.current);
+      }
+    };
+  }, [fontObject]);
 
   useEffect(() => {
     if (!showListSettings) return;
@@ -33,16 +61,6 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
       window.removeEventListener('mousedown', onMouseDown);
     };
   }, [showListSettings]);
-
-  const tabs = [
-    { id: 'all', label: 'All' },
-    { id: 'h1', label: 'H1' },
-    { id: 'h2', label: 'H2' },
-    { id: 'h3', label: 'H3' },
-    { id: 'h4', label: 'H4' },
-    { id: 'h5', label: 'H5' },
-    { id: 'h6', label: 'H6' },
-  ];
 
   const fontFaceStyles = useMemo(() => {
     return ['primary', 'secondary']
@@ -76,9 +94,105 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
   }, [fontStyles]);
 
   return (
-    <div className="flex-1 bg-slate-50 min-h-screen">
+    <div className="flex-1 bg-slate-50 min-h-screen relative">
       {/* Dynamic Style Injection for uploaded fonts */}
       <style>{fontFaceStyles}</style>
+
+      {/* Fixed Settings Button */}
+      {fontObject && (
+        <div
+          className={`fixed top-8 right-8 md:top-10 md:right-10 z-50 transition-all duration-300 ${!isToolbarVisible ? 'translate-y-0' : ''}`}
+          ref={listSettingsRef}
+        >
+          <button
+            onClick={() => setShowListSettings(v => !v)}
+            className={`p-1 rounded-lg border flex items-center justify-center w-[42px] h-[42px] text-slate-600 hover:text-indigo-600 transition-all duration-300 ${isToolbarVisible
+              ? 'bg-white border-gray-200 hover:bg-slate-50 shadow-none'
+              : 'bg-white/90 backdrop-blur border-slate-200 shadow-xl hover:bg-white'
+              }`}
+            title="List settings"
+            type="button"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 00-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9.75-6H13.5m0 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 00-3 0m-6.75 0H10.5" />
+            </svg>
+          </button>
+
+          {showListSettings && (
+            <div className={`absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl p-3 shadow-xl origin-top-right transition-all duration-200 animate-in fade-in zoom-in-95`}>
+              {/* Adaptive Controls: Show only when toolbar is scrolled out */}
+              {(!isToolbarVisible) && (
+                <div className="mb-3 space-y-3 pb-3 border-b border-gray-100">
+                  <div>
+                    <div className="border border-gray-100 rounded-lg p-1 bg-slate-50">
+                      <TextCasingSelector />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="border border-gray-100 rounded-lg p-1 bg-slate-50 overflow-x-auto">
+                      <ViewModeSelector mode="dropdown" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setShowLanguageSelector(true);
+                  setShowListSettings(false);
+                }}
+                className="w-full bg-white border border-gray-200 flex items-center justify-between px-3 h-[42px] text-sm text-slate-700 font-medium hover:bg-slate-50 transition-colors rounded-lg"
+                title="Show/hide languages"
+                type="button"
+              >
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Languages</span>
+                <span className="font-mono text-xs text-slate-500">{visibleLanguageIds.length}/{languages.length}</span>
+              </button>
+
+              <div className="mt-3">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Columns</div>
+                <div className="relative">
+                  <select
+                    value={gridColumns}
+                    onChange={(e) => setGridColumns(parseInt(e.target.value))}
+                    className="w-full bg-white border border-gray-200 rounded-lg pl-3 pr-10 py-2 text-sm text-slate-700 font-medium focus:outline-none cursor-pointer appearance-none"
+                  >
+                    {[1, 2, 3, 4].map(num => (
+                      <option key={num} value={num}>{num}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fallback Color Toggle */}
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Toggle Fallback Colors</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showFallbackColors}
+                  onClick={() => setShowFallbackColors(!showFallbackColors)}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showFallbackColors ? 'bg-indigo-600' : 'bg-slate-200'
+                    }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`${showFallbackColors ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {!fontObject ? (
         <div className="h-screen flex flex-col items-center justify-center p-4">
@@ -90,8 +204,11 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
         </div>
       ) : (
         <div className="p-8 md:p-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <div className="flex items-center gap-3">
+          <div
+            ref={toolbarRef}
+            className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 min-h-[42px]"
+          >
+            <div className={`flex items-center gap-3 transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <button
                 onClick={() => setSidebarMode(sidebarMode === 'headers' ? 'main' : 'headers')}
                 className="bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px]"
@@ -109,115 +226,11 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              {/* Text Casing Dropdown */}
-              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-2 h-[42px] gap-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">CASING</span>
-                {[
-                  { id: 'none', label: '–' },
-                  { id: 'lowercase', label: 'abc' },
-                  { id: 'uppercase', label: 'ABC' },
-                  { id: 'capitalize', label: 'Abc' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setTextCase(opt.id)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap min-w-[32px] ${textCase === opt.id
-                      ? 'bg-indigo-50 text-indigo-600'
-                      : 'text-slate-500 hover:bg-gray-50'
-                      }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-2 h-[42px] gap-1 overflow-x-auto max-w-full">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">DISPLAY</span>
-                {tabs.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setViewMode(tab.id)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${viewMode === tab.id
-                      ? 'bg-indigo-50 text-indigo-600'
-                      : 'text-slate-500 hover:bg-gray-50'
-                      }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative" ref={listSettingsRef}>
-                <button
-                  onClick={() => setShowListSettings(v => !v)}
-                  className="bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center w-[42px] h-[42px] text-slate-600 hover:text-indigo-600 hover:bg-slate-50 transition-colors"
-                  title="List settings"
-                  type="button"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 00-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9.75-6H13.5m0 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 00-3 0m-6.75 0H10.5" />
-                  </svg>
-                </button>
-
-                {showListSettings && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-xl p-3 z-20">
-                    <button
-                      onClick={() => {
-                        setShowLanguageSelector(true);
-                        setShowListSettings(false);
-                      }}
-                      className="w-full bg-white border border-gray-200 flex items-center justify-between px-3 h-[42px] text-sm text-slate-700 font-medium hover:bg-slate-50 transition-colors rounded-lg"
-                      title="Show/hide languages"
-                      type="button"
-                    >
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Languages</span>
-                      <span className="font-mono text-xs text-slate-500">{visibleLanguageIds.length}/{languages.length}</span>
-                    </button>
-
-                    <div className="mt-3">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Columns</div>
-                      <div className="relative">
-                        <select
-                          value={gridColumns}
-                          onChange={(e) => setGridColumns(parseInt(e.target.value))}
-                          className="w-full bg-white border border-gray-200 rounded-lg pl-3 pr-10 py-2 text-sm text-slate-700 font-medium focus:outline-none cursor-pointer appearance-none"
-                        >
-                          {[1, 2, 3, 4].map(num => (
-                            <option key={num} value={num}>{num}</option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Fallback Color Toggle */}
-                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Toggle Fallback Colors</span>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={showFallbackColors}
-                        onClick={() => setShowFallbackColors(!showFallbackColors)}
-                        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showFallbackColors ? 'bg-indigo-600' : 'bg-slate-200'
-                          }`}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`${showFallbackColors ? 'translate-x-[18px]' : 'translate-x-0.5'
-                            } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className={`flex flex-col sm:flex-row gap-4 items-center transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <TextCasingSelector />
+              <ViewModeSelector />
+              {/* Spacer for Fixed Settings Button */}
+              <div className="w-[42px] h-[42px] hidden sm:block shrink-0" aria-hidden="true" />
             </div>
           </div>
           <div className="grid gap-4 transition-all duration-300 ease-in-out" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
