@@ -114,8 +114,8 @@ const Controller = ({ sidebarMode, setSidebarMode }) => {
             {sidebarMode === 'main' && (
                 <>
                     {/* Static Header */}
-                    <div className="pb-4 border-b border-slate-200/70">
-                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Beautify Your Fallbacks</h2>
+                    <div className="pb-4">
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Fallback Styles</h2>
                     </div>
 
                     <DndContext
