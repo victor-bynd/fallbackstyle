@@ -274,8 +274,8 @@ const LanguageCard = ({ language }) => {
 
     return (
         <div className="bg-white border border-gray-200/60 rounded-xl overflow-hidden shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] transition-shadow duration-300">
-            <div className="bg-slate-50/50 px-5 py-3 border-b border-gray-100 flex justify-between items-center backdrop-blur-sm">
-                <div className="flex items-center gap-3">
+            <div className="bg-slate-50/50 px-5 py-3 border-b border-gray-100 flex flex-wrap gap-y-2 justify-between items-center backdrop-blur-sm">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 min-w-0">
                         <h3 className="font-bold text-sm text-slate-800 tracking-tight truncate">{language.name}</h3>
                         <span className="text-[10px] font-mono text-slate-600 bg-slate-200/60 border border-slate-200 px-2 py-0.5 rounded-md whitespace-nowrap">
@@ -298,7 +298,7 @@ const LanguageCard = ({ language }) => {
                         <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Custom</span>
                     )}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
 
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">FONT OVERRIDE</span>
