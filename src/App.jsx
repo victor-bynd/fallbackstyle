@@ -94,7 +94,7 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSidebarMode(sidebarMode === 'headers' ? 'main' : 'headers')}
-                className="bg-white border border-gray-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px]"
+                className="bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px]"
                 type="button"
                 title={sidebarMode === 'headers' ? 'Done editing header styles' : 'Edit header styles'}
               >
@@ -105,34 +105,35 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                 ) : (
                   <span className="text-xs font-serif italic">Aa</span>
                 )}
-                <span>{sidebarMode === 'headers' ? 'Done' : 'Edit Styles'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">{sidebarMode === 'headers' ? 'Done' : 'Edit Styles'}</span>
               </button>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               {/* Text Casing Dropdown */}
-              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-3 h-[42px]">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-2">Casing:</span>
-                <div className="relative">
-                  <select
-                    value={textCase}
-                    onChange={(e) => setTextCase(e.target.value)}
-                    className="bg-transparent text-sm text-slate-700 font-medium focus:outline-none cursor-pointer min-w-[80px] appearance-none pr-7"
+              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-2 h-[42px] gap-1">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">CASING</span>
+                {[
+                  { id: 'none', label: '–' },
+                  { id: 'lowercase', label: 'abc' },
+                  { id: 'uppercase', label: 'ABC' },
+                  { id: 'capitalize', label: 'Abc' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setTextCase(opt.id)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap min-w-[32px] ${textCase === opt.id
+                      ? 'bg-indigo-50 text-indigo-600'
+                      : 'text-slate-500 hover:bg-gray-50'
+                      }`}
                   >
-                    <option value="none">Normal</option>
-                    <option value="lowercase">Lowercase</option>
-                    <option value="uppercase">Uppercase</option>
-                    <option value="capitalize">Capitalize</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center overflow-x-auto max-w-full h-[42px]">
+              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-2 h-[42px] gap-1 overflow-x-auto max-w-full">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">DISPLAY</span>
                 {tabs.map(tab => (
                   <button
                     key={tab.id}

@@ -21,7 +21,7 @@ const SidebarHeaderConfig = () => {
     return (
         <div className="flex flex-col gap-6 animate-fade-in">
             {/* Header / Back Button */}
-            <div className="flex items-center gap-2 pb-4 border-b border-gray-100">
+            <div className="flex items-center gap-2 pb-4">
                 <h3 className="font-bold text-slate-800 text-sm">Header Styles</h3>
             </div>
 

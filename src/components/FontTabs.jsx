@@ -62,6 +62,18 @@ export const SortableFontCard = ({
     const isInheritingGlobalWeight = font.type === 'fallback' && (font.weightOverride === undefined || font.weightOverride === null || font.weightOverride === '');
     const isGlobalWeightUnavailable = isInheritingGlobalWeight && typeof globalWeight === 'number' && effectiveWeight !== globalWeight;
 
+    const rawName = font.fileName || font.name || 'No font uploaded';
+    let displayName = rawName;
+    let extension = '';
+
+    if (rawName && rawName.lastIndexOf('.') !== -1) {
+        const lastDot = rawName.lastIndexOf('.');
+        if (lastDot > 0) { // Ensure dot is not start
+            displayName = rawName.substring(0, lastDot);
+            extension = rawName.substring(lastDot + 1);
+        }
+    }
+
     return (
         <div
             ref={setNodeRef}
@@ -144,8 +156,8 @@ export const SortableFontCard = ({
                     {font.type === 'primary' ? 'Main Font' : 'Fallback Font'}
                 </div>
             </div>
-            <div className={`font-mono text-sm break-all text-slate-700 font-medium pr-6 ${!isPrimary ? '' : ''}`}>
-                {font.fileName || font.name || 'No font uploaded'}
+            <div className={`font-mono text-xs break-all text-slate-700 font-medium pr-6 ${!isPrimary ? '' : ''}`}>
+                {displayName}
             </div>
             {!isPrimary && isGlobalWeightUnavailable && (
                 <div className="text-[10px] text-amber-600 mt-1">
@@ -153,23 +165,30 @@ export const SortableFontCard = ({
                 </div>
             )}
             {font.fontObject && (
-                <div className={`text-xs text-slate-400 mt-2 flex items-center gap-2 ${!isPrimary ? '' : ''}`}>
-                    <div className="relative w-3 h-3 flex-shrink-0 cursor-pointer group">
-                        <div
-                            className="absolute inset-0 rounded-full ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-shadow"
-                            style={{ backgroundColor: getFontColor(index) }}
-                        />
-                        <input
-                            type="color"
-                            value={getFontColor(index)}
-                            onChange={(e) => updateFontColor(index, e.target.value)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            title={`Change color for ${isPrimary ? 'Primary' : 'Fallback'} font`}
-                            onClick={(e) => e.stopPropagation()}
-                            onPointerDown={e => e.stopPropagation()}
-                        />
+                <div className={`text-xs text-slate-400 mt-2 flex items-center justify-between ${!isPrimary ? '' : ''}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="relative w-3 h-3 flex-shrink-0 cursor-pointer group">
+                            <div
+                                className="absolute inset-0 rounded-full ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-shadow"
+                                style={{ backgroundColor: getFontColor(index) }}
+                            />
+                            <input
+                                type="color"
+                                value={getFontColor(index)}
+                                onChange={(e) => updateFontColor(index, e.target.value)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                title={`Change color for ${isPrimary ? 'Primary' : 'Fallback'} font`}
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={e => e.stopPropagation()}
+                            />
+                        </div>
+                        {font.fontObject.numGlyphs} glyphs
                     </div>
-                    {font.fontObject.numGlyphs} glyphs
+                    {extension && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-slate-100 border border-slate-200 text-slate-500 rounded px-1.5 py-0.5 ml-2">
+                            {extension}
+                        </span>
+                    )}
                 </div>
             )}
             {!font.fontObject && font.name && (

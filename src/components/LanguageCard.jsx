@@ -260,10 +260,9 @@ const LanguageCard = ({ language }) => {
         }).length
         : 0;
 
-    // We only show "Unknown Support" if we are using a System font as the primary fallback strategy,
-    // meaning we have NO verifiable font in the specific fallback stack.
-    // If we are in Cascade, and we have uploaded fonts, we show the % supported by those fonts.
-    const isSystemFont = metricsFallbackFontStack.every(f => !f.fontObject);
+    // We only show "Unknown Support" if we have NO verifiable font (neither primary nor fallback).
+    // If we have uploaded fonts (primary or fallbacks with objects), we show the % supported by those fonts.
+    const hasVerifiableFont = !!metricsPrimaryFontObject || metricsFallbackFontStack.some(f => !!f.fontObject);
 
     // Calculate metric based only on known verifiable fonts
     const supportedPercent = totalChars > 0 ? Math.round(((totalChars - missingChars) / totalChars) * 100) : 100;
@@ -280,61 +279,65 @@ const LanguageCard = ({ language }) => {
                         </span>
                     </div>
 
-                    {/* Edit Toggle */}
-                    <button
-                        onClick={handleStartEdit}
-                        className="text-slate-400 hover:text-indigo-600 transition-colors"
-                        title="Edit text"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                            <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
-                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
-                        </svg>
-                    </button>
-                    {textOverrides[language.id] && (
-                        <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Custom</span>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">FONT OVERRIDE</span>
-                    <div className="relative">
-                        <select
-                            value={fallbackOverrideFontId}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (!val) {
-                                    clearFallbackFontOverrideForStyle(activeMetricsStyleId, language.id);
-                                } else {
-                                    setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, val);
-                                }
-                            }}
-                            className="bg-white border border-gray-200 rounded-md pl-2 pr-8 py-1 text-[11px] text-slate-700 font-medium focus:outline-none cursor-pointer appearance-none min-w-[120px]"
-                            title="Fallback override"
-                        >
-                            <option value="">Auto</option>
-                            <option value="legacy">System</option>
-                            {fallbackOverrideOptions.map(opt => (
-                                <option key={opt.id} value={opt.id}>{opt.label}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                    </div>
-
                     <div
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${isSystemFont
+                        className={`text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap ${!hasVerifiableFont
                             ? 'bg-slate-100 text-slate-500 border-slate-200'
                             : isFullSupport
                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                 : 'bg-rose-50 text-rose-600 border-rose-100'
                             }`}
                     >
-                        {isSystemFont ? 'Unknown Support' : `${supportedPercent}% Supported`}
+                        {!hasVerifiableFont ? 'Unknown Support' : `${supportedPercent}% Supported`}
                     </div>
+
+                    {textOverrides[language.id] && (
+                        <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Custom</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-4">
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">FONT OVERRIDE</span>
+                        <div className="relative">
+                            <select
+                                value={fallbackOverrideFontId}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (!val) {
+                                        clearFallbackFontOverrideForStyle(activeMetricsStyleId, language.id);
+                                    } else {
+                                        setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, val);
+                                    }
+                                }}
+                                className="bg-white border border-gray-200 rounded-md pl-2 pr-8 py-1 text-[11px] text-slate-700 font-medium focus:outline-none cursor-pointer appearance-none min-w-[120px]"
+                                title="Fallback override"
+                            >
+                                <option value="">Auto</option>
+                                <option value="legacy">System</option>
+                                {fallbackOverrideOptions.map(opt => (
+                                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Edit Toggle */}
+                    <button
+                        onClick={handleStartEdit}
+                        className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+                        title="Edit text"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                            <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+                        </svg>
+                        Edit
+                    </button>
                 </div>
             </div>
 
