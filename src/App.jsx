@@ -30,13 +30,14 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
       }
     );
 
-    if (toolbarRef.current) {
-      observer.observe(toolbarRef.current);
+    const currentToolbarRef = toolbarRef.current;
+    if (currentToolbarRef) {
+      observer.observe(currentToolbarRef);
     }
 
     return () => {
-      if (toolbarRef.current) {
-        observer.unobserve(toolbarRef.current);
+      if (currentToolbarRef) {
+        observer.unobserve(currentToolbarRef);
       }
     };
   }, [fontObject]);

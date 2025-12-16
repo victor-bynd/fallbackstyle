@@ -254,8 +254,8 @@ export const TypoProvider = ({ children }) => {
     const [showFallbackColors, setShowFallbackColors] = useState(true);
     const [colors, setColors] = useState({
         primary: '#0f172a',
-        missing: '#ff0000',
-        missingBg: '#ffecec'
+        missing: '#b8b8b8', // rgb(184,184,184)
+        missingBg: '#f1f5f9' // Slate-100
     });
 
     const fonts = activeStyle.fonts;

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
+import { languageCharacters } from '../data/languageCharacters';
 
 const LanguageCard = ({ language }) => {
     const {
@@ -232,11 +233,11 @@ const LanguageCard = ({ language }) => {
         return result;
     }, [buildFallbackFontStackForStyle, contentToRender, colors.missing, fontStyles, getEffectiveFontSettingsForStyle, getFallbackScaleOverrideForStyle, getFontColorForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors]);
 
-    if (!fontObject) return null;
+    // Stats based on current content (moved check to end of render)
 
     // Stats based on current content
     // Stats based on current content
-    const totalChars = contentToRender.replace(/\s/g, '').length;
+
     const activeMetricsStyleId = resolveStyleIdForHeader(viewMode === 'all' ? 'h1' : viewMode);
     const metricsPrimaryFont = getPrimaryFontFromStyle(activeMetricsStyleId);
     const metricsPrimaryFontObject = metricsPrimaryFont?.fontObject;
@@ -253,27 +254,43 @@ const LanguageCard = ({ language }) => {
             }));
     }, [activeMetricsStyleId, getFontsForStyle]);
 
-    const missingChars = metricsPrimaryFontObject
-        ? contentToRender.replace(/\s/g, '').split('').filter(char => {
-            if (metricsPrimaryFontObject.charToGlyphIndex(char) !== 0) return false;
+    const missingChars = useMemo(() => {
+        const textToCheck = languageCharacters[language.id] || contentToRender;
+        const charsToCheck = textToCheck.replace(/\s/g, '').split('');
 
+        if (!metricsPrimaryFontObject && metricsFallbackFontStack.every(f => !f.fontObject)) {
+            return 0; // Or handling for no fonts loaded
+        }
+
+        return charsToCheck.filter(char => {
+            // Check primary
+            if (metricsPrimaryFontObject && metricsPrimaryFontObject.charToGlyphIndex(char) !== 0) return false;
+
+            // Check fallbacks
             for (const fallback of metricsFallbackFontStack) {
                 if (fallback.fontObject) {
-                    if (fallback.fontObject.charToGlyphIndex(char) !== 0) return false;
+                    // Some fonts might throw on charToGlyphIndex
+                    try {
+                        if (fallback.fontObject.charToGlyphIndex(char) !== 0) return false;
+                    } catch {
+                        // ignore
+                    }
                 }
             }
-
             return true;
-        }).length
-        : 0;
+        }).length;
+    }, [language.id, contentToRender, metricsPrimaryFontObject, metricsFallbackFontStack]);
 
     // We only show "Unknown Support" if we have NO verifiable font (neither primary nor fallback).
     // If we have uploaded fonts (primary or fallbacks with objects), we show the % supported by those fonts.
     const hasVerifiableFont = !!metricsPrimaryFontObject || metricsFallbackFontStack.some(f => !!f.fontObject);
 
     // Calculate metric based only on known verifiable fonts
-    const supportedPercent = totalChars > 0 ? Math.round(((totalChars - missingChars) / totalChars) * 100) : 100;
+    const totalCharsToCheck = (languageCharacters[language.id] || contentToRender).replace(/\s/g, '').length;
+    const supportedPercent = totalCharsToCheck > 0 ? Math.round(((totalCharsToCheck - missingChars) / totalCharsToCheck) * 100) : 100;
     const isFullSupport = missingChars === 0;
+
+    if (!fontObject) return null;
 
     return (
         <div className="bg-white border border-gray-200/60 rounded-xl overflow-hidden shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] transition-shadow duration-300">
@@ -494,7 +511,7 @@ LanguageCard.propTypes = {
     language: PropTypes.shape({
         id: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
-        sampleText: PropTypes.string.isRequired
+        pangram: PropTypes.string.isRequired
     }).isRequired
 };
 

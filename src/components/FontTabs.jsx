@@ -79,7 +79,8 @@ export const SortableFontCard = ({
             ref={setNodeRef}
             style={style}
             className={`
-                bg-slate-50 rounded-lg p-3 border transition-all relative
+                bg-slate-50 rounded-lg border transition-all relative
+                ${isActive || isPrimary ? 'p-3' : 'p-2'}
                 ${isPrimary ? '' : 'cursor-pointer'}
                 ${isActive && !isPrimary
                     ? 'border-indigo-500 ring-2 ring-indigo-500/20'
@@ -141,7 +142,7 @@ export const SortableFontCard = ({
                     </svg>
                 </button>
             )}
-            <div className={`flex items-center gap-1 mb-1 ${!isPrimary ? '-ml-[3px]' : ''}`}>
+            <div className={`flex items-start gap-1 ${!isPrimary ? '-ml-[3px]' : ''}`}>
                 <div
                     className="text-slate-400 cursor-move flex-shrink-0 hover:text-indigo-600 transition-colors p-1 -ml-1 rounded hover:bg-slate-100 touch-none"
                     title="Drag to reorder"
@@ -152,12 +153,9 @@ export const SortableFontCard = ({
                         <path d="M7 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM7 8a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM7 14a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 8a2 2 0 1 1 0 4a2 2 0 0 1 0-4ZM13 14a2 2 0 1 1 0 4a2 2 0 0 1 0-4Z" />
                     </svg>
                 </div>
-                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                    {font.type === 'primary' ? 'Main Font' : 'Fallback Font'}
+                <div className="flex-1 min-w-0 font-mono text-xs break-all text-slate-700 font-medium pr-6 mt-0.5 ml-1">
+                    {displayName}
                 </div>
-            </div>
-            <div className={`font-mono text-xs break-all text-slate-700 font-medium pr-6 ${!isPrimary ? '' : ''}`}>
-                {displayName}
             </div>
             {!isPrimary && isGlobalWeightUnavailable && (
                 <div className="text-[10px] text-amber-600 mt-1">

@@ -19,7 +19,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-const Controller = ({ sidebarMode, setSidebarMode }) => {
+const Controller = ({ sidebarMode }) => {
     const {
         activeFontStyleId,
         fonts,
@@ -169,29 +169,34 @@ const Controller = ({ sidebarMode, setSidebarMode }) => {
                                     ) : (
                                         <div>
                                             {primaryFont && (
-                                                <SortableFontCard
-                                                    font={primaryFont}
-                                                    index={0}
-                                                    isActive={primaryFont.id === activeFont}
-                                                    globalWeight={weight}
-                                                    globalLineHeight={lineHeight}
-                                                    globalLetterSpacing={letterSpacing}
-                                                    setGlobalLineHeight={setGlobalLineHeight}
-                                                    setGlobalLetterSpacing={setGlobalLetterSpacing}
-                                                    hasLineHeightOverrides={hasOverrides}
-                                                    lineHeightOverrideCount={Object.keys(lineHeightOverrides).length}
-                                                    resetAllLineHeightOverrides={resetAllLineHeightOverrides}
-                                                    getFontColor={getFontColor}
-                                                    updateFontColor={updateFontColor}
-                                                    getEffectiveFontSettings={getEffectiveFontSettings}
-                                                    fontScales={fontScales}
-                                                    lineHeight={lineHeight}
-                                                    updateFallbackFontOverride={updateFallbackFontOverride}
-                                                    resetFallbackFontOverrides={resetFallbackFontOverrides}
-                                                    setActiveFont={setActiveFont}
-                                                    handleRemove={() => { }}
-                                                    updateFontWeight={updateFontWeight}
-                                                />
+                                                <>
+                                                    <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
+                                                        Primary Font
+                                                    </label>
+                                                    <SortableFontCard
+                                                        font={primaryFont}
+                                                        index={0}
+                                                        isActive={primaryFont.id === activeFont}
+                                                        globalWeight={weight}
+                                                        globalLineHeight={lineHeight}
+                                                        globalLetterSpacing={letterSpacing}
+                                                        setGlobalLineHeight={setGlobalLineHeight}
+                                                        setGlobalLetterSpacing={setGlobalLetterSpacing}
+                                                        hasLineHeightOverrides={hasOverrides}
+                                                        lineHeightOverrideCount={Object.keys(lineHeightOverrides).length}
+                                                        resetAllLineHeightOverrides={resetAllLineHeightOverrides}
+                                                        getFontColor={getFontColor}
+                                                        updateFontColor={updateFontColor}
+                                                        getEffectiveFontSettings={getEffectiveFontSettings}
+                                                        fontScales={fontScales}
+                                                        lineHeight={lineHeight}
+                                                        updateFallbackFontOverride={updateFallbackFontOverride}
+                                                        resetFallbackFontOverrides={resetFallbackFontOverrides}
+                                                        setActiveFont={setActiveFont}
+                                                        handleRemove={() => { }}
+                                                        updateFontWeight={updateFontWeight}
+                                                    />
+                                                </>
                                             )}
                                         </div>
                                     )}
