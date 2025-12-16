@@ -5,7 +5,7 @@ import { resolveWeightForFont } from '../utils/weightUtils';
 
 const TypoContext = createContext();
 
-const VISIBLE_LANGUAGE_IDS_STORAGE_KEY = 'localize-type:visibleLanguageIds:v1';
+const VISIBLE_LANGUAGE_IDS_STORAGE_KEY = 'localize-type:visibleLanguageIds:v3';
 
 export const TypoProvider = ({ children }) => {
     const createEmptyStyleState = () => ({
@@ -288,7 +288,26 @@ export const TypoProvider = ({ children }) => {
         return style?.fallbackScaleOverrides?.[langId];
     };
 
-    const getDefaultVisibleLanguageIds = () => languages.map(l => l.id);
+    const getDefaultVisibleLanguageIds = () => [
+        'en-US', // English
+        'ru-RU', // Russian
+        'el-GR', // Greek
+        'ar-SA', // Arabic
+        'hi-IN', // Hindi
+        'vi-VN', // Vietnamese
+        'bn-IN', // Bengali
+        'zh-CN', // Chinese (Simplified)
+        'zh-TW', // Chinese (Traditional)
+        'ja-JP', // Japanese
+        'ko-KR', // Korean
+        'th-TH', // Thai
+        'gu-IN', // Gujarati
+        'pa-IN', // Punjabi (Gurmukhi)
+        'kn-IN', // Kannada
+        'ml-IN', // Malayalam
+        'ta-IN', // Tamil
+        'te-IN'  // Telugu
+    ];
 
     const [visibleLanguageIds, setVisibleLanguageIds] = useState(() => {
         const defaultIds = getDefaultVisibleLanguageIds();
@@ -301,7 +320,7 @@ export const TypoProvider = ({ children }) => {
 
             // Respect the saved selection order, but only keep IDs that still exist.
             // This ensures hidden languages remain hidden after a reload.
-            const validSet = new Set(defaultIds);
+            const validSet = new Set(languages.map(l => l.id));
             const seen = new Set();
             return parsed
                 .filter(id => typeof id === 'string')
@@ -338,7 +357,7 @@ export const TypoProvider = ({ children }) => {
             if (visible) {
                 if (exists) return prev;
                 // Insert back in canonical order (languages.json)
-                const canonical = getDefaultVisibleLanguageIds();
+                const canonical = languages.map(l => l.id);
                 const nextSet = new Set(prev);
                 nextSet.add(langId);
                 return canonical.filter(id => nextSet.has(id));
@@ -354,7 +373,7 @@ export const TypoProvider = ({ children }) => {
     };
 
     const showAllLanguages = () => {
-        setVisibleLanguageIds(getDefaultVisibleLanguageIds());
+        setVisibleLanguageIds(languages.map(l => l.id));
     };
 
     const hideAllLanguages = () => {

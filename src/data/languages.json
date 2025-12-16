@@ -18,6 +18,30 @@
     "pangram": "Snapchat đạt 250 triệu người dùng hoạt động hằng tháng"
   },
   {
+    "id": "es-ES",
+    "name": "Spanish (Latin)",
+    "script": "Latn",
+    "pangram": "El veloz murciélago hindú comía feliz cardillo y kiwi"
+  },
+  {
+    "id": "fr-FR",
+    "name": "French (Latin)",
+    "script": "Latn",
+    "pangram": "Portez ce vieux whisky au juge blond qui fume"
+  },
+  {
+    "id": "tr-TR",
+    "name": "Turkish (Latin)",
+    "script": "Latn",
+    "pangram": "Pijamalı hasta yağız şoföre çabucak güvendi"
+  },
+  {
+    "id": "id-ID",
+    "name": "Indonesian (Latin)",
+    "script": "Latn",
+    "pangram": "Muharjo seorang xenofobia universal yang takut pada warga jazirah"
+  },
+  {
     "id": "el-GR",
     "name": "Greek (Greek Script)",
     "script": "Grek",
@@ -28,6 +52,12 @@
     "name": "Russian (Cyrillic Script)",
     "script": "Cyrl",
     "pangram": "Snapchat хиты 250 миллион ежемесячно"
+  },
+  {
+    "id": "bg-BG",
+    "name": "Bulgarian (Cyrillic)",
+    "script": "Cyrl",
+    "pangram": "Я, пазачът Вальо уж бди, а скришом хапва кюфтенца"
   },
   {
     "id": "ar-SA",
@@ -44,16 +74,53 @@
     "pangram": "اسنپ\u200cچت به ۲۵۰ میلیون کاربر فعال ماهانه رسید."
   },
   {
+    "id": "ur-PK",
+    "name": "Urdu (Arabic Script)",
+    "script": "Arab",
+    "dir": "rtl",
+    "pangram": "ٹھنڈ میں، ایک قحط زدہ گاؤں سے گذرتے وقت ایک چڑچڑے، باأثر و فارغ شخص کو بعض جل پری نما اژدہے نظر آئے۔"
+  },
+  {
     "id": "hi-IN",
     "name": "Hindi (Devanagari)",
     "script": "Deva",
     "pangram": "स्नैपचैट के मंथली एक्टिव यूज़र्स की संख्या 250 मिलियन हुई"
   },
   {
+    "id": "mr-IN",
+    "name": "Marathi (Devanagari)",
+    "script": "Deva",
+    "pangram": "तू कसा आहेस? मराठी फोंठ तपासणीसाठी हे एक उदाहरण वाक्य आहे."
+  },
+  {
     "id": "bn-IN",
     "name": "Bengali (Complex Indic)",
     "script": "Beng",
     "pangram": "Snapchat-এর মাসিক সক্রিয় ব্যবহারকারীর সংখ্যা ২৫০ মিলিয়নে পৌঁছেছে"
+  },
+  {
+    "id": "gu-IN",
+    "name": "Gujarati (Gujarati Script)",
+    "script": "Gujr",
+    "pangram": "સરળતા એ સાચા શ્રેષ્ઠતાની નિશાની છે"
+  },
+  {
+    "id": "pa-IN",
+    "name": "Punjabi (Gurmukhi)",
+    "script": "Guru",
+    "pangram": "ਉੜਾ ਐੜਾ ਈੜੀ ਸੱਸਾ ਹਾਹਾ ਕੱਕਾ ਖੱਖਾ ਗੱਗਾ ਘੱਘਾ ਙੰਙਾ"
+  },
+  {
+    "id": "ml-IN",
+    "name": "Malayalam (Malayalam Script)",
+    "script": "Mlym",
+    "pangram": "അഊ അം അഃ ക ഖ ഗ ഘ ങ ച ഛ ജ ഝ ഞ ട ഠ ഡ ഢ ണ ത ഥ ദ ധ ന പ ഫ ബ ഭ മ"
+  },
+  {
+    "id": "ta-IN",
+    "name": "Tamil (Tamil Script)",
+    "script": "Taml",
+    "pangram": "அனைவருக்கும் வணக்கம். தமிழ் எழுத்துக்கள் அனைத்தும் இதில் உள்ளன."
   },
   {
     "id": "kn-IN",
@@ -78,6 +145,12 @@
     "name": "Chinese (Simplified)",
     "script": "Hans",
     "pangram": "Snapchat 月活跃用户数达到 2.5 亿。"
+  },
+  {
+    "id": "zh-TW",
+    "name": "Chinese (Traditional)",
+    "script": "Hant",
+    "pangram": "Snapchat 的月活躍用戶數量達到 2.5 億。"
   },
   {
     "id": "ja-JP",
