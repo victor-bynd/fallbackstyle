@@ -30,7 +30,7 @@ export const SortableFontCard = ({
     handleRemove,
     updateFontWeight
 }) => {
-    const { loadFont } = useTypo();
+    const { loadFont, colors } = useTypo();
     const replacePrimaryInputRef = useRef(null);
 
     const {
@@ -193,19 +193,10 @@ export const SortableFontCard = ({
             )}
             {!font.fontObject && font.name && (
                 <div className={`text-xs text-slate-400 mt-2 flex items-center gap-2 ${!isPrimary ? '' : ''}`}>
-                    <div className="relative w-3 h-3 flex-shrink-0 cursor-pointer group">
+                    <div className="relative w-3 h-3 flex-shrink-0 cursor-not-allowed" title="Uses System Default Color (Unverifiable)">
                         <div
-                            className="absolute inset-0 rounded-full ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-shadow"
-                            style={{ backgroundColor: getFontColor(index) }}
-                        />
-                        <input
-                            type="color"
-                            value={getFontColor(index)}
-                            onChange={(e) => updateFontColor(index, e.target.value)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            title={`Change color for ${isPrimary ? 'Primary' : 'Fallback'} font`}
-                            onClick={(e) => e.stopPropagation()}
-                            onPointerDown={e => e.stopPropagation()}
+                            className="absolute inset-0 rounded-full ring-1 ring-slate-200"
+                            style={{ backgroundColor: colors.missing }}
                         />
                     </div>
                     System/Web Font

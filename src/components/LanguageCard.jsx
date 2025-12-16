@@ -196,7 +196,10 @@ const LanguageCard = ({ language }) => {
 
                     const fonts = getFontsForStyle(styleId);
                     const fontIndex = fonts.findIndex(f => f.id === usedFallback.fontId);
-                    const baseColor = fontIndex >= 0 ? getFontColorForStyle(styleId, fontIndex) : colors.missing;
+                    // System fonts (no fontObject) use the 'missing/system' color because we can't verify 
+                    // if they are truly used or if the browser fell back to the OS default.
+                    const useAssignedColor = fontIndex >= 0 && usedFallback.fontObject;
+                    const baseColor = useAssignedColor ? getFontColorForStyle(styleId, fontIndex) : colors.missing;
                     const fontColor = showFallbackColors
                         ? baseColor
                         : getFontColorForStyle(styleId, 0);
