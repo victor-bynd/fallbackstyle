@@ -25,7 +25,9 @@ const LanguageCard = ({ language }) => {
         fontStyles,
         activeFontStyleId,
         showFallbackColors,
-        showAlignmentGuides
+        showAlignmentGuides,
+        showBrowserGuides,
+        baseRem
     } = useTypo();
 
     const getAlignmentGuideStyle = (primaryFont, effectiveLineHeight, finalSizePx) => {
@@ -290,6 +292,12 @@ const LanguageCard = ({ language }) => {
                     const isVariable = fontObj?.isVariable;
                     const weight = fallbackSettings.weight || 400;
 
+                    const inlineBoxStyle = showBrowserGuides ? {
+                        outline: '1px solid rgba(59, 130, 246, 0.5)', // Blue-500 @ 50%
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',   // Blue-500 @ 10%
+                        borderRadius: '2px'
+                    } : {};
+
                     return (
                         <span
                             key={index}
@@ -300,7 +308,8 @@ const LanguageCard = ({ language }) => {
                                 lineHeight: hasLineHeightOverride ? fallbackSettings.lineHeight : undefined,
                                 letterSpacing: hasLetterSpacingOverride ? `${fallbackSettings.letterSpacing}em` : undefined,
                                 fontWeight: weight,
-                                fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined
+                                fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
+                                ...inlineBoxStyle
                             }}
                         >
                             {char}
@@ -308,12 +317,18 @@ const LanguageCard = ({ language }) => {
                     );
                 }
 
-                return <span key={index} style={{ color: getFontColorForStyle(styleId, 0) }}>{char}</span>;
+                const inlineBoxStyle = showBrowserGuides ? {
+                    outline: '1px solid rgba(59, 130, 246, 0.5)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderRadius: '2px'
+                } : {};
+
+                return <span key={index} style={{ color: getFontColorForStyle(styleId, 0), ...inlineBoxStyle }}>{char}</span>;
             });
         });
 
         return result;
-    }, [buildFallbackFontStackForStyle, contentToRender, colors.missing, fontStyles, getEffectiveFontSettingsForStyle, getFallbackScaleOverrideForStyle, getFontColorForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors]);
+    }, [buildFallbackFontStackForStyle, contentToRender, colors.missing, fontStyles, getEffectiveFontSettingsForStyle, getFallbackScaleOverrideForStyle, getFontColorForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors, showBrowserGuides]);
 
     // Stats based on current content (moved check to end of render)
 
@@ -506,10 +521,10 @@ const LanguageCard = ({ language }) => {
                             const lineHeight = style?.lineHeight ?? 1.2;
 
                             const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
-                            const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
-
                             // Calculate Final Pixel Size
-                            const finalSizePx = primaryFontSize * headerStyle.scale;
+                            // PrimaryFontSize is irrelevant for the header container size now, which is purely REM-based.
+
+                            const finalSizePx = headerStyle.scale * baseRem;
 
                             const forcedLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
                                 ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
@@ -526,6 +541,17 @@ const LanguageCard = ({ language }) => {
                                 finalSizePx
                             );
 
+                            const browserGuideStyle = showBrowserGuides ? {
+                                backgroundImage: `repeating-linear-gradient(
+                                    to bottom,
+                                    rgba(59, 130, 246, 0.05) 0em,
+                                    rgba(59, 130, 246, 0.05) ${effectiveLineHeight - 0.05}em,
+                                    rgba(59, 130, 246, 0.2) ${effectiveLineHeight - 0.05}em,
+                                    rgba(59, 130, 246, 0.2) ${effectiveLineHeight}em
+                                )`,
+                                backgroundSize: `100% ${effectiveLineHeight}em`
+                            } : {};
+
                             return (
                                 <div key={tag}>
                                     <span className="text-[10px] text-slate-400 font-mono uppercase mb-1 block">{tag}</span>
@@ -540,7 +566,8 @@ const LanguageCard = ({ language }) => {
                                             lineHeight: effectiveLineHeight,
                                             letterSpacing: `${headerStyle.letterSpacing || 0}em`,
                                             textTransform: textCase,
-                                            position: 'relative'
+                                            position: 'relative',
+                                            ...browserGuideStyle
                                         }}
                                     >
                                         {renderedTextByStyleId[styleIdForTag]}
@@ -578,12 +605,11 @@ const LanguageCard = ({ language }) => {
                         const lineHeight = style?.lineHeight ?? 1.2;
 
                         const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight, weight: 400 };
-                        const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
                         const weight = primarySettings.weight || 400;
                         const isVariable = primaryFont?.isVariable;
 
                         // Calculate Final Pixel Size
-                        const finalSizePx = primaryFontSize * headerStyle.scale;
+                        const finalSizePx = headerStyle.scale * baseRem;
 
                         const forcedLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
                             ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
@@ -599,6 +625,19 @@ const LanguageCard = ({ language }) => {
                             finalSizePx
                         );
 
+                        // Browser Guide: Line Box Visualization
+                        // Vertical repeating stripes matching effectiveLineHeight
+                        const browserGuideStyle = showBrowserGuides ? {
+                            backgroundImage: `repeating-linear-gradient(
+                                to bottom,
+                                rgba(59, 130, 246, 0.05) 0em,
+                                rgba(59, 130, 246, 0.05) ${effectiveLineHeight - 0.05}em,
+                                rgba(59, 130, 246, 0.2) ${effectiveLineHeight - 0.05}em,
+                                rgba(59, 130, 246, 0.2) ${effectiveLineHeight}em
+                            )`,
+                            backgroundSize: `100% ${effectiveLineHeight}em`
+                        } : {};
+
                         return (
                             <div
                                 dir={language.dir || 'ltr'}
@@ -611,7 +650,8 @@ const LanguageCard = ({ language }) => {
                                     lineHeight: effectiveLineHeight,
                                     letterSpacing: `${headerStyle.letterSpacing || 0}em`,
                                     textTransform: textCase,
-                                    position: 'relative'
+                                    position: 'relative',
+                                    ...browserGuideStyle
                                 }}
                             >
                                 {renderedTextByStyleId[styleIdForTag]}

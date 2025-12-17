@@ -12,7 +12,7 @@ import MissingFontsModal from './components/MissingFontsModal';
 import { useConfigImport } from './hooks/useConfigImport';
 
 const MainContent = ({ sidebarMode, setSidebarMode }) => {
-  const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors, showAlignmentGuides, toggleAlignmentGuides } = useTypo();
+  const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors, showAlignmentGuides, toggleAlignmentGuides, showBrowserGuides, toggleBrowserGuides } = useTypo();
   const { importConfig, missingFonts, resolveMissingFonts, cancelImport } = useConfigImport();
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showListSettings, setShowListSettings] = useState(false);
@@ -232,26 +232,54 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                 </button>
               </div>
 
-              {/* Alignment Guides Toggle (Dropdown) */}
-              <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Visual Guides</span>
+              {/* Guides Group - Only show when toolbar is hidden (scrolled) */}
+              {(!isToolbarVisible) && (
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Guides</div>
+
+                  {/* Type Grid Toggle */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-slate-700 font-medium">Type Grid</span>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={showAlignmentGuides}
+                      onClick={toggleAlignmentGuides}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showAlignmentGuides ? 'bg-indigo-600' : 'bg-slate-200'
+                        }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`${showAlignmentGuides ? 'translate-x-[18px]' : 'translate-x-0.5'
+                          } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Browser Render Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-slate-700 font-medium">Browser Render</span>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={showBrowserGuides}
+                      onClick={toggleBrowserGuides}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showBrowserGuides ? 'bg-indigo-600' : 'bg-slate-200'
+                        }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`${showBrowserGuides ? 'translate-x-[18px]' : 'translate-x-0.5'
+                          } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                      />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showAlignmentGuides}
-                  onClick={toggleAlignmentGuides}
-                  className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showAlignmentGuides ? 'bg-indigo-600' : 'bg-slate-200'
-                    }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`${showAlignmentGuides ? 'translate-x-[18px]' : 'translate-x-0.5'
-                      } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                  />
-                </button>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -312,22 +340,54 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
             <div className={`flex flex-col sm:flex-row gap-4 items-center transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <TextCasingSelector />
               <ViewModeSelector />
-              {/* Alignment Guides Toggle */}
-              <button
-                onClick={toggleAlignmentGuides}
-                className={`bg-white border border-gray-200 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-2 h-[42px] ${showAlignmentGuides ? 'text-indigo-600 border-indigo-200 bg-indigo-50' : 'text-slate-400'}`}
-                type="button"
-                title="Toggle visual alignment guides"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
-                  <path d="m14.5 12.5 2-2" />
-                  <path d="m11.5 9.5 2-2" />
-                  <path d="m8.5 6.5 2-2" />
-                  <path d="m17.5 15.5 2-2" />
-                </svg>
-                <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Guides</span>
-              </button>
+              {/* Alignment Guides Toggle (Dropdown) */}
+              <div className="relative group">
+                <button
+                  className={`bg-white border border-gray-200 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-2 h-[42px] ${(showAlignmentGuides || showBrowserGuides) ? 'text-indigo-600 border-indigo-200 bg-indigo-50' : 'text-slate-400'}`}
+                  type="button"
+                  title="Visual guides"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
+                    <path d="m14.5 12.5 2-2" />
+                    <path d="m11.5 9.5 2-2" />
+                    <path d="m8.5 6.5 2-2" />
+                    <path d="m17.5 15.5 2-2" />
+                  </svg>
+                  <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Guides</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 opacity-60">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl p-2 shadow-xl origin-top-right transition-all duration-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible z-50">
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => toggleAlignmentGuides()}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${showAlignmentGuides ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
+                    >
+                      <span>Type Grid</span>
+                      {showAlignmentGuides && (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-indigo-600">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => toggleBrowserGuides()}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${showBrowserGuides ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
+                    >
+                      <span>Browser Render</span>
+                      {showBrowserGuides && (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-indigo-600">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
               {/* Spacer for Fixed Settings Button */}
               <div className="w-[42px] h-[42px] hidden sm:block shrink-0" aria-hidden="true" />
             </div>
