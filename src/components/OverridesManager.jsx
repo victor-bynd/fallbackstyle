@@ -86,7 +86,11 @@ const OverridesManager = () => {
 
     // Header overrides are tracked explicitly in context (only manual changes appear here)
     const headerOverrideList = Object.entries(headerOverrides || {}).map(([tag, props]) => {
-        const changed = Object.keys(props || {}).filter(p => !!props[p]);
+        const changed = [];
+        if (props.scale) changed.push('Font Size');
+        if (props.lineHeight) changed.push('Line Height');
+        if (props.letterSpacing) changed.push('Letter Spacing');
+
         if (changed.length === 0) return null;
         return { tag, changed };
     }).filter(Boolean);
@@ -147,7 +151,7 @@ const OverridesManager = () => {
                         </div>
                     </div>
                 )}
-                {(['primary']).map(styleId => {
+                {['primary', 'secondary'].map(styleId => {
                     const group = styleId === 'primary' ? primary : secondary;
                     const styleLabel = styleId === 'primary' ? 'Primary' : 'Secondary';
                     const style = fontStyles?.[styleId];
@@ -269,9 +273,9 @@ const OverridesManager = () => {
                     <div className="p-3 bg-slate-100">
                         <button
                             onClick={() => {
-                                if (confirm('Reset all overrides for Primary? This cannot be undone.')) {
-                                    ['primary'].forEach(styleId => {
-                                        const group = primary;
+                                if (confirm('Reset all overrides for all styles? This cannot be undone.')) {
+                                    ['primary', 'secondary'].forEach(styleId => {
+                                        const group = styleId === 'primary' ? primary : secondary;
                                         if (group.hasGlobalFallbackScale) resetGlobalFallbackScaleForStyle(styleId);
                                         group.fontLevelOverrides.forEach(o => resetFallbackFontOverridesForStyle(styleId, o.fontId));
                                         resetAllFallbackFontOverridesForStyle(styleId);

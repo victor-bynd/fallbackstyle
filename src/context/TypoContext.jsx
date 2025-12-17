@@ -3,6 +3,7 @@ import { fallbackOptions, DEFAULT_PALETTE } from '../data/constants';
 import languages from '../data/languages.json';
 import { resolveWeightForFont } from '../utils/weightUtils';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import { ConfigService } from '../services/ConfigService';
 
 const TypoContext = createContext();
 
@@ -36,7 +37,8 @@ const createEmptyStyleState = () => ({
     lineHeightOverrides: {},
     fallbackScaleOverrides: {},
     fallbackFontOverrides: {},
-    fontColors: DEFAULT_PALETTE
+    fontColors: DEFAULT_PALETTE,
+    baseRem: 16
 });
 
 const createEmptySecondaryStyleState = () => ({
@@ -66,12 +68,12 @@ export const TypoProvider = ({ children }) => {
     const fileName = primaryFont?.fileName || null;
 
     const DEFAULT_HEADER_STYLES = useMemo(() => ({
-        h1: { scale: 1.0, lineHeight: 1.2, letterSpacing: 0 },
-        h2: { scale: 0.8, lineHeight: 1.2, letterSpacing: 0 },
-        h3: { scale: 0.6, lineHeight: 1.2, letterSpacing: 0 },
-        h4: { scale: 0.5, lineHeight: 1.2, letterSpacing: 0 },
-        h5: { scale: 0.4, lineHeight: 1.2, letterSpacing: 0 },
-        h6: { scale: 0.3, lineHeight: 1.2, letterSpacing: 0 }
+        h1: { scale: 3.75, lineHeight: 1.2, letterSpacing: 0 },
+        h2: { scale: 3.0, lineHeight: 1.2, letterSpacing: 0 },
+        h3: { scale: 2.25, lineHeight: 1.2, letterSpacing: 0 },
+        h4: { scale: 1.875, lineHeight: 1.2, letterSpacing: 0 },
+        h5: { scale: 1.5, lineHeight: 1.2, letterSpacing: 0 },
+        h6: { scale: 1.125, lineHeight: 1.2, letterSpacing: 0 }
     }), []);
 
     const [headerStyles, setHeaderStyles] = useState(() => ({ ...DEFAULT_HEADER_STYLES }));
@@ -165,6 +167,10 @@ export const TypoProvider = ({ children }) => {
         setFontStyles(prev => {
             const current = prev[styleId] || createEmptyStyleState();
             const next = typeof updater === 'function' ? updater(current) : updater;
+            // Ensure baseRem is preserved if not in updater
+            if (next && next.baseRem === undefined && current.baseRem !== undefined) {
+                next.baseRem = current.baseRem;
+            }
             return { ...prev, [styleId]: next };
         });
     };
@@ -185,6 +191,14 @@ export const TypoProvider = ({ children }) => {
         updateStyleState(activeFontStyleId, prev => ({
             ...prev,
             baseFontSize: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.baseFontSize) : valueOrUpdater
+        }));
+    };
+
+    const baseRem = activeStyle.baseRem || 16;
+    const setBaseRem = (valueOrUpdater) => {
+        updateStyleState(activeFontStyleId, prev => ({
+            ...prev,
+            baseRem: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.baseRem) : valueOrUpdater
         }));
     };
 
@@ -259,6 +273,7 @@ export const TypoProvider = ({ children }) => {
         missingBg: '#f1f5f9' // Slate-100
     });
     const [showAlignmentGuides, setShowAlignmentGuides] = useState(false);
+    const [showBrowserGuides, setShowBrowserGuides] = useState(false);
 
     const fonts = activeStyle.fonts;
     const setFonts = (valueOrUpdater) => {
@@ -909,37 +924,23 @@ export const TypoProvider = ({ children }) => {
     }, [headerFontStyleMap, activeFontStyleId, fontStyles, DEFAULT_HEADER_STYLES]);
 
     const getExportConfiguration = useCallback(() => {
-        // Create a deep clean copy of fontStyles that removes non-serializable fontObjects
-        const cleanFontStyles = {};
-
-        Object.keys(fontStyles).forEach(styleId => {
-            const style = fontStyles[styleId];
-            cleanFontStyles[styleId] = {
-                ...style,
-                fonts: (style.fonts || []).map(font => {
-                    // Filter out fontObject (Opentype object) and URL which might be blob
-                    const serializableFont = { ...font };
-                    delete serializableFont.fontObject;
-                    delete serializableFont.fontUrl;
-                    return serializableFont;
-                })
-            };
-        });
-
-        return {
+        return ConfigService.serializeConfig({
             activeFontStyleId,
-            fontStyles: cleanFontStyles,
+            fontStyles,
             headerStyles,
             headerOverrides,
             textOverrides,
             visibleLanguageIds,
-            colors: colors || DEFAULT_PALETTE,
+            colors,
             headerFontStyleMap,
             textCase,
             viewMode,
             gridColumns,
-            showFallbackColors
-        };
+            showFallbackColors,
+            showAlignmentGuides,
+            showBrowserGuides,
+            DEFAULT_PALETTE // Pass constant if needed by service, or let service handle default logic
+        });
     }, [
         activeFontStyleId,
         fontStyles,
@@ -952,10 +953,13 @@ export const TypoProvider = ({ children }) => {
         textCase,
         viewMode,
         gridColumns,
-        showFallbackColors
+        showFallbackColors,
+        showAlignmentGuides,
+        showBrowserGuides
     ]);
 
-    const restoreConfiguration = useCallback(async (config, fontFilesMap = {}) => {
+    const restoreConfiguration = useCallback(async (rawConfig, fontFilesMap = {}) => {
+        const config = ConfigService.normalizeConfig(rawConfig);
         if (!config) return;
 
         // Restore simple state
@@ -970,6 +974,8 @@ export const TypoProvider = ({ children }) => {
 
         if (config.colors) setColors(config.colors);
         if (config.showFallbackColors !== undefined) setShowFallbackColors(config.showFallbackColors);
+        if (config.showAlignmentGuides !== undefined) setShowAlignmentGuides(config.showAlignmentGuides);
+        if (config.showBrowserGuides !== undefined) setShowBrowserGuides(config.showBrowserGuides);
 
         // Restore extended settings
         if (config.headerFontStyleMap) setHeaderFontStyleMap(config.headerFontStyleMap);
@@ -1101,6 +1107,8 @@ export const TypoProvider = ({ children }) => {
             fontSizes, // Derived
             baseFontSize,
             setBaseFontSize,
+            baseRem,
+            setBaseRem,
             fontScales,
             setFontScales,
             lineHeight,
@@ -1153,7 +1161,10 @@ export const TypoProvider = ({ children }) => {
             resetTextOverride,
             showAlignmentGuides,
             setShowAlignmentGuides,
-            toggleAlignmentGuides: () => setShowAlignmentGuides(prev => !prev)
+            toggleAlignmentGuides: () => setShowAlignmentGuides(v => !v),
+            showBrowserGuides,
+            setShowBrowserGuides,
+            toggleBrowserGuides: () => setShowBrowserGuides(v => !v)
         }}>
             {children}
         </TypoContext.Provider>

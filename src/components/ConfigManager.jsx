@@ -5,7 +5,7 @@ import { useConfigImport } from '../hooks/useConfigImport';
 
 const ConfigManager = () => {
     const { getExportConfiguration } = useTypo();
-    const { importConfig, missingFonts, resolveMissingFonts, cancelImport } = useConfigImport();
+    const { importConfig, missingFonts, existingFiles, resolveMissingFonts, cancelImport } = useConfigImport();
 
     const handleExport = () => {
         const config = getExportConfiguration();
@@ -13,9 +13,23 @@ const ConfigManager = () => {
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
 
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = now.toLocaleString('default', { month: 'short' }).toLowerCase();
+        const year = now.getFullYear();
+
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        const strHours = String(hours).padStart(2, '0');
+
+        const timestamp = `${day}${month}${year}-${strHours}${minutes}${ampm}`;
+
         const a = document.createElement('a');
         a.href = url;
-        a.download = `typography-config-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `fallbackstyles-${timestamp}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -65,6 +79,7 @@ const ConfigManager = () => {
             {missingFonts && (
                 <MissingFontsModal
                     missingFonts={missingFonts}
+                    existingFiles={existingFiles}
                     onResolve={resolveMissingFonts}
                     onCancel={cancelImport}
                 />

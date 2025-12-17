@@ -30,7 +30,7 @@ export const SortableFontCard = ({
     handleRemove,
     updateFontWeight
 }) => {
-    const { loadFont, colors } = useTypo();
+    const { loadFont, colors, baseFontSize } = useTypo();
     const replacePrimaryInputRef = useRef(null);
 
     const {
@@ -238,36 +238,52 @@ export const SortableFontCard = ({
                         <div>
                             <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                 <span>Line Height</span>
-                                <div className="flex items-center gap-1">
-                                    <input
-                                        type="number"
-                                        min="50"
-                                        max="300"
-                                        step="5"
-                                        value={globalLineHeightPct}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val === '') {
-                                                setGlobalLineHeight?.('');
-                                            } else {
-                                                const parsed = parseFloat(val);
-                                                if (!isNaN(parsed)) {
-                                                    setGlobalLineHeight?.(parsed / 100);
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            value={globalLineHeightPct === '' ? '' : Math.round((globalLineHeightPct / 100) * baseFontSize)}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                if (isNaN(val)) return;
+                                                setGlobalLineHeight?.(val / baseFontSize);
+                                            }}
+                                            className="w-8 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                        />
+                                        <span className="font-mono text-[9px] text-slate-400">px</span>
+                                    </div>
+                                    <div className="w-px h-3 bg-slate-200"></div>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            min="50"
+                                            max="300"
+                                            step="5"
+                                            value={globalLineHeightPct}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === '') {
+                                                    setGlobalLineHeight?.('');
+                                                } else {
+                                                    const parsed = parseFloat(val);
+                                                    if (!isNaN(parsed)) {
+                                                        setGlobalLineHeight?.(parsed / 100);
+                                                    }
                                                 }
-                                            }
-                                        }}
-                                        onBlur={(e) => {
-                                            const val = parseFloat(e.target.value);
-                                            if (isNaN(val)) {
-                                                setGlobalLineHeight?.(1.2);
-                                            } else {
-                                                const constrained = Math.max(50, Math.min(300, val));
-                                                setGlobalLineHeight?.(constrained / 100);
-                                            }
-                                        }}
-                                        className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                    />
-                                    <span className="font-mono">%</span>
+                                            }}
+                                            onBlur={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                if (isNaN(val)) {
+                                                    setGlobalLineHeight?.(1.2);
+                                                } else {
+                                                    const constrained = Math.max(50, Math.min(300, val));
+                                                    setGlobalLineHeight?.(constrained / 100);
+                                                }
+                                            }}
+                                            className="w-10 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                        />
+                                        <span className="font-mono text-[9px] text-slate-400">%</span>
+                                    </div>
                                 </div>
                             </div>
                             <input
@@ -301,7 +317,36 @@ export const SortableFontCard = ({
                         <div>
                             <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                 <span>Letter Spacing</span>
-                                <span>{globalLetterSpacingEm}em</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            value={Math.round(globalLetterSpacingEm * baseFontSize)}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                if (isNaN(val)) return;
+                                                setGlobalLetterSpacing?.(val / baseFontSize);
+                                            }}
+                                            className="w-8 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                        />
+                                        <span className="font-mono text-[9px] text-slate-400">px</span>
+                                    </div>
+                                    <div className="w-px h-3 bg-slate-200"></div>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={globalLetterSpacingEm}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                if (isNaN(val)) return;
+                                                setGlobalLetterSpacing?.(val);
+                                            }}
+                                            className="w-10 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                        />
+                                        <span className="font-mono text-[9px] text-slate-400">em</span>
+                                    </div>
+                                </div>
                             </div>
                             <input
                                 type="range"
@@ -348,7 +393,7 @@ export const SortableFontCard = ({
                                             }}
                                             className="text-[9px] text-rose-500 font-bold hover:text-rose-700 hover:underline"
                                         >
-                                            Reset
+                                            Reset All
                                         </button>
                                     )}
                                 </div>
@@ -398,36 +443,51 @@ export const SortableFontCard = ({
                                 <div>
                                     <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                         <span>Size Adjust</span>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                min="25"
-                                                max="300"
-                                                step="5"
-                                                value={font.scale !== undefined ? font.scale : fontScales.fallback}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    if (val === '') {
-                                                        updateFallbackFontOverride(font.id, 'scale', '');
-                                                    } else {
-                                                        const parsed = parseFloat(val);
-                                                        updateFallbackFontOverride(font.id, 'scale', parsed);
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    let val = parseFloat(e.target.value);
-                                                    if (isNaN(val)) {
-                                                        // If empty/invalid, reset to undefined to use global fallback
-                                                        resetFallbackFontOverrides(font.id);
-                                                    } else {
-                                                        // Clamp value
-                                                        val = Math.max(25, Math.min(300, val));
-                                                        updateFallbackFontOverride(font.id, 'scale', val);
-                                                    }
-                                                }}
-                                                className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                            />
-                                            <span className="font-mono">%</span>
+                                        <div className="flex items-center gap-2">
+                                            {font.scale !== undefined && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateFallbackFontOverride(font.id, 'scale', undefined);
+                                                    }}
+                                                    className="text-[9px] text-slate-400 hover:text-rose-500"
+                                                    title="Reset Size Adjust"
+                                                    type="button"
+                                                >
+                                                    ↺
+                                                </button>
+                                            )}
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    min="25"
+                                                    max="300"
+                                                    step="5"
+                                                    value={font.scale !== undefined ? font.scale : fontScales.fallback}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === '') {
+                                                            updateFallbackFontOverride(font.id, 'scale', '');
+                                                        } else {
+                                                            const parsed = parseFloat(val);
+                                                            updateFallbackFontOverride(font.id, 'scale', parsed);
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        let val = parseFloat(e.target.value);
+                                                        if (isNaN(val)) {
+                                                            // If empty/invalid, reset to undefined to use global fallback
+                                                            resetFallbackFontOverrides(font.id);
+                                                        } else {
+                                                            // Clamp value
+                                                            val = Math.max(25, Math.min(300, val));
+                                                            updateFallbackFontOverride(font.id, 'scale', val);
+                                                        }
+                                                    }}
+                                                    className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
+                                                />
+                                                <span className="font-mono">%</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <input
@@ -448,34 +508,75 @@ export const SortableFontCard = ({
                                 <div>
                                     <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                         <span>Line Height</span>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                min="50"
-                                                max="400"
-                                                step="5"
-                                                value={font.lineHeight !== undefined && font.lineHeight !== '' ? Math.round(font.lineHeight * 100) : Math.round(lineHeight * 100)}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    if (val === '') {
-                                                        updateFallbackFontOverride(font.id, 'lineHeight', '');
-                                                    } else {
-                                                        const parsed = parseFloat(val);
-                                                        updateFallbackFontOverride(font.id, 'lineHeight', parsed / 100);
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    let val = parseFloat(e.target.value);
-                                                    if (isNaN(val)) {
+                                        <div className="flex items-center gap-2">
+                                            {font.lineHeight !== undefined && font.lineHeight !== '' ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         updateFallbackFontOverride(font.id, 'lineHeight', undefined);
-                                                    } else {
-                                                        val = Math.max(50, Math.min(400, val));
-                                                        updateFallbackFontOverride(font.id, 'lineHeight', val / 100);
-                                                    }
-                                                }}
-                                                className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                            />
-                                            <span className="font-mono">%</span>
+                                                    }}
+                                                    className="text-[9px] text-slate-400 hover:text-rose-500"
+                                                    title="Reset Line Height"
+                                                    type="button"
+                                                >
+                                                    ↺
+                                                </button>
+                                            ) : null}
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        value={font.lineHeight !== undefined && font.lineHeight !== ''
+                                                            ? Math.round(font.lineHeight * baseFontSize)
+                                                            : Math.round(lineHeight * baseFontSize)
+                                                        }
+                                                        onChange={(e) => {
+                                                            const val = parseFloat(e.target.value);
+                                                            if (!isNaN(val)) {
+                                                                updateFallbackFontOverride(font.id, 'lineHeight', val / baseFontSize);
+                                                            }
+                                                        }}
+                                                        className={`w-8 text-right font-mono bg-transparent border-b focus:border-indigo-600 focus:outline-none px-0.5 ${font.lineHeight !== undefined && font.lineHeight !== ''
+                                                            ? 'border-indigo-300 text-indigo-600 font-bold'
+                                                            : 'border-slate-300 text-slate-500'
+                                                            }`}
+                                                    />
+                                                    <span className="font-mono text-[9px] text-slate-400">px</span>
+                                                </div>
+                                                <div className="w-px h-3 bg-slate-200"></div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        min="50"
+                                                        max="400"
+                                                        step="5"
+                                                        value={font.lineHeight !== undefined && font.lineHeight !== '' ? Math.round(font.lineHeight * 100) : Math.round(lineHeight * 100)}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '') {
+                                                                updateFallbackFontOverride(font.id, 'lineHeight', '');
+                                                            } else {
+                                                                const parsed = parseFloat(val);
+                                                                updateFallbackFontOverride(font.id, 'lineHeight', parsed / 100);
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            let val = parseFloat(e.target.value);
+                                                            if (isNaN(val)) {
+                                                                updateFallbackFontOverride(font.id, 'lineHeight', undefined);
+                                                            } else {
+                                                                val = Math.max(50, Math.min(400, val));
+                                                                updateFallbackFontOverride(font.id, 'lineHeight', val / 100);
+                                                            }
+                                                        }}
+                                                        className={`w-10 text-right font-mono bg-transparent border-b focus:border-indigo-600 focus:outline-none px-0.5 ${font.lineHeight !== undefined && font.lineHeight !== ''
+                                                            ? 'border-indigo-300 text-indigo-600 font-bold'
+                                                            : 'border-slate-300 text-slate-500'
+                                                            }`}
+                                                    />
+                                                    <span className="font-mono text-[9px] text-slate-400">%</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <input
@@ -496,34 +597,83 @@ export const SortableFontCard = ({
                                 <div>
                                     <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                         <span>Letter Spacing</span>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                min="-0.1"
-                                                max="0.5"
-                                                step="0.01"
-                                                value={font.letterSpacing !== undefined && font.letterSpacing !== '' ? font.letterSpacing : (globalLetterSpacing || 0)}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    if (val === '') {
-                                                        updateFallbackFontOverride(font.id, 'letterSpacing', '');
-                                                    } else {
-                                                        const parsed = parseFloat(val);
-                                                        updateFallbackFontOverride(font.id, 'letterSpacing', parsed);
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    let val = parseFloat(e.target.value);
-                                                    if (isNaN(val)) {
+                                        <div className="flex items-center gap-2">
+                                            {font.letterSpacing !== undefined && font.letterSpacing !== '' ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         updateFallbackFontOverride(font.id, 'letterSpacing', undefined);
-                                                    } else {
-                                                        val = Math.max(-0.1, Math.min(0.5, val));
-                                                        updateFallbackFontOverride(font.id, 'letterSpacing', val);
-                                                    }
-                                                }}
-                                                className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                            />
-                                            <span className="font-mono">em</span>
+                                                    }}
+                                                    className="text-[9px] text-slate-400 hover:text-rose-500"
+                                                    title="Reset Letter Spacing"
+                                                    type="button"
+                                                >
+                                                    ↺
+                                                </button>
+                                            ) : null}
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        value={font.letterSpacing !== undefined && font.letterSpacing !== ''
+                                                            ? Math.round(parseFloat(font.letterSpacing) * baseFontSize)
+                                                            : Math.round((globalLetterSpacing || 0) * baseFontSize)
+                                                        }
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '') {
+                                                                updateFallbackFontOverride(font.id, 'letterSpacing', '');
+                                                            } else {
+                                                                const parsed = parseFloat(val);
+                                                                if (!isNaN(parsed)) {
+                                                                    updateFallbackFontOverride(font.id, 'letterSpacing', parsed / baseFontSize);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={`w-8 text-right font-mono bg-transparent border-b focus:border-indigo-600 focus:outline-none px-0.5 ${font.letterSpacing !== undefined && font.letterSpacing !== ''
+                                                            ? 'border-indigo-300 text-indigo-600 font-bold'
+                                                            : 'border-slate-300 text-slate-500'
+                                                            }`}
+                                                    />
+                                                    <span className="font-mono text-[9px] text-slate-400">px</span>
+                                                </div>
+                                                <div className="w-px h-3 bg-slate-200"></div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={font.letterSpacing !== undefined && font.letterSpacing !== ''
+                                                            ? font.letterSpacing
+                                                            : (globalLetterSpacing || 0)
+                                                        }
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '') {
+                                                                updateFallbackFontOverride(font.id, 'letterSpacing', '');
+                                                            } else {
+                                                                const parsed = parseFloat(val);
+                                                                if (!isNaN(parsed)) {
+                                                                    updateFallbackFontOverride(font.id, 'letterSpacing', parsed);
+                                                                }
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            let val = parseFloat(e.target.value);
+                                                            if (isNaN(val)) {
+                                                                updateFallbackFontOverride(font.id, 'letterSpacing', undefined);
+                                                            } else {
+                                                                val = Math.max(-0.1, Math.min(0.5, val));
+                                                                updateFallbackFontOverride(font.id, 'letterSpacing', val);
+                                                            }
+                                                        }}
+                                                        className={`w-10 text-right font-mono bg-transparent border-b focus:border-indigo-600 focus:outline-none px-0.5 ${font.letterSpacing !== undefined && font.letterSpacing !== ''
+                                                            ? 'border-indigo-300 text-indigo-600 font-bold'
+                                                            : 'border-slate-300 text-slate-500'
+                                                            }`}
+                                                    />
+                                                    <span className="font-mono text-[9px] text-slate-400">em</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <input
@@ -663,8 +813,8 @@ const FontTabs = () => {
                         <button
                             onClick={() => setFallbackFont('sans-serif')}
                             className={`flex-1 py-1 text-[10px] rounded-sm transition-all ${fallbackFont === 'sans-serif'
-                                    ? 'bg-white text-indigo-600 shadow-sm font-bold'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-indigo-600 shadow-sm font-bold'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             Sans-serif
@@ -672,8 +822,8 @@ const FontTabs = () => {
                         <button
                             onClick={() => setFallbackFont('serif')}
                             className={`flex-1 py-1 text-[10px] rounded-sm transition-all ${fallbackFont === 'serif'
-                                    ? 'bg-white text-indigo-600 shadow-sm font-bold'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-indigo-600 shadow-sm font-bold'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             Serif

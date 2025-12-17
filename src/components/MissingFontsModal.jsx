@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-const MissingFontsModal = ({ missingFonts, onResolve, onCancel }) => {
-    const [files, setFiles] = useState([]);
+const MissingFontsModal = ({ missingFonts, existingFiles = [], onResolve, onCancel }) => {
+    const [files, setFiles] = useState(existingFiles);
 
     const handleFileChange = (e) => {
         if (e.target.files) {
