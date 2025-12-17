@@ -197,6 +197,12 @@ const LanguageCard = ({ language }) => {
 
                     const fonts = getFontsForStyle(styleId);
                     const fontIndex = fonts.findIndex(f => f.id === usedFallback.fontId);
+                    const fontObj = fonts[fontIndex];
+
+                    // Check for explicit overrides on the raw font object
+                    const hasLineHeightOverride = fontObj && (fontObj.lineHeight !== undefined && fontObj.lineHeight !== '' && fontObj.lineHeight !== null);
+                    const hasLetterSpacingOverride = fontObj && (fontObj.letterSpacing !== undefined && fontObj.letterSpacing !== '' && fontObj.letterSpacing !== null);
+
                     // System fonts (no fontObject) use the 'missing/system' color because we can't verify 
                     // if they are truly used or if the browser fell back to the OS default.
                     const useAssignedColor = fontIndex >= 0 && usedFallback.fontObject;
@@ -205,7 +211,6 @@ const LanguageCard = ({ language }) => {
                         ? baseColor
                         : getFontColorForStyle(styleId, 0);
 
-                    const fontObj = fonts[fontIndex];
                     const isVariable = fontObj?.isVariable;
                     const weight = fallbackSettings.weight || 400;
 
@@ -216,7 +221,8 @@ const LanguageCard = ({ language }) => {
                                 fontFamily: fallbackFontStackString,
                                 color: fontColor,
                                 fontSize: `${(fallbackFontSize / primaryFontSize) * scaleMultiplier}em`,
-                                lineHeight: fallbackSettings.lineHeight,
+                                lineHeight: hasLineHeightOverride ? fallbackSettings.lineHeight : undefined,
+                                letterSpacing: hasLetterSpacingOverride ? `${fallbackSettings.letterSpacing}em` : undefined,
                                 fontWeight: weight,
                                 fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined
                             }}

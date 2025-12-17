@@ -208,7 +208,7 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                 <div className="space-y-3">
                     <div>
                         <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
-                            Font Name or Stack
+                            System Font Name or Stack
                         </label>
                         <input
                             type="text"
@@ -222,9 +222,6 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                             placeholder="e.g., Arial, sans-serif or 'Roboto', sans-serif"
                             className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                         />
-                        <p className="text-[10px] text-slate-400 mt-1">
-                            Enter a system or web font name
-                        </p>
                     </div>
                     <button
                         onClick={handleNameSubmit}

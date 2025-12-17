@@ -2,49 +2,50 @@ import { createContext, useEffect, useState, useMemo, useCallback } from 'react'
 import { fallbackOptions, DEFAULT_PALETTE } from '../data/constants';
 import languages from '../data/languages.json';
 import { resolveWeightForFont } from '../utils/weightUtils';
+import { parseFontFile, createFontUrl } from '../services/FontLoader';
 
 const TypoContext = createContext();
 
 const VISIBLE_LANGUAGE_IDS_STORAGE_KEY = 'localize-type:visibleLanguageIds:v3';
 
+const createEmptyStyleState = () => ({
+    fonts: [
+        {
+            id: 'primary',
+            type: 'primary',
+            fontObject: null,
+            fontUrl: null,
+            fileName: null,
+            name: null,
+            baseFontSize: 60,
+            // Weight metadata
+            axes: null,
+            isVariable: false,
+            staticWeight: null
+            // selectedWeight removed, will use weightOverride if needed
+        }
+    ],
+    activeFont: 'primary',
+    baseFontSize: 60,
+    weight: 400, // Global weight for this style
+    fontScales: { active: 100, fallback: 100 },
+    isFallbackLinked: true,
+    lineHeight: 1.2,
+    letterSpacing: 0,
+    fallbackFont: 'sans-serif',
+    lineHeightOverrides: {},
+    fallbackScaleOverrides: {},
+    fallbackFontOverrides: {},
+    fontColors: DEFAULT_PALETTE
+});
+
+const createEmptySecondaryStyleState = () => ({
+    ...createEmptyStyleState(),
+    fonts: [],
+    activeFont: null
+});
+
 export const TypoProvider = ({ children }) => {
-    const createEmptyStyleState = () => ({
-        fonts: [
-            {
-                id: 'primary',
-                type: 'primary',
-                fontObject: null,
-                fontUrl: null,
-                fileName: null,
-                name: null,
-                baseFontSize: 60,
-                // Weight metadata
-                axes: null,
-                isVariable: false,
-                staticWeight: null
-                // selectedWeight removed, will use weightOverride if needed
-            }
-        ],
-        activeFont: 'primary',
-        baseFontSize: 60,
-        weight: 400, // Global weight for this style
-        fontScales: { active: 100, fallback: 100 },
-        isFallbackLinked: true,
-        lineHeight: 1.2,
-        letterSpacing: 0,
-        fallbackFont: 'sans-serif',
-        lineHeightOverrides: {},
-        fallbackScaleOverrides: {},
-        fallbackFontOverrides: {},
-        fontColors: DEFAULT_PALETTE
-    });
-
-    const createEmptySecondaryStyleState = () => ({
-        ...createEmptyStyleState(),
-        fonts: [],
-        activeFont: null
-    });
-
     const [activeFontStyleId, setActiveFontStyleId] = useState('primary');
 
     const [fontStyles, setFontStyles] = useState(() => ({
@@ -453,10 +454,19 @@ export const TypoProvider = ({ children }) => {
         }
 
         // Fallback font
+        const effectiveLineHeight = (font.lineHeight !== undefined && font.lineHeight !== '' && font.lineHeight !== null)
+            ? font.lineHeight
+            : style.lineHeight;
+
+        const effectiveLetterSpacing = (font.letterSpacing !== undefined && font.letterSpacing !== '' && font.letterSpacing !== null)
+            ? font.letterSpacing
+            : style.letterSpacing;
+
         return {
             baseFontSize: font.baseFontSize ?? style.baseFontSize,
             scale: font.scale ?? style.fontScales.fallback,
-            lineHeight: font.lineHeight ?? style.lineHeight,
+            lineHeight: effectiveLineHeight,
+            letterSpacing: effectiveLetterSpacing,
             weight: resolveWeightForFont(font, font.weightOverride ?? style.weight) // Use override OR global (resolved for this font)
         };
     };
@@ -556,9 +566,11 @@ export const TypoProvider = ({ children }) => {
                     return {
                         ...font,
                         type: nextType,
+                        type: nextType,
                         baseFontSize: undefined,
                         scale: undefined,
                         lineHeight: undefined,
+                        letterSpacing: undefined,
                         weightOverride: undefined
                     };
                 }
@@ -571,6 +583,7 @@ export const TypoProvider = ({ children }) => {
                         baseFontSize: undefined,
                         scale: undefined,
                         lineHeight: undefined,
+                        letterSpacing: undefined,
                         weightOverride: undefined
                     };
                 }
@@ -615,6 +628,7 @@ export const TypoProvider = ({ children }) => {
                     baseFontSize: undefined,
                     scale: undefined,
                     lineHeight: undefined,
+                    letterSpacing: undefined,
                     weightOverride: undefined
                 }
                 : f
@@ -794,6 +808,8 @@ export const TypoProvider = ({ children }) => {
         }));
     };
 
+
+
     const resetFallbackFontOverridesForStyle = (styleId, fontId) => {
         updateStyleState(styleId, prev => ({
             ...prev,
@@ -804,6 +820,7 @@ export const TypoProvider = ({ children }) => {
                         baseFontSize: undefined,
                         scale: undefined,
                         lineHeight: undefined,
+                        letterSpacing: undefined,
                         weightOverride: undefined
                     }
                     : f
@@ -825,6 +842,7 @@ export const TypoProvider = ({ children }) => {
             baseFontSize: undefined,
             scale: undefined,
             lineHeight: undefined,
+            letterSpacing: undefined,
             weightOverride: undefined,
             // The first font from Primary becomes the Primary for Secondary (type 'primary')
             // All subsequent fonts become fallback (type 'fallback')
@@ -890,6 +908,133 @@ export const TypoProvider = ({ children }) => {
         });
     }, [headerFontStyleMap, activeFontStyleId, fontStyles, DEFAULT_HEADER_STYLES]);
 
+    const getExportConfiguration = useCallback(() => {
+        // Create a deep clean copy of fontStyles that removes non-serializable fontObjects
+        const cleanFontStyles = {};
+
+        Object.keys(fontStyles).forEach(styleId => {
+            const style = fontStyles[styleId];
+            cleanFontStyles[styleId] = {
+                ...style,
+                fonts: (style.fonts || []).map(font => {
+                    // Filter out fontObject (Opentype object) and URL which might be blob
+                    const serializableFont = { ...font };
+                    delete serializableFont.fontObject;
+                    delete serializableFont.fontUrl;
+                    return serializableFont;
+                })
+            };
+        });
+
+        return {
+            activeFontStyleId,
+            fontStyles: cleanFontStyles,
+            headerStyles,
+            headerOverrides,
+            textOverrides,
+            visibleLanguageIds,
+            colors: colors || DEFAULT_PALETTE,
+            headerFontStyleMap,
+            textCase,
+            viewMode,
+            gridColumns,
+            showFallbackColors
+        };
+    }, [
+        activeFontStyleId,
+        fontStyles,
+        headerStyles,
+        headerOverrides,
+        textOverrides,
+        visibleLanguageIds,
+        colors,
+        headerFontStyleMap,
+        textCase,
+        viewMode,
+        gridColumns,
+        showFallbackColors
+    ]);
+
+    const restoreConfiguration = useCallback(async (config, fontFilesMap = {}) => {
+        if (!config) return;
+
+        // Restore simple state
+        setActiveFontStyleId(config.activeFontStyleId || 'primary');
+        setHeaderStyles(config.headerStyles || DEFAULT_HEADER_STYLES);
+        setHeaderOverrides(config.headerOverrides || {});
+        setTextOverrides(config.textOverrides || {});
+
+        if (config.visibleLanguageIds) {
+            setVisibleLanguageIds(config.visibleLanguageIds);
+        }
+
+        if (config.colors) setColors(config.colors);
+        if (config.showFallbackColors !== undefined) setShowFallbackColors(config.showFallbackColors);
+
+        // Restore extended settings
+        if (config.headerFontStyleMap) setHeaderFontStyleMap(config.headerFontStyleMap);
+        if (config.textCase) setTextCase(config.textCase);
+        if (config.viewMode) setViewMode(config.viewMode);
+        if (config.gridColumns) setGridColumns(config.gridColumns);
+
+        // Restore Font Styles
+        const processStyle = async (style) => {
+            if (!style) return createEmptyStyleState();
+
+            const newFonts = await Promise.all((style.fonts || []).map(async (font) => {
+                let fontObject = null;
+                let fontUrl = null;
+                let metadata = {
+                    axes: font.axes,
+                    isVariable: font.isVariable,
+                    staticWeight: font.staticWeight
+                };
+
+                // If we have a file provided in the map
+                if (font.fileName && fontFilesMap[font.fileName]) {
+                    const file = fontFilesMap[font.fileName];
+                    try {
+                        const { font: parsedFont, metadata: parsedMeta } = await parseFontFile(file);
+                        fontObject = parsedFont;
+                        fontUrl = createFontUrl(file);
+                        metadata = parsedMeta;
+                    } catch (e) {
+                        console.error("Failed to parse font file during restore", file.name, e);
+                    }
+                } else if (font.fontUrl && !font.fileName) {
+                    // Case: System fonts or remote fonts that don't need upload? 
+                    // Currently the app only supports local uploads or system fonts (no URL).
+                    // If fontUrl exists but no fileName, it might be a blob URL which is invalid now.
+                    // We should clear it.
+                    // Ideally system fonts have name but no fontObject/Url.
+                }
+
+                return {
+                    ...font,
+                    fontObject,
+                    fontUrl,
+                    axes: metadata.axes,
+                    isVariable: metadata.isVariable,
+                    staticWeight: metadata.staticWeight
+                };
+            }));
+
+            return {
+                ...style,
+                fonts: newFonts
+            };
+        };
+
+        const newPrimaryStyle = await processStyle(config.fontStyles?.primary);
+        const newSecondaryStyle = await processStyle(config.fontStyles?.secondary || createEmptySecondaryStyleState());
+
+        setFontStyles({
+            primary: newPrimaryStyle,
+            secondary: newSecondaryStyle
+        });
+
+    }, [DEFAULT_HEADER_STYLES]);
+
     return (
         <TypoContext.Provider value={{
             languages,
@@ -921,6 +1066,8 @@ export const TypoProvider = ({ children }) => {
             resetGlobalFallbackScaleForStyle,
             resetFallbackFontOverridesForStyle,
             copyFontsFromPrimaryToSecondary,
+            getExportConfiguration,
+            restoreConfiguration,
 
             // NEW: Multi-font system
             fonts,

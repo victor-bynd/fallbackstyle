@@ -1,8 +1,9 @@
+
 import { useTypo } from '../context/useTypo';
-import { useState } from 'react';
+import React from 'react';
 import SidebarHeaderConfig from './SidebarHeaderConfig';
 import FontTabs, { SortableFontCard } from './FontTabs';
-import CSSExporter from './CSSExporter';
+import ConfigManager from './ConfigManager';
 import OverridesManager from './OverridesManager';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import {
@@ -55,7 +56,7 @@ const Controller = ({ sidebarMode }) => {
     const enableSecondary = false;
     const isSecondaryEmpty = enableSecondary && activeFontStyleId === 'secondary' && (!fontStyles?.secondary?.fonts || fontStyles.secondary.fonts.length === 0);
 
-    const [showCSSExporter, setShowCSSExporter] = useState(false);
+
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -302,27 +303,14 @@ const Controller = ({ sidebarMode }) => {
                     <div className="flex-1"></div>
 
                     {/* Export CSS Button - Bottom of Sidebar */}
-                    <button
-                        onClick={() => setShowCSSExporter(true)}
-                        className="w-full bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="16 18 22 12 16 6"></polyline>
-                            <polyline points="8 6 2 12 8 18"></polyline>
-                        </svg>
-                        <span>Export CSS</span>
-                    </button>
+                    {/* Config Manager - Import/Export */}
+                    <ConfigManager />
                 </>
             )}
 
             {/* Header Editor - Full Replacement */}
             {sidebarMode === 'headers' && (
                 <SidebarHeaderConfig />
-            )}
-
-            {/* CSS Exporter Modal */}
-            {showCSSExporter && (
-                <CSSExporter onClose={() => setShowCSSExporter(false)} />
             )}
         </div>
     );
