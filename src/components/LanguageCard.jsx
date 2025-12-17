@@ -24,8 +24,84 @@ const LanguageCard = ({ language }) => {
         getFontColorForStyle,
         fontStyles,
         activeFontStyleId,
-        showFallbackColors
+        showFallbackColors,
+        showAlignmentGuides
     } = useTypo();
+
+    const getAlignmentGuideStyle = (primaryFont, effectiveLineHeight, finalSizePx) => {
+        if (!showAlignmentGuides || !primaryFont?.fontObject) return {};
+
+        const { fontObject } = primaryFont;
+        const upm = fontObject.unitsPerEm;
+        const ascender = fontObject.ascender;
+        const descender = fontObject.descender;
+        const xHeight = fontObject.tables?.os2?.sxHeight || 0;
+        const capHeight = fontObject.tables?.os2?.sCapHeight || 0;
+
+        const contentHeightUnits = ascender - descender;
+        const totalHeightUnits = upm * effectiveLineHeight;
+        const halfLeadingUnits = (totalHeightUnits - contentHeightUnits) / 2;
+
+        const baselineYUnits = halfLeadingUnits + ascender;
+        const xHeightYUnits = baselineYUnits - xHeight;
+        const capHeightYUnits = baselineYUnits - capHeight;
+        const descenderYUnits = baselineYUnits + Math.abs(descender);
+        const ascenderYUnits = baselineYUnits - ascender;
+
+        const guideLines = [
+            { y: baselineYUnits },
+            { y: xHeightYUnits },
+            { y: ascenderYUnits },
+            { y: descenderYUnits },
+            { y: capHeightYUnits }
+        ];
+
+        // Improve visibility calculation
+        // ViewBox is "totalHeightUnits" tall (thousands).
+        // Rendered Height is "finalSizePx * effectiveLineHeight" px.
+        // Scale Factor = ViewBoxHeight / RenderedHeight = upm / finalSizePx.
+        const scaleFactor = upm / finalSizePx;
+
+        // We want a 1px stroke.
+        // Stroke width in User Units = 1px * scaleFactor.
+        const strokeWidth = scaleFactor;
+
+        // Dash pattern: 4px on, 3px off.
+        const dashOn = 4 * scaleFactor;
+        const dashOff = 3 * scaleFactor;
+        const dashArray = `${dashOn} ${dashOff}`;
+
+        const strokeColor = "rgba(0,0,0,0.5)"; // Updated to 50% transparent black per user request
+
+        const paths = guideLines.map(line =>
+            `<path d="M0 ${line.y} H${totalHeightUnits * 10}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${dashArray}" />`
+        ).join('');
+
+        // Use a wide viewBox width to ensure horizontal lines cover enough (though pattern repeats).
+        // Actually, for a horizontal repeating pattern, we need the VIEWBOX WIDTH to match the repeat width?
+        // No, we set backgroundRepeat. But we need the dash pattern to align? 
+        // Simple horizontal line is fine.
+
+        // SVG width 8 is arbitrary if we just draw horizontal lines.
+        // But for dashArray to work, we need path length.
+        // Let's use a width of 100 units?
+        // Actually, if we use background-repeat, the SVG tiles.
+        // If we want the dash pattern to be seamless, the SVG width must be a multiple of the pattern period (4+3=7px).
+        // 7px * scaleFactor.
+        const patternWidthUnits = (dashOn + dashOff);
+
+        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${patternWidthUnits}' height='${totalHeightUnits}' viewBox='0 0 ${patternWidthUnits} ${totalHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
+
+        // Use Base64 to avoid encoding issues
+        const base64Svg = btoa(svgString);
+        const svgDataUri = `data:image/svg+xml;base64,${base64Svg}`;
+
+        return {
+            backgroundImage: `url("${svgDataUri}")`,
+            backgroundSize: `${4 + 3}px ${effectiveLineHeight}em`, // Width matches pattern period in px
+            backgroundRepeat: 'repeat'
+        };
+    };
 
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
@@ -439,6 +515,17 @@ const LanguageCard = ({ language }) => {
                                 ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
                                 : undefined;
 
+                            const effectiveLineHeight = headerStyle.lineHeight ?? forcedLineHeight ?? lineHeight;
+                            // Note: 'lineHeight' var comes from style default above
+
+                            // Note: 'lineHeight' var comes from style default above
+
+                            const alignmentStyle = getAlignmentGuideStyle(
+                                primaryFont,
+                                effectiveLineHeight,
+                                finalSizePx
+                            );
+
                             return (
                                 <div key={tag}>
                                     <span className="text-[10px] text-slate-400 font-mono uppercase mb-1 block">{tag}</span>
@@ -450,12 +537,26 @@ const LanguageCard = ({ language }) => {
                                             fontSize: `${finalSizePx}px`,
                                             fontWeight: primarySettings.weight || 400,
                                             fontVariationSettings: primaryFont?.isVariable ? `'wght' ${primarySettings.weight || 400}` : undefined,
-                                            lineHeight: headerStyle.lineHeight ?? forcedLineHeight,
+                                            lineHeight: effectiveLineHeight,
                                             letterSpacing: `${headerStyle.letterSpacing || 0}em`,
-                                            textTransform: textCase
+                                            letterSpacing: `${headerStyle.letterSpacing || 0}em`,
+                                            textTransform: textCase,
+                                            position: 'relative'
                                         }}
                                     >
                                         {renderedTextByStyleId[styleIdForTag]}
+                                        {alignmentStyle.backgroundImage && (
+                                            <div
+                                                aria-hidden="true"
+                                                style={{
+                                                    position: 'absolute',
+                                                    inset: 0,
+                                                    pointerEvents: 'none',
+                                                    zIndex: 10,
+                                                    ...alignmentStyle
+                                                }}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -489,6 +590,16 @@ const LanguageCard = ({ language }) => {
                             ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
                             : undefined;
 
+                        const effectiveLineHeight = headerStyle.lineHeight ?? forcedLineHeight ?? lineHeight;
+
+
+
+                        const alignmentStyle = getAlignmentGuideStyle(
+                            primaryFont,
+                            effectiveLineHeight,
+                            finalSizePx
+                        );
+
                         return (
                             <div
                                 dir={language.dir || 'ltr'}
@@ -498,12 +609,25 @@ const LanguageCard = ({ language }) => {
                                     fontSize: `${finalSizePx}px`,
                                     fontWeight: weight,
                                     fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
-                                    lineHeight: headerStyle.lineHeight ?? forcedLineHeight,
+                                    lineHeight: effectiveLineHeight,
                                     letterSpacing: `${headerStyle.letterSpacing || 0}em`,
-                                    textTransform: textCase
+                                    textTransform: textCase,
+                                    position: 'relative'
                                 }}
                             >
                                 {renderedTextByStyleId[styleIdForTag]}
+                                {alignmentStyle.backgroundImage && (
+                                    <div
+                                        aria-hidden="true"
+                                        style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            pointerEvents: 'none',
+                                            zIndex: 10,
+                                            ...alignmentStyle
+                                        }}
+                                    />
+                                )}
                             </div>
                         );
                     })()

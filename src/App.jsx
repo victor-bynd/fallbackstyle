@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TypoProvider } from './context/TypoContext';
 import { useTypo } from './context/useTypo';
 import FontUploader from './components/FontUploader';
@@ -12,13 +12,29 @@ import MissingFontsModal from './components/MissingFontsModal';
 import { useConfigImport } from './hooks/useConfigImport';
 
 const MainContent = ({ sidebarMode, setSidebarMode }) => {
-  const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors } = useTypo();
+  const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors, showAlignmentGuides, toggleAlignmentGuides } = useTypo();
   const { importConfig, missingFonts, resolveMissingFonts, cancelImport } = useConfigImport();
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showListSettings, setShowListSettings] = useState(false);
   const listSettingsRef = useRef(null);
   const toolbarRef = useRef(null);
+  const buttonRef = useRef(null);
+  const [buttonX, setButtonX] = useState(null);
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
+
+  // Measure button position for fixed overlay
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setButtonX(rect.left);
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [sidebarMode, isToolbarVisible]);
 
   // Scroll detection for toolbar
   useEffect(() => {
@@ -101,6 +117,28 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
     <div className="flex-1 bg-slate-50 min-h-screen relative">
       {/* Dynamic Style Injection for uploaded fonts */}
       <style>{fontFaceStyles}</style>
+
+      {/* Fixed Edit Styles Button (Active State Replica) */}
+      {/* Position matches the toolbar padding (p-8 md:p-10) -> top-8 left-8 md:top-10 md:left-10 */}
+      {/* We use exact same styling as the active toolbar button to prevent visual jump */}
+      {fontObject && sidebarMode === 'headers' && buttonX !== null && (
+        <div
+          className="fixed top-8 md:top-10 z-50 transition-none"
+          style={{ left: buttonX }}
+        >
+          <button
+            onClick={() => setSidebarMode('main')}
+            className="bg-white border border-transparent text-indigo-700 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px] ring-2 ring-indigo-500 shadow-sm"
+            type="button"
+            title="Done editing header styles"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Done</span>
+          </button>
+        </div>
+      )}
 
       {/* Fixed Settings Button */}
       {fontObject && (
@@ -193,6 +231,27 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                   />
                 </button>
               </div>
+
+              {/* Alignment Guides Toggle (Dropdown) */}
+              <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Visual Guides</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showAlignmentGuides}
+                  onClick={toggleAlignmentGuides}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showAlignmentGuides ? 'bg-indigo-600' : 'bg-slate-200'
+                    }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`${showAlignmentGuides ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                  />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -235,26 +294,40 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
             className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 min-h-[42px]"
           >
             <div className={`flex items-center gap-3 transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+
+              {/* When active, we show the FIXED button above, so we hide this one but keep layout space */}
               <button
+                ref={buttonRef}
                 onClick={() => setSidebarMode(sidebarMode === 'headers' ? 'main' : 'headers')}
-                className="bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px]"
+                className={`bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px] ${sidebarMode === 'headers' ? 'opacity-0 pointer-events-none' : ''}`}
                 type="button"
-                title={sidebarMode === 'headers' ? 'Done editing header styles' : 'Edit header styles'}
+                title="Edit header styles"
+                aria-hidden={sidebarMode === 'headers'}
               >
-                {sidebarMode === 'headers' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                  </svg>
-                ) : (
-                  <span className="text-xs font-serif italic">Aa</span>
-                )}
-                <span className="text-[10px] font-bold uppercase tracking-wider">{sidebarMode === 'headers' ? 'Done' : 'Edit Styles'}</span>
+                <span className="text-xs font-serif italic">Aa</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Edit Styles</span>
               </button>
             </div>
 
             <div className={`flex flex-col sm:flex-row gap-4 items-center transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <TextCasingSelector />
               <ViewModeSelector />
+              {/* Alignment Guides Toggle */}
+              <button
+                onClick={toggleAlignmentGuides}
+                className={`bg-white border border-gray-200 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-2 h-[42px] ${showAlignmentGuides ? 'text-indigo-600 border-indigo-200 bg-indigo-50' : 'text-slate-400'}`}
+                type="button"
+                title="Toggle visual alignment guides"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
+                  <path d="m14.5 12.5 2-2" />
+                  <path d="m11.5 9.5 2-2" />
+                  <path d="m8.5 6.5 2-2" />
+                  <path d="m17.5 15.5 2-2" />
+                </svg>
+                <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Guides</span>
+              </button>
               {/* Spacer for Fixed Settings Button */}
               <div className="w-[42px] h-[42px] hidden sm:block shrink-0" aria-hidden="true" />
             </div>

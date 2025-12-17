@@ -258,6 +258,7 @@ export const TypoProvider = ({ children }) => {
         missing: '#b8b8b8', // rgb(184,184,184)
         missingBg: '#f1f5f9' // Slate-100
     });
+    const [showAlignmentGuides, setShowAlignmentGuides] = useState(false);
 
     const fonts = activeStyle.fonts;
     const setFonts = (valueOrUpdater) => {
@@ -1150,7 +1151,10 @@ export const TypoProvider = ({ children }) => {
             ),
             textOverrides,
             setTextOverride,
-            resetTextOverride
+            resetTextOverride,
+            showAlignmentGuides,
+            setShowAlignmentGuides,
+            toggleAlignmentGuides: () => setShowAlignmentGuides(prev => !prev)
         }}>
             {children}
         </TypoContext.Provider>
