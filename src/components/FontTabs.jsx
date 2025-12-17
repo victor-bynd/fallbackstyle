@@ -329,6 +329,7 @@ export const SortableFontCard = ({
                         const hasOverrides = effectiveSettings && (
                             (effectiveSettings.scale !== fontScales.fallback) ||
                             (effectiveSettings.lineHeight !== lineHeight) ||
+                            (font.letterSpacing !== undefined) ||
                             (font.weightOverride !== undefined)
                         );
 
@@ -486,6 +487,54 @@ export const SortableFontCard = ({
                                         onChange={(e) => {
                                             const val = parseFloat(e.target.value);
                                             updateFallbackFontOverride(font.id, 'lineHeight', val);
+                                        }}
+                                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 block"
+                                    />
+                                </div>
+
+                                {/* Letter Spacing Slider */}
+                                <div>
+                                    <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                        <span>Letter Spacing</span>
+                                        <div className="flex items-center gap-1">
+                                            <input
+                                                type="number"
+                                                min="-0.1"
+                                                max="0.5"
+                                                step="0.01"
+                                                value={font.letterSpacing !== undefined && font.letterSpacing !== '' ? font.letterSpacing : (globalLetterSpacing || 0)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val === '') {
+                                                        updateFallbackFontOverride(font.id, 'letterSpacing', '');
+                                                    } else {
+                                                        const parsed = parseFloat(val);
+                                                        updateFallbackFontOverride(font.id, 'letterSpacing', parsed);
+                                                    }
+                                                }}
+                                                onBlur={(e) => {
+                                                    let val = parseFloat(e.target.value);
+                                                    if (isNaN(val)) {
+                                                        updateFallbackFontOverride(font.id, 'letterSpacing', undefined);
+                                                    } else {
+                                                        val = Math.max(-0.1, Math.min(0.5, val));
+                                                        updateFallbackFontOverride(font.id, 'letterSpacing', val);
+                                                    }
+                                                }}
+                                                className="w-12 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
+                                            />
+                                            <span className="font-mono">em</span>
+                                        </div>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="-0.1"
+                                        max="0.5"
+                                        step="0.01"
+                                        value={font.letterSpacing !== undefined && font.letterSpacing !== '' ? font.letterSpacing : (globalLetterSpacing || 0)}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            updateFallbackFontOverride(font.id, 'letterSpacing', val);
                                         }}
                                         className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 block"
                                     />

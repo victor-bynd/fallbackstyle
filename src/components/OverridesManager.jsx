@@ -35,7 +35,7 @@ const OverridesManager = () => {
         const fonts = getFontsForStyle(styleId);
 
         const fontLevelOverrides = fonts
-            .filter(f => f.type === 'fallback' && (f.scale !== undefined || f.lineHeight !== undefined || f.weightOverride !== undefined))
+            .filter(f => f.type === 'fallback' && (f.scale !== undefined || f.lineHeight !== undefined || f.letterSpacing !== undefined || f.weightOverride !== undefined))
             .map(f => ({
                 type: 'font-level',
                 fontId: f.id,
@@ -43,6 +43,7 @@ const OverridesManager = () => {
                 overrides: {
                     scale: f.scale !== undefined,
                     lineHeight: f.lineHeight !== undefined,
+                    letterSpacing: f.letterSpacing !== undefined,
                     weight: f.weightOverride !== undefined
                 }
             }));
@@ -207,6 +208,7 @@ const OverridesManager = () => {
                                             <div className="text-[10px] text-slate-500 mt-0.5 flex gap-2">
                                                 {override.overrides.scale && <span>• Size Adjust</span>}
                                                 {override.overrides.lineHeight && <span>• Line Height</span>}
+                                                {override.overrides.letterSpacing && <span>• Letter Spacing</span>}
                                                 {override.overrides.weight && <span>• Weight</span>}
                                             </div>
                                         </div>
