@@ -70,7 +70,7 @@ export const resolveWeightToAvailableOption = (font, requestedWeight) => {
     return best;
 };
 
-export const resolveWeightForFont = (font, requestedWeight) => {
+export const resolveWeightForFont = (font, requestedWeight = 400) => {
     if (!font) return requestedWeight;
 
     if (!font.fontObject) return requestedWeight;
