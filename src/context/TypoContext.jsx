@@ -5,7 +5,7 @@ import { resolveWeightForFont } from '../utils/weightUtils';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import { ConfigService } from '../services/ConfigService';
 
-const TypoContext = createContext();
+export const TypoContext = createContext();
 
 const VISIBLE_LANGUAGE_IDS_STORAGE_KEY = 'localize-type:visibleLanguageIds:v3';
 
