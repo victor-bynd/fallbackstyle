@@ -1187,40 +1187,14 @@ const FontTabs = () => {
         }
     };
 
-    const { primary, globalFallbackFonts, systemFonts, overriddenFonts } = useMemo(() =>
+    const { globalFallbackFonts, systemFonts, overriddenFonts } = useMemo(() =>
         groupAndSortFonts(fonts, fallbackFontOverrides),
         [fonts, fallbackFontOverrides]
     );
 
     return (
         <div className="pb-4 space-y-2">
-            {primary && (
-                <SortableFontCard
-                    key={primary.id}
-                    font={primary}
-                    index={0}
-                    isActive={primary.id === activeFont}
-                    globalWeight={weight}
-                    getFontColor={getFontColor}
-                    updateFontColor={updateFontColor}
-                    getEffectiveFontSettings={getEffectiveFontSettings}
-                    fontScales={fontScales}
-                    lineHeight={lineHeight}
-                    updateFallbackFontOverride={updateFallbackFontOverride}
-                    resetFallbackFontOverrides={resetFallbackFontOverrides}
-                    setActiveFont={setActiveFont}
-                    handleRemove={handleRemove}
-                    updateFontWeight={updateFontWeight}
-                    toggleFontVisibility={toggleFontVisibility}
-                    previousLineHeight={previousLineHeight}
-                    setPreviousLineHeight={setPreviousLineHeight}
-                    toggleGlobalLineHeightAuto={toggleGlobalLineHeightAuto}
-                    toggleFallbackLineHeightAuto={toggleFallbackLineHeightAuto}
-                    setGlobalLineHeight={setLineHeight}
-                    globalLineHeight={lineHeight}
-                    isDraggable={false}
-                />
-            )}
+
 
             {globalFallbackFonts.map((font) => (
                 <SortableFontCard
