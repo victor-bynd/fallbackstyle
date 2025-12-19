@@ -36,6 +36,8 @@ const createEmptyStyleState = () => ({
     previousLineHeight: 1.2, // Store previous line height for toggling Auto
     letterSpacing: 0,
     fallbackFont: 'sans-serif',
+    fallbackLineHeight: 'normal',
+    fallbackLetterSpacing: 0,
     lineHeightOverrides: {},
     fallbackScaleOverrides: {},
     fallbackFontOverrides: {},
@@ -271,6 +273,22 @@ export const TypoProvider = ({ children }) => {
         updateStyleState(activeFontStyleId, prev => ({
             ...prev,
             letterSpacing: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.letterSpacing) : valueOrUpdater
+        }));
+    };
+
+    const fallbackLineHeight = activeStyle.fallbackLineHeight;
+    const setFallbackLineHeight = (valueOrUpdater) => {
+        updateStyleState(activeFontStyleId, prev => ({
+            ...prev,
+            fallbackLineHeight: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.fallbackLineHeight) : valueOrUpdater
+        }));
+    };
+
+    const fallbackLetterSpacing = activeStyle.fallbackLetterSpacing;
+    const setFallbackLetterSpacing = (valueOrUpdater) => {
+        updateStyleState(activeFontStyleId, prev => ({
+            ...prev,
+            fallbackLetterSpacing: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.fallbackLetterSpacing) : valueOrUpdater
         }));
     };
 
@@ -516,11 +534,11 @@ export const TypoProvider = ({ children }) => {
         // Fallback font
         const effectiveLineHeight = (font.lineHeight !== undefined && font.lineHeight !== '' && font.lineHeight !== null)
             ? font.lineHeight
-            : style.lineHeight;
+            : (style.fallbackLineHeight !== undefined ? style.fallbackLineHeight : style.lineHeight);
 
         const effectiveLetterSpacing = (font.letterSpacing !== undefined && font.letterSpacing !== '' && font.letterSpacing !== null)
             ? font.letterSpacing
-            : style.letterSpacing;
+            : (style.fallbackLetterSpacing !== undefined ? style.fallbackLetterSpacing : style.letterSpacing);
 
         return {
             baseFontSize: font.baseFontSize ?? style.baseFontSize,
@@ -874,11 +892,15 @@ export const TypoProvider = ({ children }) => {
                 weight: resolveWeightForFont(font, weight) // Global weight (resolved for this font)
             };
         } else {
-            // Fallback font: use overrides if set, otherwise use global fallback scale
+            // Fallback font: use overrides if set, otherwise use global fallback settings
+            const effectiveLineHeight = font.lineHeight ?? (fallbackLineHeight !== undefined ? fallbackLineHeight : lineHeight);
+            const effectiveLetterSpacing = font.letterSpacing ?? (fallbackLetterSpacing !== undefined ? fallbackLetterSpacing : letterSpacing);
+
             return {
                 baseFontSize: font.baseFontSize ?? baseFontSize,
                 scale: font.scale ?? fontScales.fallback,
-                lineHeight: font.lineHeight ?? lineHeight,
+                lineHeight: effectiveLineHeight,
+                letterSpacing: effectiveLetterSpacing,
                 weight: resolveWeightForFont(font, font.weightOverride ?? weight), // Override OR global (resolved for this font)
 
                 lineGapOverride: font.lineGapOverride, // CSS line-gap-override value (undefined = none)
@@ -1236,6 +1258,7 @@ export const TypoProvider = ({ children }) => {
             }));
 
             return {
+                ...createEmptyStyleState(),
                 ...style,
                 fonts: newFonts
             };
@@ -1328,6 +1351,10 @@ export const TypoProvider = ({ children }) => {
             setPreviousLineHeight,
             letterSpacing,
             setLetterSpacing,
+            fallbackLineHeight,
+            setFallbackLineHeight,
+            fallbackLetterSpacing,
+            setFallbackLetterSpacing,
             weight,
             setWeight,
             lineHeightOverrides,

@@ -52,6 +52,10 @@ const Controller = ({ sidebarMode }) => {
         updateFallbackFontOverride,
         resetFallbackFontOverrides,
         fallbackFontOverrides,
+        fallbackLineHeight,
+        setFallbackLineHeight,
+        fallbackLetterSpacing,
+        setFallbackLetterSpacing,
         copyFontsFromPrimaryToSecondary
     } = useTypo();
 
@@ -228,9 +232,32 @@ const Controller = ({ sidebarMode }) => {
                                 <div>
                                     <div className="space-y-4">
                                         <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                                                    GLOBAL FALLBACKS
+                                                </label>
+                                                {(fontScales.fallback !== 100 || fallbackLineHeight !== 'normal' || fallbackLetterSpacing !== 0) && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setFontScales(prev => ({ ...prev, fallback: 100 }));
+                                                            setIsFallbackLinked(false);
+                                                            setFallbackLineHeight('normal');
+                                                            setFallbackLetterSpacing(0);
+                                                        }}
+                                                        className="text-[10px] text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors"
+                                                        title="Reset all global fallbacks"
+                                                        type="button"
+                                                    >
+                                                        <span className="text-[10px]">Reset</span>
+                                                        <span className="text-xs">↺</span>
+                                                    </button>
+                                                )}
+                                            </div>
                                             <div className="flex justify-between text-xs text-slate-600 mb-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span>Global Fallback Size Adjust</span>
+                                                    <span>Size Adjust</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
                                                     {fontScales.fallback !== 100 && (
                                                         <button
                                                             onClick={() => {
@@ -244,8 +271,6 @@ const Controller = ({ sidebarMode }) => {
                                                             ↺
                                                         </button>
                                                     )}
-                                                </div>
-                                                <div className="flex items-center gap-2">
                                                     <div className="flex items-center gap-1">
                                                         <input
                                                             type="number"
@@ -299,6 +324,135 @@ const Controller = ({ sidebarMode }) => {
                                                     setIsFallbackLinked(false);
                                                 }}
                                                 className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fontScales.fallback !== 100
+                                                    ? 'accent-indigo-600'
+                                                    : 'accent-slate-400'
+                                                    }`}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between text-xs text-slate-600 mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span>Line Height</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {fallbackLineHeight !== 'normal' && (
+                                                        <button
+                                                            onClick={() => setFallbackLineHeight('normal')}
+                                                            className="text-[10px] text-slate-400 hover:text-rose-500"
+                                                            title="Reset to Normal"
+                                                            type="button"
+                                                        >
+                                                            ↺
+                                                        </button>
+                                                    )}
+                                                    <div className={`flex items-center gap-1 ${fallbackLineHeight === 'normal' ? 'opacity-50 grayscale' : ''}`}>
+                                                        <input
+                                                            type="text"
+                                                            value={fallbackLineHeight === 'normal' ? '' : Math.round(fallbackLineHeight * 100)}
+                                                            placeholder="Auto"
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === '') {
+                                                                    setFallbackLineHeight('');
+                                                                } else {
+                                                                    const parsed = parseFloat(val);
+                                                                    if (!isNaN(parsed)) {
+                                                                        setFallbackLineHeight(parsed / 100);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                if (fallbackLineHeight !== 'normal') {
+                                                                    let val = parseFloat(e.target.value);
+                                                                    if (isNaN(val)) {
+                                                                        val = 120; // default
+                                                                    } else {
+                                                                        val = Math.max(50, Math.min(300, val));
+                                                                    }
+                                                                    setFallbackLineHeight(val / 100);
+                                                                }
+                                                            }}
+                                                            className="w-10 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
+                                                        />
+                                                        <span className="text-xs">%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="50"
+                                                max="300"
+                                                step="5"
+                                                value={fallbackLineHeight === 'normal' ? 120 : fallbackLineHeight * 100}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setFallbackLineHeight(val / 100);
+                                                }}
+                                                className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fallbackLineHeight !== 'normal'
+                                                    ? 'accent-indigo-600'
+                                                    : 'accent-slate-400'
+                                                    }`}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between text-xs text-slate-600 mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span>Letter Spacing</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {fallbackLetterSpacing !== 0 && (
+                                                        <button
+                                                            onClick={() => setFallbackLetterSpacing(0)}
+                                                            className="text-[10px] text-slate-400 hover:text-rose-500"
+                                                            title="Reset to 0"
+                                                            type="button"
+                                                        >
+                                                            ↺
+                                                        </button>
+                                                    )}
+                                                    <div className="flex items-center gap-1">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={fallbackLetterSpacing === 0 ? '' : fallbackLetterSpacing}
+                                                            placeholder="0"
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === '') {
+                                                                    setFallbackLetterSpacing('');
+                                                                } else {
+                                                                    const parsed = parseFloat(val);
+                                                                    setFallbackLetterSpacing(isNaN(parsed) ? '' : parsed);
+                                                                }
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                let val = parseFloat(e.target.value);
+                                                                if (isNaN(val)) {
+                                                                    val = 0;
+                                                                } else {
+                                                                    val = Math.max(-0.5, Math.min(1, val));
+                                                                }
+                                                                setFallbackLetterSpacing(val);
+                                                            }}
+                                                            className="w-12 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
+                                                        />
+                                                        <span className="text-xs">em</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="-0.1"
+                                                max="0.5"
+                                                step="0.01"
+                                                value={fallbackLetterSpacing}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setFallbackLetterSpacing(val);
+                                                }}
+                                                className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fallbackLetterSpacing !== 0
                                                     ? 'accent-indigo-600'
                                                     : 'accent-slate-400'
                                                     }`}

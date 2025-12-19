@@ -140,6 +140,9 @@ const LanguageCard = ({ language }) => {
         const baseFontSize = style?.baseFontSize ?? 60;
         const fontScales = style?.fontScales || { active: 100, fallback: 100 };
         const lineHeight = style?.lineHeight ?? 1.2;
+        const letterSpacing = style?.letterSpacing ?? 0;
+        const fallbackLineHeight = style?.fallbackLineHeight ?? 'normal';
+        const fallbackLetterSpacing = style?.fallbackLetterSpacing ?? 0;
 
         const fonts = getFontsForStyle(styleId);
         const overrideFontId = getFallbackFontOverrideForStyle(styleId, language.id);
@@ -149,7 +152,7 @@ const LanguageCard = ({ language }) => {
                 return [{
                     fontFamily: fallbackFont,
                     fontId: 'legacy',
-                    settings: { baseFontSize, scale: fontScales.fallback, lineHeight }
+                    settings: { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing }
                 }];
             }
 
@@ -176,7 +179,7 @@ const LanguageCard = ({ language }) => {
                     overrideStack.push({
                         fontFamily: fallbackFont,
                         fontId: 'legacy',
-                        settings: { baseFontSize, scale: fontScales.fallback, lineHeight }
+                        settings: { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing }
                     });
                 }
 
@@ -227,7 +230,7 @@ const LanguageCard = ({ language }) => {
             fontStack.push({
                 fontFamily: fallbackFont,
                 fontId: 'legacy',
-                settings: { baseFontSize, scale: fontScales.fallback, lineHeight }
+                settings: { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing }
             });
         }
 
@@ -269,6 +272,9 @@ const LanguageCard = ({ language }) => {
             const baseFontSize = style?.baseFontSize ?? 60;
             const fontScales = style?.fontScales || { active: 100, fallback: 100 };
             const lineHeight = style?.lineHeight ?? 1.2;
+            const letterSpacing = style?.letterSpacing ?? 0;
+            const fallbackLineHeight = style?.fallbackLineHeight ?? 'normal';
+            const fallbackLetterSpacing = style?.fallbackLetterSpacing ?? 0;
 
             const primarySettings = getEffectiveFontSettingsForStyle(styleId, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
             const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
@@ -309,15 +315,13 @@ const LanguageCard = ({ language }) => {
                         usedFallback = fallbackFontStack[fallbackFontStack.length - 1];
                     }
 
-                    const fallbackSettings = usedFallback.settings || { baseFontSize, scale: fontScales.fallback, lineHeight, weight: 400 };
+                    const fallbackSettings = usedFallback.settings || { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing, weight: 400 };
                     const fallbackFontSize = fallbackSettings.baseFontSize * (fallbackSettings.scale / 100);
 
                     const fontIndex = fonts.findIndex(f => f.id === usedFallback.fontId);
                     const fontObj = fonts[fontIndex];
 
-                    // Check for explicit overrides on the raw font object
-                    const hasLineHeightOverride = fontObj && (fontObj.lineHeight !== undefined && fontObj.lineHeight !== '' && fontObj.lineHeight !== null);
-                    const hasLetterSpacingOverride = fontObj && (fontObj.letterSpacing !== undefined && fontObj.letterSpacing !== '' && fontObj.letterSpacing !== null);
+                    // Removed local-only check: always apply fallback settings to ensure global fallback defaults take effect
 
 
                     // System fonts (no fontObject) use the 'missing/system' color because we can't verify 
@@ -351,8 +355,8 @@ const LanguageCard = ({ language }) => {
                                     (fallbackSettings.ascentOverride !== undefined && fallbackSettings.ascentOverride !== '') ||
                                     (fallbackSettings.descentOverride !== undefined && fallbackSettings.descentOverride !== '')
                                 ) ? 'normal'
-                                    : (hasLineHeightOverride ? fallbackSettings.lineHeight : undefined),
-                                letterSpacing: hasLetterSpacingOverride ? `${fallbackSettings.letterSpacing}em` : undefined,
+                                    : fallbackSettings.lineHeight,
+                                letterSpacing: `${fallbackSettings.letterSpacing}em`,
 
                                 fontWeight: weight,
                                 fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
