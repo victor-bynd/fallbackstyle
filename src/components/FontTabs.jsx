@@ -338,7 +338,9 @@ export const SortableFontCard = ({
                             {/* Line Height */}
                             <div>
                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                                    <span>Line Height</span>
+                                    <div className="flex items-center gap-2">
+                                        <span>Line Height</span>
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         {globalLineHeight !== 'normal' && (
                                             <button
@@ -353,52 +355,54 @@ export const SortableFontCard = ({
                                                 ↺
                                             </button>
                                         )}
-                                        <div className={`flex items-center gap-1 ${globalLineHeight === 'normal' ? 'opacity-50 grayscale' : ''}`}>
-                                            <input
-                                                type="text"
-                                                value={globalLineHeight === 'normal' ? '' : (globalLineHeightPct === '' ? '' : Math.round((globalLineHeightPct / 100) * baseFontSize))}
-                                                placeholder="-"
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    if (!isNaN(val)) {
-                                                        setGlobalLineHeight?.(val / baseFontSize);
-                                                    }
-                                                }}
-                                                className="w-8 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
-                                            />
-                                            <span className="font-mono text-[9px] text-slate-400">px</span>
-                                        </div>
-                                        <div className="w-px h-3 bg-slate-200"></div>
-                                        <div className={`flex items-center gap-1 ${globalLineHeight === 'normal' ? '' : ''}`}>
-                                            <input
-                                                type="text"
-                                                value={globalLineHeight === 'normal' ? '' : globalLineHeightPct}
-                                                placeholder="Auto"
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    if (val === '') {
-                                                        setGlobalLineHeight?.('');
-                                                    } else {
-                                                        const parsed = parseFloat(val);
-                                                        if (!isNaN(parsed)) {
-                                                            setGlobalLineHeight?.(parsed / 100);
-                                                        }
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    if (globalLineHeight !== 'normal') {
+                                        <div className="flex items-center gap-2">
+                                            <div className={`flex items-center gap-0.5 ${globalLineHeight === 'normal' ? 'opacity-50 grayscale' : ''}`}>
+                                                <input
+                                                    type="text"
+                                                    value={globalLineHeight === 'normal' ? '' : (globalLineHeightPct === '' ? '' : Math.round((globalLineHeightPct / 100) * baseFontSize))}
+                                                    placeholder="-"
+                                                    onChange={(e) => {
                                                         const val = parseFloat(e.target.value);
-                                                        if (isNaN(val)) {
-                                                            setGlobalLineHeight?.(1.2);
-                                                        } else {
-                                                            const constrained = Math.max(50, Math.min(300, val));
-                                                            setGlobalLineHeight?.(constrained / 100);
+                                                        if (!isNaN(val)) {
+                                                            setGlobalLineHeight?.(val / baseFontSize);
                                                         }
-                                                    }
-                                                }}
-                                                className="w-10 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
-                                            />
-                                            <span className="font-mono text-[9px] text-slate-400">%</span>
+                                                    }}
+                                                    className="w-8 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                                />
+                                                <span className="font-mono text-[9px] text-slate-400">px</span>
+                                            </div>
+                                            <div className="w-px h-3 bg-slate-200"></div>
+                                            <div className="flex items-center gap-0.5">
+                                                <input
+                                                    type="text"
+                                                    value={globalLineHeight === 'normal' ? '' : globalLineHeightPct}
+                                                    placeholder="Auto"
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === '') {
+                                                            setGlobalLineHeight?.('');
+                                                        } else {
+                                                            const parsed = parseFloat(val);
+                                                            if (!isNaN(parsed)) {
+                                                                setGlobalLineHeight?.(parsed / 100);
+                                                            }
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        if (globalLineHeight !== 'normal') {
+                                                            const val = parseFloat(e.target.value);
+                                                            if (isNaN(val)) {
+                                                                setGlobalLineHeight?.(1.2);
+                                                            } else {
+                                                                const constrained = Math.max(50, Math.min(300, val));
+                                                                setGlobalLineHeight?.(constrained / 100);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="w-10 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                                />
+                                                <span className="font-mono text-[9px] text-slate-400">%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -434,41 +438,58 @@ export const SortableFontCard = ({
                             {/* Letter Spacing */}
                             <div>
                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                                    <span>Letter Spacing</span>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                value={globalLetterSpacingEm === 0 ? '' : Math.round(globalLetterSpacingEm * baseFontSize)}
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    if (isNaN(val)) {
-                                                        setGlobalLetterSpacing?.(0);
-                                                        return;
-                                                    }
-                                                    setGlobalLetterSpacing?.(val / baseFontSize);
+                                        <span>Letter Spacing</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {globalLetterSpacingEm !== 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setGlobalLetterSpacing?.(0);
                                                 }}
-                                                className="w-8 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
-                                            />
-                                            <span className="font-mono text-[9px] text-slate-400">px</span>
-                                        </div>
-                                        <div className="w-px h-3 bg-slate-200"></div>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={globalLetterSpacingEm === 0 ? '' : globalLetterSpacingEm}
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    if (isNaN(val)) {
-                                                        setGlobalLetterSpacing?.(0);
-                                                        return;
-                                                    }
-                                                    setGlobalLetterSpacing?.(val);
-                                                }}
-                                                className="w-10 text-right font-mono bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
-                                            />
-                                            <span className="font-mono text-[9px] text-slate-400">em</span>
+                                                className="text-[9px] text-slate-400 hover:text-rose-500"
+                                                title="Reset to 0"
+                                                type="button"
+                                            >
+                                                ↺
+                                            </button>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-0.5">
+                                                <input
+                                                    type="number"
+                                                    value={globalLetterSpacingEm === 0 ? '' : Math.round(globalLetterSpacingEm * baseFontSize)}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        if (isNaN(val)) {
+                                                            setGlobalLetterSpacing?.(0);
+                                                            return;
+                                                        }
+                                                        setGlobalLetterSpacing?.(val / baseFontSize);
+                                                    }}
+                                                    className="w-8 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                                />
+                                                <span className="font-mono text-[9px] text-slate-400">px</span>
+                                            </div>
+                                            <div className="w-px h-3 bg-slate-200"></div>
+                                            <div className="flex items-center gap-0.5">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={globalLetterSpacingEm === 0 ? '' : globalLetterSpacingEm}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        if (isNaN(val)) {
+                                                            setGlobalLetterSpacing?.(0);
+                                                            return;
+                                                        }
+                                                        setGlobalLetterSpacing?.(val);
+                                                    }}
+                                                    className="w-10 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-0.5"
+                                                />
+                                                <span className="font-mono text-[9px] text-slate-400">em</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -859,28 +880,38 @@ export const SortableFontCard = ({
 
 
                                     {/* Advanced Metrics Toggle */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowAdvanced(!showAdvanced);
-                                        }}
-                                        className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-indigo-600 uppercase tracking-wider mt-4 mb-2 w-full text-left transition-colors"
-                                        type="button"
-                                    >
-                                        <span>ADVANCED</span>
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            className={`w-3 h-3 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`}
+                                    <div className="flex items-center justify-between mt-4 mb-2">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowAdvanced(!showAdvanced);
+                                            }}
+                                            className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-indigo-600 uppercase tracking-wider text-left transition-colors"
+                                            type="button"
                                         >
-                                            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
+                                            <span>ADVANCED</span>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                                className={`w-3 h-3 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`}
+                                            >
+                                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+
+                                        {showAdvanced && (
+                                            <div className="flex items-center gap-1.5 text-[10px] text-amber-500 animate-in fade-in slide-in-from-left-1 duration-200">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 flex-shrink-0">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                                                </svg>
+                                                <span>Not supported by Safari</span>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {showAdvanced && (
                                         <div className="space-y-3 pb-2 animate-in fade-in slide-in-from-top-1 duration-200">
-
 
                                             {/* Ascent Override (CSS ascent-override) */}
                                             <div>
@@ -1178,6 +1209,8 @@ const FontTabs = () => {
         weight,
         fallbackFont,
         setFallbackFont,
+        fallbackLineHeight,
+        fallbackLetterSpacing,
         toggleFontVisibility,
         fallbackFontOverrides,
         reorderFonts,
@@ -1250,7 +1283,8 @@ const FontTabs = () => {
                     setPreviousLineHeight={setPreviousLineHeight}
                     toggleGlobalLineHeightAuto={toggleGlobalLineHeightAuto}
                     toggleFallbackLineHeightAuto={toggleFallbackLineHeightAuto}
-                    globalLineHeight={lineHeight}
+                    globalLineHeight={fallbackLineHeight}
+                    globalLetterSpacing={fallbackLetterSpacing}
                 />
             ))}
 
@@ -1285,6 +1319,8 @@ const FontTabs = () => {
                                     setPreviousLineHeight={setPreviousLineHeight}
                                     toggleGlobalLineHeightAuto={toggleGlobalLineHeightAuto}
                                     toggleFallbackLineHeightAuto={toggleFallbackLineHeightAuto}
+                                    globalLineHeight={fallbackLineHeight}
+                                    globalLetterSpacing={fallbackLetterSpacing}
                                 />
                             </div>
                         ))}
@@ -1340,6 +1376,8 @@ const FontTabs = () => {
                                 setPreviousLineHeight={setPreviousLineHeight}
                                 toggleGlobalLineHeightAuto={toggleGlobalLineHeightAuto}
                                 toggleFallbackLineHeightAuto={toggleFallbackLineHeightAuto}
+                                globalLineHeight={fallbackLineHeight}
+                                globalLetterSpacing={fallbackLetterSpacing}
                             />
                         ))}
                     </div>
