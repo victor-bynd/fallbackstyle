@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { getVisualFontIdOrder } from '../utils/fontSortUtils';
 
-const Controller = ({ sidebarMode }) => {
+const Controller = ({ sidebarMode, setPreviewMode }) => {
     const {
         activeFontStyleId,
         fonts,
@@ -55,13 +55,8 @@ const Controller = ({ sidebarMode }) => {
         fallbackLineHeight,
         setFallbackLineHeight,
         fallbackLetterSpacing,
-        setFallbackLetterSpacing,
-        copyFontsFromPrimaryToSecondary
+        setFallbackLetterSpacing
     } = useTypo();
-
-    const enableSecondary = false;
-    const isSecondaryEmpty = enableSecondary && activeFontStyleId === 'secondary' && (!fontStyles?.secondary?.fonts || fontStyles.secondary.fonts.length === 0);
-
 
 
     const sensors = useSensors(
@@ -139,6 +134,16 @@ const Controller = ({ sidebarMode }) => {
                     {/* Static Header */}
                     <div className="pb-4">
                         <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Fallback Styles</h2>
+                        <button
+                            onClick={() => setPreviewMode(true)}
+                            className="mt-3 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                                <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 8.201 2.66 9.336 6.41.147.481.147.974 0 1.455C18.201 14.66 14.257 17.335 10 17.335s-8.201-2.675-9.336-6.745zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd" />
+                            </svg>
+                            Live Website Preview
+                        </button>
                     </div>
 
                     <DndContext
@@ -150,324 +155,153 @@ const Controller = ({ sidebarMode }) => {
                             items={getVisualFontIdOrder(fonts, fallbackFontOverrides)}
                             strategy={verticalListSortingStrategy}
                         >
-                            {/* Main Font (primary/secondary style toggle hidden) */}
+                            {/* Main Font */}
                             <div>
                                 <div className="mt-3">
-                                    {isSecondaryEmpty ? (
-                                        <div className="space-y-2">
-                                            <label className="flex items-center justify-center w-full py-2 text-xs font-bold text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-50 cursor-pointer transition-colors bg-white">
-                                                Add Secondary Font
-                                                <input
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept=".ttf,.otf,.woff,.woff2"
-                                                    onChange={async (e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (!file) return;
-
-                                                        try {
-                                                            const { font, metadata } = await parseFontFile(file);
-                                                            const url = createFontUrl(file);
-                                                            loadFont(font, url, file.name, metadata);
-                                                            e.target.value = '';
-                                                        } catch (err) {
-                                                            console.error('Error loading font:', err);
-                                                            alert('Failed to load font file.');
-                                                        }
-                                                    }}
+                                    <div>
+                                        {primaryFont && (
+                                            <>
+                                                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
+                                                    Primary Font
+                                                </label>
+                                                <SortableFontCard
+                                                    font={primaryFont}
+                                                    index={0}
+                                                    isActive={primaryFont.id === activeFont}
+                                                    globalWeight={weight}
+                                                    globalLineHeight={lineHeight}
+                                                    globalLetterSpacing={letterSpacing}
+                                                    setGlobalLineHeight={setGlobalLineHeight}
+                                                    setGlobalLetterSpacing={setGlobalLetterSpacing}
+                                                    hasLineHeightOverrides={hasOverrides}
+                                                    lineHeightOverrideCount={Object.keys(lineHeightOverrides).length}
+                                                    resetAllLineHeightOverrides={resetAllLineHeightOverrides}
+                                                    getFontColor={getFontColor}
+                                                    updateFontColor={updateFontColor}
+                                                    getEffectiveFontSettings={getEffectiveFontSettings}
+                                                    fontScales={fontScales}
+                                                    lineHeight={lineHeight}
+                                                    updateFallbackFontOverride={updateFallbackFontOverride}
+                                                    resetFallbackFontOverrides={resetFallbackFontOverrides}
+                                                    setActiveFont={setActiveFont}
+                                                    handleRemove={() => { }}
+                                                    updateFontWeight={updateFontWeight}
                                                 />
-                                            </label>
-                                            <button
-                                                onClick={copyFontsFromPrimaryToSecondary}
-                                                className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 border-dashed rounded-lg p-2.5 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
-                                                type="button"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                                                    <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-                                                    <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a.5.5 0 00-.146-.354l-.854-.853A.5.5 0 0011.646 9.5H8.379a1.5 1.5 0 01-1.06-.44L4.5 6z" />
-                                                </svg>
-                                                <span>Copy Stack from Primary</span>
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            {primaryFont && (
-                                                <>
-                                                    <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
-                                                        Primary Font
-                                                    </label>
-                                                    <SortableFontCard
-                                                        font={primaryFont}
-                                                        index={0}
-                                                        isActive={primaryFont.id === activeFont}
-                                                        globalWeight={weight}
-                                                        globalLineHeight={lineHeight}
-                                                        globalLetterSpacing={letterSpacing}
-                                                        setGlobalLineHeight={setGlobalLineHeight}
-                                                        setGlobalLetterSpacing={setGlobalLetterSpacing}
-                                                        hasLineHeightOverrides={hasOverrides}
-                                                        lineHeightOverrideCount={Object.keys(lineHeightOverrides).length}
-                                                        resetAllLineHeightOverrides={resetAllLineHeightOverrides}
-                                                        getFontColor={getFontColor}
-                                                        updateFontColor={updateFontColor}
-                                                        getEffectiveFontSettings={getEffectiveFontSettings}
-                                                        fontScales={fontScales}
-                                                        lineHeight={lineHeight}
-                                                        updateFallbackFontOverride={updateFallbackFontOverride}
-                                                        resetFallbackFontOverrides={resetFallbackFontOverrides}
-                                                        setActiveFont={setActiveFont}
-                                                        handleRemove={() => { }}
-                                                        updateFontWeight={updateFontWeight}
-                                                    />
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-
-
-                            {!isSecondaryEmpty && (
-                                <div>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                                                    GLOBAL FALLBACKS
-                                                </label>
-                                                {(fontScales.fallback !== 100 || fallbackLineHeight !== 'normal' || fallbackLetterSpacing !== 0) && (
+                            <div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                                                GLOBAL FALLBACKS
+                                            </label>
+                                            {(fontScales.fallback !== 100) && (
+                                                <button
+                                                    onClick={() => {
+                                                        setFontScales(prev => ({ ...prev, fallback: 100 }));
+                                                        setIsFallbackLinked(false);
+                                                    }}
+                                                    className="text-[10px] text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors"
+                                                    title="Reset all global fallbacks"
+                                                    type="button"
+                                                >
+                                                    <span className="text-[10px]">Reset</span>
+                                                    <span className="text-xs">↺</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-600 mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span>Size Adjust</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {fontScales.fallback !== 100 && (
                                                     <button
                                                         onClick={() => {
                                                             setFontScales(prev => ({ ...prev, fallback: 100 }));
                                                             setIsFallbackLinked(false);
-                                                            setFallbackLineHeight('normal');
-                                                            setFallbackLetterSpacing(0);
                                                         }}
-                                                        className="text-[10px] text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors"
-                                                        title="Reset all global fallbacks"
+                                                        className="text-[10px] text-slate-400 hover:text-rose-500"
+                                                        title="Reset to 100%"
                                                         type="button"
                                                     >
-                                                        <span className="text-[10px]">Reset</span>
-                                                        <span className="text-xs">↺</span>
+                                                        ↺
                                                     </button>
                                                 )}
-                                            </div>
-                                            <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span>Size Adjust</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {fontScales.fallback !== 100 && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setFontScales(prev => ({ ...prev, fallback: 100 }));
-                                                                setIsFallbackLinked(false);
-                                                            }}
-                                                            className="text-[10px] text-slate-400 hover:text-rose-500"
-                                                            title="Reset to 100%"
-                                                            type="button"
-                                                        >
-                                                            ↺
-                                                        </button>
-                                                    )}
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="number"
-                                                            min="25"
-                                                            max="300"
-                                                            step="5"
-                                                            value={fontScales.fallback === 100 ? '' : fontScales.fallback}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                if (val === '') {
-                                                                    setFontScales(prev => ({ ...prev, fallback: '' }));
-                                                                } else {
-                                                                    const parsed = parseInt(val);
-                                                                    setFontScales(prev => ({
-                                                                        ...prev,
-                                                                        fallback: isNaN(parsed) ? '' : parsed
-                                                                    }));
-                                                                }
-                                                                setIsFallbackLinked(false);
-                                                            }}
-                                                            onBlur={(e) => {
-                                                                let val = parseInt(e.target.value);
-                                                                if (isNaN(val)) {
-                                                                    val = 100; // default
-                                                                } else {
-                                                                    val = Math.max(25, Math.min(300, val));
-                                                                }
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        min="25"
+                                                        max="300"
+                                                        step="5"
+                                                        value={fontScales.fallback === 100 ? '' : fontScales.fallback}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '') {
+                                                                setFontScales(prev => ({ ...prev, fallback: '' }));
+                                                            } else {
+                                                                const parsed = parseInt(val);
                                                                 setFontScales(prev => ({
                                                                     ...prev,
-                                                                    fallback: val
+                                                                    fallback: isNaN(parsed) ? '' : parsed
                                                                 }));
-                                                            }}
-                                                            className="w-12 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                                        />
-                                                        <span className="text-xs">%</span>
-                                                    </div>
+                                                            }
+                                                            setIsFallbackLinked(false);
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            let val = parseInt(e.target.value);
+                                                            if (isNaN(val)) {
+                                                                val = 100; // default
+                                                            } else {
+                                                                val = Math.max(25, Math.min(300, val));
+                                                            }
+                                                            setFontScales(prev => ({
+                                                                ...prev,
+                                                                fallback: val
+                                                            }));
+                                                        }}
+                                                        className="w-12 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
+                                                    />
+                                                    <span className="text-xs">%</span>
                                                 </div>
                                             </div>
-                                            <input
-                                                type="range"
-                                                min="25"
-                                                max="300"
-                                                step="5"
-                                                value={fontScales.fallback}
-                                                onChange={(e) => {
-                                                    const val = parseInt(e.target.value);
-                                                    setFontScales(prev => ({
-                                                        ...prev,
-                                                        fallback: val
-                                                    }));
-                                                    setIsFallbackLinked(false);
-                                                }}
-                                                className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fontScales.fallback !== 100
-                                                    ? 'accent-indigo-600'
-                                                    : 'accent-slate-400'
-                                                    }`}
-                                            />
                                         </div>
+                                        <input
+                                            type="range"
+                                            min="25"
+                                            max="300"
+                                            step="5"
+                                            value={fontScales.fallback}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                setFontScales(prev => ({
+                                                    ...prev,
+                                                    fallback: val
+                                                }));
+                                                setIsFallbackLinked(false);
+                                            }}
+                                            className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fontScales.fallback !== 100
+                                                ? 'accent-indigo-600'
+                                                : 'accent-slate-400'
+                                                }`}
+                                        />
+                                    </div>
 
-                                        <div>
-                                            <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span>Line Height</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {fallbackLineHeight !== 'normal' && (
-                                                        <button
-                                                            onClick={() => setFallbackLineHeight('normal')}
-                                                            className="text-[10px] text-slate-400 hover:text-rose-500"
-                                                            title="Reset to Normal"
-                                                            type="button"
-                                                        >
-                                                            ↺
-                                                        </button>
-                                                    )}
-                                                    <div className={`flex items-center gap-1 ${fallbackLineHeight === 'normal' ? 'opacity-50 grayscale' : ''}`}>
-                                                        <input
-                                                            type="text"
-                                                            value={fallbackLineHeight === 'normal' ? '' : Math.round(fallbackLineHeight * 100)}
-                                                            placeholder="Auto"
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                if (val === '') {
-                                                                    setFallbackLineHeight('');
-                                                                } else {
-                                                                    const parsed = parseFloat(val);
-                                                                    if (!isNaN(parsed)) {
-                                                                        setFallbackLineHeight(parsed / 100);
-                                                                    }
-                                                                }
-                                                            }}
-                                                            onBlur={(e) => {
-                                                                if (fallbackLineHeight !== 'normal') {
-                                                                    let val = parseFloat(e.target.value);
-                                                                    if (isNaN(val)) {
-                                                                        val = 120; // default
-                                                                    } else {
-                                                                        val = Math.max(50, Math.min(300, val));
-                                                                    }
-                                                                    setFallbackLineHeight(val / 100);
-                                                                }
-                                                            }}
-                                                            className="w-10 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                                        />
-                                                        <span className="text-xs">%</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="50"
-                                                max="300"
-                                                step="5"
-                                                value={fallbackLineHeight === 'normal' ? 120 : fallbackLineHeight * 100}
-                                                onChange={(e) => {
-                                                    const val = parseInt(e.target.value);
-                                                    setFallbackLineHeight(val / 100);
-                                                }}
-                                                className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fallbackLineHeight !== 'normal'
-                                                    ? 'accent-indigo-600'
-                                                    : 'accent-slate-400'
-                                                    }`}
-                                            />
-                                        </div>
 
-                                        <div>
-                                            <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span>Letter Spacing</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {fallbackLetterSpacing !== 0 && (
-                                                        <button
-                                                            onClick={() => setFallbackLetterSpacing(0)}
-                                                            className="text-[10px] text-slate-400 hover:text-rose-500"
-                                                            title="Reset to 0"
-                                                            type="button"
-                                                        >
-                                                            ↺
-                                                        </button>
-                                                    )}
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={fallbackLetterSpacing === 0 ? '' : fallbackLetterSpacing}
-                                                            placeholder="0"
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                if (val === '') {
-                                                                    setFallbackLetterSpacing('');
-                                                                } else {
-                                                                    const parsed = parseFloat(val);
-                                                                    setFallbackLetterSpacing(isNaN(parsed) ? '' : parsed);
-                                                                }
-                                                            }}
-                                                            onBlur={(e) => {
-                                                                let val = parseFloat(e.target.value);
-                                                                if (isNaN(val)) {
-                                                                    val = 0;
-                                                                } else {
-                                                                    val = Math.max(-0.5, Math.min(1, val));
-                                                                }
-                                                                setFallbackLetterSpacing(val);
-                                                            }}
-                                                            className="w-12 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                                        />
-                                                        <span className="text-xs">em</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-0.1"
-                                                max="0.5"
-                                                step="0.01"
-                                                value={fallbackLetterSpacing}
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setFallbackLetterSpacing(val);
-                                                }}
-                                                className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fallbackLetterSpacing !== 0
-                                                    ? 'accent-indigo-600'
-                                                    : 'accent-slate-400'
-                                                    }`}
-                                            />
-                                        </div>
 
-                                        <div>
-                                            <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
-                                                Fallback Fonts ({(fonts || []).filter(f => f.type !== 'primary' && !Object.values(fallbackFontOverrides || {}).includes(f.id)).length})
-                                            </label>
-                                            <FontTabs />
-                                        </div>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
+                                            Fallback Fonts ({(fonts || []).filter(f => f.type !== 'primary' && !Object.values(fallbackFontOverrides || {}).includes(f.id)).length})
+                                        </label>
+                                        <FontTabs />
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </SortableContext>
                     </DndContext>
 

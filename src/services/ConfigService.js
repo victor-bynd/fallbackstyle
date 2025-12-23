@@ -105,7 +105,7 @@ export const ConfigService = {
         if (!data || !data.fontStyles) return data;
 
         const cleanData = { ...data };
-        const styles = ['primary', 'secondary'];
+        const styles = ['primary'];
 
         styles.forEach(styleId => {
             const style = cleanData.fontStyles[styleId];

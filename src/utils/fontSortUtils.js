@@ -6,11 +6,75 @@ languages.forEach((l, i) => languageOrderMap.set(l.id, i));
 // Helper to check if a font is a system font (added by name, no uploaded file)
 export const isSystemFont = (font) => !font.fontObject;
 
-export const groupAndSortFonts = (fonts, overridesMap) => {
-    const primary = (fonts || []).find(f => f.type === 'primary');
-    const allFallback = (fonts || []).filter(f => f.type === 'fallback');
+export const groupAndSortFonts = (fonts, fallbackOverridesMap, primaryOverridesMap, metricGroups) => {
+    const primary = (fonts || []).find(f => f.type === 'primary' && !f.isPrimaryOverride);
+    const allFallback = (fonts || []).filter(f => f.type === 'fallback' && !f.isPrimaryOverride);
+    const primaryOverrides = (fonts || []).filter(f => f.isPrimaryOverride || (f.type === 'primary' && f.id !== 'primary'));
 
-    const overriddenEntries = Object.entries(overridesMap || {});
+    // --- Process Primary Overrides (Grouped) ---
+    const primaryOverrideGroups = [];
+    const processedPrimaryIds = new Set();
+
+    // 1. Group by metricGroupId
+    if (metricGroups) {
+        Object.values(metricGroups).forEach(group => {
+            // Find fonts belonging to this group
+            // Note: A "Primary Override Group" logically consists of languages sharing settings.
+            // The fonts themselves might be the same or different.
+            // We need to find which languages map to fonts in this group.
+
+            const fontsInGroup = primaryOverrides.filter(f => f.metricGroupId === group.id);
+            // Find languages for these fonts
+            const groupLangs = [];
+            const groupFonts = [];
+
+            fontsInGroup.forEach(font => {
+                processedPrimaryIds.add(font.id);
+                groupFonts.push(font);
+
+                // Find languages using this font as primary override
+                Object.entries(primaryOverridesMap || {}).forEach(([langId, fontId]) => {
+                    if (fontId === font.id) {
+                        groupLangs.push(langId);
+                    }
+                });
+            });
+
+            primaryOverrideGroups.push({
+                type: 'group',
+                group: group,
+                fonts: groupFonts.map(f => ({
+                    font: f,
+                    langIds: groupLangs.filter(lid => primaryOverridesMap[lid] === f.id)
+                }))
+            });
+        });
+    }
+
+    // 2. Ungrouped Primary Overrides (Single Language or just not in a named group)
+    primaryOverrides.forEach(font => {
+        if (processedPrimaryIds.has(font.id)) return;
+
+        // Find languages
+        const langIds = [];
+        Object.entries(primaryOverridesMap || {}).forEach(([langId, fontId]) => {
+            if (fontId === font.id) langIds.push(langId);
+        });
+
+        if (langIds.length > 0) {
+            // Treat as a "Single Item Group" or just a standalone override
+            // We usually want to show them looking like a group (so they have controls)
+            // We'll return them as a "virtual" group for consistent rendering
+            primaryOverrideGroups.push({
+                type: 'standalone',
+                fonts: [{ font, langIds }]
+            });
+        }
+    });
+
+
+    // --- Process Fallback Overrides ---
+    const overriddenEntries = Object.entries(fallbackOverridesMap || {});
     // Map fontID -> list of langIds
     const fontUsageMap = new Map();
     overriddenEntries.forEach(([langId, fontId]) => {
@@ -20,8 +84,16 @@ export const groupAndSortFonts = (fonts, overridesMap) => {
 
     const overriddenFontIds = new Set(fontUsageMap.keys());
 
+    // Identify fonts that are active in overrides (including clones) to prevent duplicates in global list
+    const activeOverrideFonts = allFallback.filter(f => overriddenFontIds.has(f.id));
+    const activeOverrideSignatures = new Set(activeOverrideFonts.map(f => f.fileName || f.name));
+
     // Separate system fonts from uploaded fonts
-    const nonOverriddenFallbacks = allFallback.filter(f => !overriddenFontIds.has(f.id));
+    const nonOverriddenFallbacks = allFallback.filter(f =>
+        !overriddenFontIds.has(f.id) &&
+        !f.isLangSpecific &&
+        !activeOverrideSignatures.has(f.fileName || f.name)
+    );
     const uploadedFallbackFonts = nonOverriddenFallbacks.filter(f => !isSystemFont(f));
     const systemFonts = nonOverriddenFallbacks.filter(f => isSystemFont(f));
 
@@ -91,16 +163,20 @@ export const groupAndSortFonts = (fonts, overridesMap) => {
 
     return {
         primary,
-        globalFallbackFonts: filteredGlobalFallbacks, // Using filtered list
+        primaryOverrideGroups, // New return value
+        globalFallbackFonts: filteredGlobalFallbacks,
         systemFonts,
         overriddenFonts
     };
 };
 
-export const getVisualFontIdOrder = (fonts, overridesMap) => {
-    const { primary, globalFallbackFonts, overriddenFonts } = groupAndSortFonts(fonts, overridesMap);
+export const getVisualFontIdOrder = (fonts, fallbackOverridesMap, primaryOverridesMap, metricGroups) => {
+    const { primary, primaryOverrideGroups, globalFallbackFonts, overriddenFonts } = groupAndSortFonts(fonts, fallbackOverridesMap, primaryOverridesMap, metricGroups);
     const ids = [];
     if (primary) ids.push(primary.id);
+    primaryOverrideGroups.forEach(group => {
+        group.fonts.forEach(item => ids.push(item.font.id));
+    });
     ids.push(...globalFallbackFonts.map(f => f.id));
     ids.push(...overriddenFonts.map(o => o.font.id));
     return ids;

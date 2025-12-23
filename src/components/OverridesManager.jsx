@@ -82,7 +82,6 @@ const OverridesManager = () => {
     };
 
     const primary = getStyleOverrides('primary');
-    const secondary = getStyleOverrides('secondary');
 
     // Header overrides are tracked explicitly in context (only manual changes appear here)
     const headerOverrideList = Object.entries(headerOverrides || {}).map(([tag, props]) => {
@@ -151,9 +150,9 @@ const OverridesManager = () => {
                         </div>
                     </div>
                 )}
-                {['primary', 'secondary'].map(styleId => {
-                    const group = styleId === 'primary' ? primary : secondary;
-                    const styleLabel = styleId === 'primary' ? 'Primary' : 'Secondary';
+                {['primary'].map(styleId => {
+                    const group = primary;
+                    const styleLabel = 'Primary';
                     const style = fontStyles?.[styleId];
                     const groupTotal = (group.hasGlobalFallbackScale ? 1 : 0)
                         + group.fontLevelOverrides.length
@@ -274,8 +273,8 @@ const OverridesManager = () => {
                         <button
                             onClick={() => {
                                 if (confirm('Reset all overrides for all styles? This cannot be undone.')) {
-                                    ['primary', 'secondary'].forEach(styleId => {
-                                        const group = styleId === 'primary' ? primary : secondary;
+                                    ['primary'].forEach(styleId => {
+                                        const group = primary;
                                         if (group.hasGlobalFallbackScale) resetGlobalFallbackScaleForStyle(styleId);
                                         group.fontLevelOverrides.forEach(o => resetFallbackFontOverridesForStyle(styleId, o.fontId));
                                         resetAllFallbackFontOverridesForStyle(styleId);

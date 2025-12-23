@@ -11,6 +11,8 @@ import ViewModeSelector from './components/ViewModeSelector';
 import MissingFontsModal from './components/MissingFontsModal';
 import { useConfigImport } from './hooks/useConfigImport';
 
+import { useFontFaceStyles } from './hooks/useFontFaceStyles';
+
 const MainContent = ({ sidebarMode, setSidebarMode }) => {
   const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors, showAlignmentGuides, toggleAlignmentGuides, showBrowserGuides, toggleBrowserGuides } = useTypo();
   const { importConfig, missingFonts, resolveMissingFonts, cancelImport } = useConfigImport();
@@ -21,6 +23,7 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
   const buttonRef = useRef(null);
   const [buttonX, setButtonX] = useState(null);
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
+  const fontFaceStyles = useFontFaceStyles();
 
   // Measure button position for fixed overlay
   useLayoutEffect(() => {
@@ -81,75 +84,6 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
       window.removeEventListener('mousedown', onMouseDown);
     };
   }, [showListSettings]);
-
-  const fontFaceStyles = useMemo(() => {
-    return ['primary', 'secondary']
-      .map(styleId => {
-        const style = fontStyles?.[styleId];
-        if (!style) return '';
-
-        const primary = style.fonts?.find(f => f.type === 'primary');
-        const primarySizeAdjust = (primary && primary.sizeAdjust !== undefined && primary.sizeAdjust !== '')
-          ? `size-adjust: ${primary.sizeAdjust}%;`
-          : '';
-
-        const primaryLineGapOverride = (primary && primary.lineGapOverride !== undefined && primary.lineGapOverride !== '')
-          ? `line-gap-override: ${primary.lineGapOverride * 100}%;`
-          : '';
-
-        const primaryAscentOverride = (primary && primary.ascentOverride !== undefined && primary.ascentOverride !== '')
-          ? `ascent-override: ${primary.ascentOverride * 100}%;`
-          : '';
-
-        const primaryDescentOverride = (primary && primary.descentOverride !== undefined && primary.descentOverride !== '')
-          ? `descent-override: ${primary.descentOverride * 100}%;`
-          : '';
-
-        const primaryRule = primary?.fontUrl
-          ? `
-          @font-face {
-            font-family: 'UploadedFont-${styleId}';
-            src: url('${primary.fontUrl}');
-            ${primarySizeAdjust}
-            ${primaryLineGapOverride}
-            ${primaryAscentOverride}
-            ${primaryDescentOverride}
-          }
-        `
-          : '';
-
-        const fallbackRules = (style.fonts || [])
-          .filter(f => f.type === 'fallback' && f.fontUrl)
-          .map(font => {
-            const sizeAdjust = (font.sizeAdjust !== undefined && font.sizeAdjust !== '')
-              ? `size-adjust: ${font.sizeAdjust}%;`
-              : '';
-            const lineGapOverride = (font.lineGapOverride !== undefined && font.lineGapOverride !== '')
-              ? `line-gap-override: ${font.lineGapOverride * 100}%;`
-              : '';
-            const ascentOverride = (font.ascentOverride !== undefined && font.ascentOverride !== '')
-              ? `ascent-override: ${font.ascentOverride * 100}%;`
-              : '';
-            const descentOverride = (font.descentOverride !== undefined && font.descentOverride !== '')
-              ? `descent-override: ${font.descentOverride * 100}%;`
-              : '';
-            return `
-            @font-face {
-              font-family: 'FallbackFont-${styleId}-${font.id}';
-              src: url('${font.fontUrl}');
-              ${sizeAdjust}
-              ${lineGapOverride}
-              ${ascentOverride}
-              ${descentOverride}
-            }
-          `;
-          })
-          .join('');
-
-        return `${primaryRule}${fallbackRules}`;
-      })
-      .join('');
-  }, [fontStyles]);
 
   return (
     <div className="flex-1 bg-slate-50 min-h-screen relative">
@@ -457,14 +391,26 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
   );
 };
 
+// LivePreview import handled at top of file
+import LivePreview from './components/LivePreview';
+
 function App() {
   const [sidebarMode, setSidebarMode] = useState('main');
+  const [previewMode, setPreviewMode] = useState(false);
 
   return (
     <ErrorBoundary>
       <TypoProvider>
+        {previewMode && (
+          <LivePreview onClose={() => setPreviewMode(false)} />
+        )}
         <div className="flex min-h-screen w-full">
-          <Controller sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
+          <Controller
+            sidebarMode={sidebarMode}
+            setSidebarMode={setSidebarMode}
+            previewMode={previewMode}
+            setPreviewMode={setPreviewMode}
+          />
           <MainContent sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
         </div>
       </TypoProvider>

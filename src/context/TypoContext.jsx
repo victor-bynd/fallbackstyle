@@ -41,22 +41,19 @@ const createEmptyStyleState = () => ({
     lineHeightOverrides: {},
     fallbackScaleOverrides: {},
     fallbackFontOverrides: {},
+    primaryFontOverrides: {},
+    metricGroups: {}, // NEW: Stores group definitions { id: { name, scale, lineHeight, ... } }
     // fontColors removed, stored in fonts
     baseRem: 16
 });
 
-const createEmptySecondaryStyleState = () => ({
-    ...createEmptyStyleState(),
-    fonts: [],
-    activeFont: null
-});
+
 
 export const TypoProvider = ({ children }) => {
     const [activeFontStyleId, setActiveFontStyleId] = useState('primary');
 
     const [fontStyles, setFontStyles] = useState(() => ({
-        primary: createEmptyStyleState(),
-        secondary: createEmptySecondaryStyleState()
+        primary: createEmptyStyleState()
     }));
 
     const activeStyle = fontStyles[activeFontStyleId] || fontStyles.primary;
@@ -352,6 +349,216 @@ export const TypoProvider = ({ children }) => {
     const lineHeightOverrides = activeStyle.lineHeightOverrides;
     const fallbackScaleOverrides = activeStyle.fallbackScaleOverrides;
     const fallbackFontOverrides = activeStyle.fallbackFontOverrides;
+    const metricGroups = activeStyle.metricGroups || {};
+
+    const addMetricGroup = (name, initialSettings = {}) => {
+        const styleId = activeFontStyleId;
+        const groupId = `group-${Date.now()}`;
+        updateStyleState(styleId, prev => ({
+            ...prev,
+            metricGroups: {
+                ...(prev.metricGroups || {}),
+                [groupId]: {
+                    id: groupId,
+                    name,
+                    ...initialSettings
+                }
+            }
+        }));
+        return groupId;
+    };
+
+    const updateMetricGroup = (groupId, updates) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const currentGroups = prev.metricGroups || {};
+            if (!currentGroups[groupId]) return prev;
+
+            return {
+                ...prev,
+                metricGroups: {
+                    ...currentGroups,
+                    [groupId]: {
+                        ...currentGroups[groupId],
+                        ...updates
+                    }
+                }
+            };
+        });
+    };
+
+    const deleteMetricGroup = (groupId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const currentGroups = { ...(prev.metricGroups || {}) };
+            delete currentGroups[groupId];
+
+            // Also remove assignments from fonts
+            const nextFonts = (prev.fonts || []).map(f => {
+                if (f.metricGroupId === groupId) {
+                    const { metricGroupId, ...rest } = f;
+                    return rest;
+                }
+                return f;
+            });
+
+            return {
+                ...prev,
+                metricGroups: currentGroups,
+                fonts: nextFonts
+            };
+        });
+    };
+
+    const assignFontToMetricGroup = (fontId, groupId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => ({
+            ...prev,
+            fonts: (prev.fonts || []).map(f =>
+                f.id === fontId ? { ...f, metricGroupId: groupId } : f
+            )
+        }));
+    };
+
+    const removeFontFromMetricGroup = (fontId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => ({
+            ...prev,
+            fonts: (prev.fonts || []).map(f => {
+                if (f.id === fontId) {
+                    const { metricGroupId, ...rest } = f;
+                    return rest;
+                }
+                return f;
+            })
+        }));
+    };
+
+    const createGroupForFont = (fontId, groupName, initialSettings = {}) => {
+        const styleId = activeFontStyleId;
+        const groupId = `group-${Date.now()}`;
+
+        updateStyleState(styleId, prev => {
+            const currentMetricGroups = prev.metricGroups || {};
+            const nextMetricGroups = {
+                ...currentMetricGroups,
+                [groupId]: {
+                    id: groupId,
+                    name: groupName,
+                    ...initialSettings
+                }
+            };
+
+            const nextFonts = (prev.fonts || []).map(f =>
+                f.id === fontId ? { ...f, metricGroupId: groupId } : f
+            );
+
+            return {
+                ...prev,
+                metricGroups: nextMetricGroups,
+                fonts: nextFonts
+            };
+        });
+
+        return groupId;
+    };
+
+    const createEmptyMetricGroup = (groupName, initialSettings = {}) => {
+        const styleId = activeFontStyleId;
+        const groupId = `group-${Date.now()}`;
+
+        updateStyleState(styleId, prev => {
+            const currentMetricGroups = prev.metricGroups || {};
+            return {
+                ...prev,
+                metricGroups: {
+                    ...currentMetricGroups,
+                    [groupId]: {
+                        id: groupId,
+                        name: groupName,
+                        ...initialSettings
+                    }
+                }
+            };
+        });
+        return groupId;
+    };
+
+    const addLanguagesToGroup = (groupId, languageIds) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            let nextFonts = [...(prev.fonts || [])];
+            let nextOverrides = { ...(prev.primaryFontOverrides || {}) };
+            let nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+
+            // 1. Identify languages currently in this group
+            const currentGroupLangs = Object.keys(nextOverrides).filter(langId => {
+                const fontId = nextOverrides[langId];
+                const font = nextFonts.find(f => f.id === fontId);
+                return font && font.metricGroupId === groupId;
+            });
+
+            // 2. Determine removals (langs in group but NOT in new list)
+            const langsToRemove = currentGroupLangs.filter(id => !languageIds.includes(id));
+
+            langsToRemove.forEach(langId => {
+                const fontId = nextOverrides[langId];
+                // Remove from fonts
+                nextFonts = nextFonts.filter(f => f.id !== fontId);
+                // Remove from primary overrides
+                delete nextOverrides[langId];
+                // Remove from fallback overrides (safety)
+                Object.keys(nextFallbackOverrides).forEach(key => {
+                    if (nextFallbackOverrides[key] === fontId) {
+                        delete nextFallbackOverrides[key];
+                    }
+                });
+            });
+
+            // 3. Process additions/updates
+            languageIds.forEach(langId => {
+                const existingFontId = nextOverrides[langId];
+                if (existingFontId) {
+                    // Language already has a primary override
+                    // Ensure it is assigned to THIS group (move it if it was in another)
+                    nextFonts = nextFonts.map(f =>
+                        f.id === existingFontId ? { ...f, metricGroupId: groupId } : f
+                    );
+                } else {
+                    // Create new primary override font
+                    const primaryFont = nextFonts.find(f => f.type === 'primary');
+                    if (primaryFont) {
+                        const newFontId = `lang-primary-${langId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                        const newFont = {
+                            ...primaryFont,
+                            id: newFontId,
+                            type: 'fallback',
+                            isLangSpecific: true,
+                            isPrimaryOverride: true,
+                            metricGroupId: groupId,
+                            hidden: false,
+                            weightOverride: undefined,
+                            scale: undefined,
+                            lineHeight: undefined,
+                            letterSpacing: undefined,
+                            lineGapOverride: undefined,
+                            ascentOverride: undefined,
+                            descentOverride: undefined
+                        };
+                        nextFonts.push(newFont);
+                        nextOverrides[langId] = newFontId;
+                    }
+                }
+            });
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                primaryFontOverrides: nextOverrides,
+                fallbackFontOverrides: nextFallbackOverrides
+            };
+        });
+    };
 
     const getFallbackFontOverrideForStyle = (styleId, langId) => {
         const style = fontStyles[styleId];
@@ -519,37 +726,115 @@ export const TypoProvider = ({ children }) => {
         const font = style.fonts.find(f => f.id === fontId);
         if (!font) return null;
 
+        // Check for Group Settings first
+        const group = font.metricGroupId ? style.metricGroups?.[font.metricGroupId] : null;
+
         if (font.type === 'primary') {
+            // Primary Base: usually shouldn't have metrics overridden unless via group?
+            // Actually, the main primary font (non-override) uses global settings.
+            // But if we allow grouping main primary font, what happens?
+            // For now assume this is mostly for overrides/fallbacks, but let's see.
+
+            // If Group exists, use its values, otherwise use globals/defaults.
+            // Note: Primary font typically determines the BASE lineHeight/weight.
+
             return {
                 baseFontSize: style.baseFontSize,
-                scale: style.fontScales.active,
-                lineHeight: style.lineHeight,
-                weight: resolveWeightForFont(font, style.weight), // Use global weight (resolved for this font)
-                lineGapOverride: font.lineGapOverride, // Added this
-                ascentOverride: font.ascentOverride,
-                descentOverride: font.descentOverride
+                scale: group?.scale ?? style.fontScales.active, // Group scale replaces global active scale?
+                lineHeight: group?.lineHeight ?? style.lineHeight,
+                weight: resolveWeightForFont(font, group?.weight ?? style.weight),
+                lineGapOverride: group?.lineGapOverride ?? font.lineGapOverride,
+                ascentOverride: group?.ascentOverride ?? font.ascentOverride,
+                descentOverride: group?.descentOverride ?? font.descentOverride
             };
         }
 
-        // Fallback font
-        const effectiveLineHeight = (font.lineHeight !== undefined && font.lineHeight !== '' && font.lineHeight !== null)
-            ? font.lineHeight
+        // Fallback or Primary Override (treated as fallback type but linked to primary logic)
+
+        // Resolve scale:
+        // 1. Group Scale (if exists) -> treated as override
+        // 2. Font Override (sizeAdjust/scale/h1Rem) (if not grouped)
+        // 3. Global Default (active or fallback scale)
+
+        let finalScale = undefined;
+        let finalH1Rem = undefined;
+
+        if (group) {
+            // Mapping Logic:
+            // - If Primary Override: group.scale is interpreted as h1Rem (unless explicit group.h1Rem exists).
+            // - If Fallback: group.scale is percentage scale.
+
+            if (font.isPrimaryOverride) {
+                // Prioritize explicit h1Rem if group has it, otherwise map from scale if suitable range?
+                // Actually, UI will send `h1Rem` to group for primary overrides if we fix it there.
+                // But for backward compat or shared logic, let's respect both.
+
+                finalH1Rem = group.h1Rem !== undefined ? group.h1Rem : group.scale;
+                // Note: If reusing a group created for fallback (scale~100) on a primary (scale~3.75), 
+                // it might look weird, but that's user choice to group unmatched things.
+
+                // Pure scale (size-adjust) for primary override:
+                // Typically primary overrides don't use size-adjust (they use H1 Rem), 
+                // UNLESS user specifically wants to shrink the glyphs themselves (rare for primary replacement).
+                // Let's assume if they grouped it, they want the shared value.
+            } else {
+                finalScale = group.scale;
+            }
+        } else {
+            finalScale = font.scale;
+            finalH1Rem = font.h1Rem;
+        }
+
+        // Defaults if no override/group
+        if (finalScale === undefined) {
+            finalScale = font.isPrimaryOverride
+                ? (style.fontScales?.active ?? 100)
+                : (style.fontScales?.fallback ?? 100);
+        }
+
+        // Resolve Line Height
+        const defaultLineHeight = (font.isPrimaryOverride)
+            ? style.lineHeight
             : (style.fallbackLineHeight !== undefined ? style.fallbackLineHeight : style.lineHeight);
 
-        const effectiveLetterSpacing = (font.letterSpacing !== undefined && font.letterSpacing !== '' && font.letterSpacing !== null)
-            ? font.letterSpacing
+        const groupLineHeight = group?.lineHeight;
+        const fontLineHeight = font.lineHeight;
+
+        // Group takes precedence if defined
+        const effectiveLineHeight = (groupLineHeight !== undefined && groupLineHeight !== '' && groupLineHeight !== null)
+            ? groupLineHeight
+            : ((fontLineHeight !== undefined && fontLineHeight !== '' && fontLineHeight !== null)
+                ? fontLineHeight
+                : defaultLineHeight);
+
+        // Resolve Letter Spacing
+        const defaultLetterSpacing = (font.isPrimaryOverride)
+            ? style.letterSpacing
             : (style.fallbackLetterSpacing !== undefined ? style.fallbackLetterSpacing : style.letterSpacing);
+
+        const groupLetterSpacing = group?.letterSpacing;
+        const fontLetterSpacing = font.letterSpacing;
+
+        const effectiveLetterSpacing = (groupLetterSpacing !== undefined && groupLetterSpacing !== '' && groupLetterSpacing !== null)
+            ? groupLetterSpacing
+            : ((fontLetterSpacing !== undefined && fontLetterSpacing !== '' && fontLetterSpacing !== null)
+                ? fontLetterSpacing
+                : defaultLetterSpacing);
+
+        // Resolve Overrides
+        const getOverride = (prop) => (group?.[prop] !== undefined && group?.[prop] !== '') ? group[prop] : font[prop];
 
         return {
             baseFontSize: font.baseFontSize ?? style.baseFontSize,
-            scale: font.scale ?? style.fontScales.fallback,
+            scale: finalScale,
+            h1Rem: finalH1Rem, // Pass this through
             lineHeight: effectiveLineHeight,
             letterSpacing: effectiveLetterSpacing,
-            weight: resolveWeightForFont(font, font.weightOverride ?? style.weight), // Use override OR global (resolved for this font)
-            fontSizeAdjust: font.fontSizeAdjust, // CSS font-size-adjust value (undefined = none)
-            lineGapOverride: font.lineGapOverride, // CSS line-gap-override value (undefined = none)
-            ascentOverride: font.ascentOverride,
-            descentOverride: font.descentOverride
+            weight: resolveWeightForFont(font, group?.weightOverride ?? font.weightOverride ?? style.weight),
+            fontSizeAdjust: font.fontSizeAdjust, // Keep native CSS prop support if used
+            lineGapOverride: getOverride('lineGapOverride'),
+            ascentOverride: getOverride('ascentOverride'),
+            descentOverride: getOverride('descentOverride')
         };
     };
 
@@ -688,6 +973,195 @@ export const TypoProvider = ({ children }) => {
         });
     };
 
+    // New function to create a language-specific clone of a font
+    const addLanguageSpecificFont = (originalFontId, langId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const fonts = prev.fonts || [];
+            const originalFont = fonts.find(f => f.id === originalFontId);
+
+            if (!originalFont) {
+                console.warn('[TypoContext] Original font not found for cloning:', originalFontId);
+                return prev;
+            }
+
+            // Create a unique ID for the new language-specific font
+            const newFontId = `lang-${langId}-${Date.now()}`;
+
+            // Create the clone
+            const newFont = {
+                ...originalFont,
+                id: newFontId,
+                type: 'fallback',
+                isLangSpecific: true,
+                // Do not copy language overrides or hidden status
+                hidden: false,
+                weightOverride: undefined,
+                scale: undefined,
+                lineHeight: undefined,
+                letterSpacing: undefined,
+                lineGapOverride: undefined,
+                ascentOverride: undefined,
+                descentOverride: undefined
+            };
+
+            // Remove any existing language-specific font for this language to avoid orphans
+            const existingOverrideFontId = prev.fallbackFontOverrides?.[langId];
+            let nextFonts = [...fonts];
+            if (existingOverrideFontId) {
+                const existingFont = nextFonts.find(f => f.id === existingOverrideFontId);
+                if (existingFont && existingFont.isLangSpecific) {
+                    nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+                }
+            }
+
+            // Add the new font
+            nextFonts.push(newFont);
+
+            // Update the override map
+            const nextOverrides = {
+                ...(prev.fallbackFontOverrides || {}),
+                [langId]: newFontId
+            };
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                fallbackFontOverrides: nextOverrides
+            };
+        });
+    };
+
+    // New function to create a language-specific clone of the PRIMARY font
+    const addLanguageSpecificPrimaryFont = (langId, targetGroupId = null) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const fonts = prev.fonts || [];
+            const primaryFont = fonts.find(f => f.type === 'primary');
+
+            if (!primaryFont) {
+                console.warn('[TypoContext] No primary font found for cloning.');
+                return prev;
+            }
+
+            // Create a unique ID for the new language-specific font
+            const newFontId = `lang-primary-${langId}-${Date.now()}`;
+
+            // Create the clone
+            // treat it as a fallback typographically (so it renders later if needed, though for primary override it replaces primary)
+            // But we mark it as `isPrimaryOverride: true`
+            const newFont = {
+                ...primaryFont,
+                id: newFontId,
+                type: 'fallback', // Technical type for CSS generation (reusing fallback logic)
+                isLangSpecific: true,
+                isPrimaryOverride: true,
+                metricGroupId: targetGroupId, // NEW: Assign key to group if provided
+                hidden: false,
+                // Reset overrides so they start fresh (inheriting from primary by default via UI, but technically distinct)
+                weightOverride: undefined,
+                scale: undefined,
+                lineHeight: undefined,
+                letterSpacing: undefined,
+                lineGapOverride: undefined,
+                ascentOverride: undefined,
+                descentOverride: undefined
+            };
+
+            // Remove any existing override font for this language
+            const existingOverrideFontId = prev.primaryFontOverrides?.[langId];
+            let nextFonts = [...fonts];
+            if (existingOverrideFontId) {
+                // If the existing override was in a group, we might want to preserve that group?
+                // But this function implies "Reset/Add New".
+                // If targetGroupId is passed, we use that.
+                // If not passed, we might want to check if existing one had a group?
+                // For now, simple logic: explicit arguments win.
+                nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+            }
+
+            // Add the new font
+            nextFonts.push(newFont);
+
+            // Update the override map
+            const nextOverrides = {
+                ...(prev.primaryFontOverrides || {}),
+                [langId]: newFontId
+            };
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                primaryFontOverrides: nextOverrides
+            };
+        });
+    };
+
+    const addLanguageToPrimaryGroup = (langId, groupId) => {
+        const overrideFontId = activeStyle.primaryFontOverrides?.[langId];
+        if (overrideFontId) {
+            assignFontToMetricGroup(overrideFontId, groupId);
+        } else {
+            addLanguageSpecificPrimaryFont(langId, groupId);
+        }
+    };
+
+
+    const clearPrimaryFontOverride = (langId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const overrideFontId = prev.primaryFontOverrides?.[langId];
+            if (!overrideFontId) return prev;
+
+            // Remove from fonts array
+            const nextFonts = (prev.fonts || []).filter(f => f.id !== overrideFontId);
+
+            // Remove from overrides map
+            const nextOverrides = { ...(prev.primaryFontOverrides || {}) };
+            delete nextOverrides[langId];
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                primaryFontOverrides: nextOverrides
+            };
+        });
+    };
+
+    const removeLanguageGroup = (langId) => {
+        clearPrimaryFontOverride(langId);
+        clearFallbackFontOverride(langId);
+    };
+
+    const removeLanguageSpecificFont = (fontId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            // Remove from fonts array
+            const nextFonts = (prev.fonts || []).filter(f => f.id !== fontId);
+
+            // Remove from overrides map
+            const nextOverrides = { ...(prev.fallbackFontOverrides || {}) };
+
+            // Find which keys point to this fontId and delete them
+            Object.keys(nextOverrides).forEach(key => {
+                if (nextOverrides[key] === fontId) {
+                    delete nextOverrides[key];
+                }
+            });
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                fallbackFontOverrides: nextOverrides
+            };
+        });
+    };
+
+    const getPrimaryFontOverrideForStyle = (styleId, langId) => {
+        const style = fontStyles[styleId];
+        return style?.primaryFontOverrides?.[langId] || null;
+    };
+
     const removeFallbackFont = (fontId) => {
         const styleId = activeFontStyleId;
         updateStyleState(styleId, prev => {
@@ -703,10 +1177,28 @@ export const TypoProvider = ({ children }) => {
                 newActiveFont = newFonts.length > 0 ? newFonts[0].id : null;
             }
 
+            // Cleanup Primary Overrides
+            const nextPrimaryOverrides = { ...(prev.primaryFontOverrides || {}) };
+            Object.keys(nextPrimaryOverrides).forEach(langId => {
+                if (nextPrimaryOverrides[langId] === fontId) {
+                    delete nextPrimaryOverrides[langId];
+                }
+            });
+
+            // Cleanup Fallback Overrides
+            const nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+            Object.keys(nextFallbackOverrides).forEach(langId => {
+                if (nextFallbackOverrides[langId] === fontId) {
+                    delete nextFallbackOverrides[langId];
+                }
+            });
+
             return {
                 ...prev,
                 fonts: newFonts,
-                activeFont: newActiveFont
+                activeFont: newActiveFont,
+                primaryFontOverrides: nextPrimaryOverrides,
+                fallbackFontOverrides: nextFallbackOverrides
             };
         });
     };
@@ -881,33 +1373,7 @@ export const TypoProvider = ({ children }) => {
 
     // Get effective settings for a font (uses overrides if available, otherwise global)
     const getEffectiveFontSettings = (fontId) => {
-        const font = fonts.find(f => f.id === fontId);
-        if (!font) return null;
-
-        if (font.type === 'primary') {
-            return {
-                baseFontSize,
-                scale: fontScales.active,
-                lineHeight,
-                weight: resolveWeightForFont(font, weight) // Global weight (resolved for this font)
-            };
-        } else {
-            // Fallback font: use overrides if set, otherwise use global fallback settings
-            const effectiveLineHeight = font.lineHeight ?? (fallbackLineHeight !== undefined ? fallbackLineHeight : lineHeight);
-            const effectiveLetterSpacing = font.letterSpacing ?? (fallbackLetterSpacing !== undefined ? fallbackLetterSpacing : letterSpacing);
-
-            return {
-                baseFontSize: font.baseFontSize ?? baseFontSize,
-                scale: font.scale ?? fontScales.fallback,
-                lineHeight: effectiveLineHeight,
-                letterSpacing: effectiveLetterSpacing,
-                weight: resolveWeightForFont(font, font.weightOverride ?? weight), // Override OR global (resolved for this font)
-
-                lineGapOverride: font.lineGapOverride, // CSS line-gap-override value (undefined = none)
-                ascentOverride: font.ascentOverride,
-                descentOverride: font.descentOverride
-            };
-        }
+        return getEffectiveFontSettingsForStyle(activeFontStyleId, fontId);
     };
 
     const updateLineHeightOverride = (langId, value) => {
@@ -974,11 +1440,7 @@ export const TypoProvider = ({ children }) => {
     };
 
     const clearFallbackFontOverride = (langId) => {
-        updateStyleState(activeFontStyleId, prev => {
-            const next = { ...prev.fallbackFontOverrides };
-            delete next[langId];
-            return { ...prev, fallbackFontOverrides: next };
-        });
+        clearFallbackFontOverrideForStyle(activeFontStyleId, langId);
     };
 
     const clearFallbackFontOverrideForStyle = (styleId, langId) => {
@@ -1074,48 +1536,7 @@ export const TypoProvider = ({ children }) => {
 
 
 
-    const copyFontsFromPrimaryToSecondary = () => {
-        const primaryFonts = fontStyles.primary?.fonts || [];
-        if (primaryFonts.length === 0) return;
 
-        // Clone all fonts from Primary (including the actual Primary font)
-        const copiedFonts = primaryFonts.map((f, index) => ({
-            ...f,
-            id: `${f.id}-secondary-${Date.now()}-${index}`, // Ensure unique IDs
-            // Reset overrides for the new context
-            baseFontSize: undefined,
-            scale: undefined,
-            lineHeight: undefined,
-            letterSpacing: undefined,
-            weightOverride: undefined,
-            // The first font from Primary becomes the Primary for Secondary (type 'primary')
-            // All subsequent fonts become fallback (type 'fallback')
-            type: index === 0 ? 'primary' : 'fallback'
-        }));
-
-        updateStyleState('secondary', prev => {
-            // We are deliberately replacing the ENTIRE stack in Secondary with the copy from Primary
-            // because the user clicked "Copy from Primary", implying a full reset/sync.
-            // If we wanted to append, the logic would be different, but "Copy from Primary" usually implies "Make it look like Primary".
-            // However, the request says "including the 'primary font' but instead use that font as the 'Secondary font' at the top... followed by... fallbacks".
-
-            // To be safe and avoid deleting existing work if the user just wanted to bring them over:
-            // But usually "Copy X to Y" when Y is empty (or when this button is shown) implies setting Y.
-            // Given the button is only shown when "!fonts.some(f => f.type === 'fallback')", 
-            // the secondary stack might still have a Primary font (if uploaded manually) or might be empty.
-
-            // If the user already uploaded a Secondary Primary font, we probably shouldn't overwrite it 
-            // UNLESS the user explicitly wants to "Copy from Primary" which might imply overwriting.
-            // But let's look at the requirement: "use that font as the 'Secondary font' at the top of the list".
-
-            // If we strictly follow "use that font as the 'Secondary font' at the top", we are replacing the current head.
-
-            return {
-                ...prev,
-                fonts: copiedFonts
-            };
-        });
-    };
 
     const [headerFontStyleMap, setHeaderFontStyleMap] = useState({
         h1: 'primary',
@@ -1265,11 +1686,9 @@ export const TypoProvider = ({ children }) => {
         };
 
         const newPrimaryStyle = await processStyle(config.fontStyles?.primary);
-        const newSecondaryStyle = await processStyle(config.fontStyles?.secondary || createEmptySecondaryStyleState());
 
         setFontStyles({
-            primary: newPrimaryStyle,
-            secondary: newSecondaryStyle
+            primary: newPrimaryStyle
         });
 
     }, [DEFAULT_HEADER_STYLES]);
@@ -1304,7 +1723,6 @@ export const TypoProvider = ({ children }) => {
             resetAllFallbackFontOverridesForStyle,
             resetGlobalFallbackScaleForStyle,
             resetFallbackFontOverridesForStyle,
-            copyFontsFromPrimaryToSecondary,
             getExportConfiguration,
             restoreConfiguration,
 
@@ -1326,6 +1744,26 @@ export const TypoProvider = ({ children }) => {
             toggleFallbackLineHeightAuto,
             getEffectiveFontSettings,
             updateFontWeight,
+            addLanguageSpecificFont,
+            addLanguageSpecificPrimaryFont,
+            addLanguageToPrimaryGroup,
+
+            getPrimaryFontOverrideForStyle,
+            clearPrimaryFontOverride,
+            removeLanguageSpecificFont,
+            removeLanguageGroup,
+
+            metricGroups,
+            addMetricGroup,
+            updateMetricGroup,
+            deleteMetricGroup,
+            assignFontToMetricGroup,
+            removeFontFromMetricGroup,
+            createGroupForFont,
+            createEmptyMetricGroup,
+            addLanguagesToGroup,
+            // Helper to check if a font is a system font
+            // isSystemFont, // This line was malformed in the instruction snippet, removing it.
 
             // Existing values
             fontObject,
@@ -1364,6 +1802,7 @@ export const TypoProvider = ({ children }) => {
             updateFallbackScaleOverride,
             resetAllFallbackScaleOverrides,
             fallbackFontOverrides,
+            primaryFontOverrides: activeStyle.primaryFontOverrides || {},
             setFallbackFontOverride,
             clearFallbackFontOverride,
             resetAllFallbackFontOverrides,

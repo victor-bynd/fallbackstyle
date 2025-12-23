@@ -18,7 +18,7 @@ describe('ConfigService Serialization', () => {
                         'ja-JP': 1.5
                     }
                 },
-                secondary: { fonts: [] }
+
             },
             headerStyles: {},
             headerOverrides: {},

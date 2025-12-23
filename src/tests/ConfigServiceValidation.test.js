@@ -12,7 +12,6 @@ describe('ConfigService Validation', () => {
                         'fr-FR': 'font2'  // Invalid (orphaned)
                     }
                 },
-                secondary: { fonts: [] }
             }
         };
 
@@ -26,7 +25,6 @@ describe('ConfigService Validation', () => {
         const niceConfig = {
             fontStyles: {
                 primary: { fonts: [] },
-                secondary: { fonts: [] }
             }
         };
         const validated = ConfigService.validateConfig(niceConfig);

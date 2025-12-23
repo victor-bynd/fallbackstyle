@@ -37,7 +37,6 @@ export const useConfigImport = () => {
         };
 
         collectFromStyle(data.fontStyles?.primary);
-        collectFromStyle(data.fontStyles?.secondary);
 
         if (requiredFiles.size > 0) {
             const missingList = Array.from(requiredFiles);
@@ -48,8 +47,7 @@ export const useConfigImport = () => {
             // Helper to search for a font by filename in existing styles
             const findFontByFilename = (filename) => {
                 const allFonts = [
-                    ...(fontStyles.primary?.fonts || []),
-                    ...(fontStyles.secondary?.fonts || [])
+                    ...(fontStyles.primary?.fonts || [])
                 ];
                 return allFonts.find(f => f.fileName === filename && f.fontUrl);
             };
