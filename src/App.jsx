@@ -372,8 +372,8 @@ const MainContent = ({
             </div>
           </div>
           <div className="grid gap-4 transition-all duration-300 ease-in-out" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
-            {visibleLanguages.filter(lang => {
-              if (selectedGroup === 'ALL') return true;
+            {(selectedGroup === 'ALL' ? languages : visibleLanguages).filter(lang => {
+              if (selectedGroup === 'ALL' || selectedGroup === 'ALL_TARGETED') return true;
               if (!selectedGroup) return true;
               return getLanguageGroup(lang) === selectedGroup;
             }).map(lang => (

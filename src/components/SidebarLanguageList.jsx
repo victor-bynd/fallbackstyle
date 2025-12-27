@@ -23,7 +23,7 @@ const SidebarLanguageList = ({
 
     // 2. Filter languages based on selectedGroup
     const filteredLanguages = useMemo(() => {
-        if (selectedGroup === 'ALL') {
+        if (selectedGroup === 'ALL' || selectedGroup === 'ALL_TARGETED') {
             return languageObjects;
         }
         return languageObjects.filter(lang => getLanguageGroup(lang) === selectedGroup);
@@ -37,7 +37,7 @@ const SidebarLanguageList = ({
                     Languages
                 </span>
                 <button
-                    onClick={() => onAddLanguage(selectedGroup === 'ALL' ? null : selectedGroup)}
+                    onClick={() => onAddLanguage((selectedGroup === 'ALL' || selectedGroup === 'ALL_TARGETED') ? null : selectedGroup)}
                     className="w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">

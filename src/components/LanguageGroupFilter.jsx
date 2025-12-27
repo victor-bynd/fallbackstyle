@@ -38,6 +38,20 @@ const LanguageGroupFilter = ({
                 ALL
             </button>
 
+            {/* ALL TARGETTED Tab */}
+            <button
+                onClick={() => onSelectGroup('ALL_TARGETED')}
+                className={`
+                    px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap
+                    ${selectedGroup === 'ALL_TARGETED'
+                        ? 'bg-slate-800 text-white shadow-md ring-1 ring-slate-900'
+                        : 'bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700 border border-slate-200'
+                    }
+                `}
+            >
+                ALL TARGETTED
+            </button>
+
             {groups.map((group) => {
                 const isActive = group.key === selectedGroup;
                 return (
