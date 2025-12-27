@@ -26,7 +26,7 @@ This plan outlines the steps to replace the existing CSS export functionality wi
     - "Resolve" logic: Matches uploaded files to missing entries by filename.
     - "Finish Import" button: Enabled when all fonts are provided (or maybe allowed to skip?).
 
-#### [MODIFY] [Controller.jsx](file:///Users/victortolosa/Documents/GitHub/localize-type/src/components/Controller.jsx)
+#### [MODIFY] [SideBar.jsx](file:///Users/victortolosa/Documents/GitHub/localize-type/src/components/SideBar.jsx)
 - **Changes**:
     - Remove `CSSExporter` import and button.
     - Add `ConfigManager` component to the bottom sidebar area.

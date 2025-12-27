@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
+import { getGroupedLanguages } from '../utils/languageUtils';
 
 const LanguageList = ({
     selectedIds = [],
@@ -8,59 +9,18 @@ const LanguageList = ({
     mode = 'single',
     showAuto = false,
     searchTerm = '',
-    onSearchChange
+    onSearchChange,
+    filterGroup = null
 }) => {
-    const { languages, isLanguageVisible, toggleLanguageVisibility } = useTypo();
+    const { languages } = useTypo();
 
     const groups = useMemo(() => {
-        const grouped = {
-            Latin: [],
-            Greek: [],
-            Cyrillic: [],
-            RTL: [],
-            Indic: [],
-            'Southeast Asia': [],
-            CJK: [],
-            Other: []
-        };
-
-        const push = (key, lang) => {
-            if (!grouped[key]) grouped.Other.push(lang);
-            else grouped[key].push(lang);
-        };
-
-        languages.forEach((lang) => {
-            // Filter by search term
-            if (searchTerm &&
-                !lang.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !lang.id.toLowerCase().includes(searchTerm.toLowerCase())) {
-                return;
-            }
-
-            if (lang.id === 'en-US' && !searchTerm) {
-                push('Latin', lang);
-                return;
-            }
-
-            if (lang.dir === 'rtl') {
-                push('RTL', lang);
-                return;
-            }
-
-            if (lang.script === 'Latn') push('Latin', lang);
-            else if (lang.script === 'Grek') push('Greek', lang);
-            else if (lang.script === 'Cyrl') push('Cyrillic', lang);
-            else if (['Deva', 'Beng', 'Knda', 'Telu', 'Gujr', 'Guru', 'Mlym', 'Taml'].includes(lang.script)) push('Indic', lang);
-            else if (lang.script === 'Thai') push('Southeast Asia', lang);
-            else if (['Hans', 'Hant', 'Jpan', 'Kore'].includes(lang.script)) push('CJK', lang);
-            else push('Other', lang);
-        });
-
-        const order = ['Latin', 'Greek', 'Cyrillic', 'RTL', 'Indic', 'Southeast Asia', 'CJK', 'Other'];
-        return order
-            .map((key) => ({ key, items: grouped[key] }))
-            .filter((g) => g.items.length > 0);
-    }, [languages, searchTerm]);
+        const grouped = getGroupedLanguages(languages, searchTerm);
+        if (filterGroup) {
+            return grouped.filter(g => g.key === filterGroup);
+        }
+        return grouped;
+    }, [languages, searchTerm, filterGroup]);
 
     const isSelected = (id) => {
         if (mode === 'single') return selectedIds === id;
@@ -195,9 +155,10 @@ LanguageList.propTypes = {
     ]),
     onSelect: PropTypes.func.isRequired,
     mode: PropTypes.oneOf(['single', 'multi']),
-    showAuto: PropTypes.boolean,
+    showAuto: PropTypes.bool,
     searchTerm: PropTypes.string,
-    onSearchChange: PropTypes.func
+    onSearchChange: PropTypes.func,
+    filterGroup: PropTypes.string
 };
 
 export default LanguageList;

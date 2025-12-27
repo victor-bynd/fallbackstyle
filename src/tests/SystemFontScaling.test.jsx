@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
+import { describe, test, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { TypoProvider, TypoContext } from '../context/TypoContext';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 import { useFontFaceStyles } from '../hooks/useFontFaceStyles';
 
 const TestComponent = () => {
@@ -34,7 +36,7 @@ const TestComponent = () => {
 
 describe('System Font Scaling', () => {
     test('System fonts should have @font-face rules with size-adjust when scaled', async () => {
-        const { getByTestId } = render(
+        render(
             <TypoProvider>
                 <TestComponent />
             </TypoProvider>

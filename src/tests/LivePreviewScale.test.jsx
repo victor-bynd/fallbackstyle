@@ -1,6 +1,7 @@
 import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { TypoProvider, TypoContext } from '../context/TypoContext';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 import LanguageCard from '../components/LanguageCard';
 import { useContext, useEffect } from 'react';
 
@@ -31,13 +32,13 @@ const TestSetup = ({ onReady }) => {
         // TypoContext doesn't expose setFonts directly globally, but loadFont sets primary.
         // addFallbackFont helper exists.
 
-        context.setFonts(prev => {
+        context.setFonts(() => {
             // force clear and set for test
             return [primaryFont, fallbackFont];
         });
 
         onReady(context);
-    }, []);
+    }, [context, onReady]);
 
     return null;
 };

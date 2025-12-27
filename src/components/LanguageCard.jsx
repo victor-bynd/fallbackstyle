@@ -6,44 +6,32 @@ import { languageCharacters } from '../data/languageCharacters';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import FontSelectionModal from './FontSelectionModal';
 
-const LanguageCard = ({ language }) => {
+const LanguageCard = ({ language, isHighlighted }) => {
     const {
         activeFontStyleId,
+        setActiveConfigTab,
+        activeConfigTab,
         fontObject,
         fontStyles,
         getFontsForStyle,
         getPrimaryFontFromStyle,
         colors,
         textCase,
-        fontScales,
-        lineHeight,
-        showFallbackColors,
-        getFontColorForStyle,
-        getFallbackScaleOverrideForStyle,
-        getEffectiveFontSettingsForStyle,
-        showAlignmentGuides,
-        showBrowserGuides,
-        addLanguageSpecificFont,
-        addLanguageSpecificPrimaryFont,
-        primaryFontOverrides,
-        getPrimaryFontOverrideForStyle,
-        clearPrimaryFontOverride,
-        activeConfigTab,
-
-        // Restore missing props
-        textOverrides,
-        setTextOverride,
-        resetTextOverride,
-        viewMode,
-        headerStyles,
-        headerFontStyleMap,
-        baseRem,
-
-        getFallbackFontOverrideForStyle,
-        setFallbackFontOverrideForStyle,
-        clearFallbackFontOverrideForStyle,
-
-        addLanguageSpecificFallbackFont
+        addLanguageSpecificFallbackFont,
+        headerFontStyleMap, // Added this back as it was used
+        getFallbackFontOverrideForStyle, // Added this back as it was used
+        textOverrides, // Added this back as it was used
+        resetTextOverride, // Added this back as it was used
+        setTextOverride, // Added this back as it was used
+        getPrimaryFontOverrideForStyle, // Added this back as it was used
+        getEffectiveFontSettingsForStyle, // Added this back as it was used
+        showFallbackColors, // Added this back as it was used
+        showBrowserGuides, // Added this back as it was used
+        viewMode, // Added this back as it was used
+        headerStyles, // Added this back as it was used
+        clearFallbackFontOverrideForStyle, // Added this back as it was used
+        setFallbackFontOverrideForStyle, // Added this back as it was used
+        showAlignmentGuides, // Added this back as it was used
     } = useTypo();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
@@ -101,7 +89,7 @@ const LanguageCard = ({ language }) => {
         const strokeColor = "rgba(0,0,0,0.5)"; // Updated to 50% transparent black per user request
 
         const paths = guideLines.map(line =>
-            `< path d = "M0 ${line.y} H${totalHeightUnits * 10}" stroke = "${strokeColor}" stroke - width="${strokeWidth}" stroke - dasharray="${dashArray}" /> `
+            `<path d="M0 ${line.y} H${totalHeightUnits * 10}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${dashArray}" />`
         ).join('');
 
         // Use a wide viewBox width to ensure horizontal lines cover enough (though pattern repeats).
@@ -117,15 +105,15 @@ const LanguageCard = ({ language }) => {
         // 7px * scaleFactor.
         const patternWidthUnits = (dashOn + dashOff);
 
-        const svgString = `< svg xmlns = 'http://www.w3.org/2000/svg' width = '${patternWidthUnits}' height = '${totalHeightUnits}' viewBox = '0 0 ${patternWidthUnits} ${totalHeightUnits}' preserveAspectRatio = 'none' > ${paths}</svg > `;
+        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${patternWidthUnits}' height='${totalHeightUnits}' viewBox='0 0 ${patternWidthUnits} ${totalHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
 
         // Use Base64 to avoid encoding issues
         const base64Svg = btoa(svgString);
-        const svgDataUri = `data: image / svg + xml; base64, ${base64Svg} `;
+        const svgDataUri = `data:image/svg+xml;base64,${base64Svg}`;
 
         return {
             backgroundImage: `url("${svgDataUri}")`,
-            backgroundSize: `${4 + 3}px ${numericLineHeight} em`, // Width matches pattern period in px
+            backgroundSize: `${4 + 3}px ${numericLineHeight}em`, // Width matches pattern period in px
             backgroundRepeat: 'repeat'
         };
     };
@@ -204,17 +192,14 @@ const LanguageCard = ({ language }) => {
             const baseFontSize = style?.baseFontSize ?? 60;
             const fontScales = style?.fontScales || { active: 100, fallback: 100 };
             const lineHeight = style?.lineHeight ?? 1.2;
-            const letterSpacing = style?.letterSpacing ?? 0;
-            const fallbackLineHeight = style?.fallbackLineHeight ?? 'normal';
-            const fallbackLetterSpacing = style?.fallbackLetterSpacing ?? 0;
-
-            const primarySettings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary') || { baseFontSize, scale: 100, lineHeight };
-            const primaryFontSize = primarySettings.baseFontSize;
 
             const fallbackFontStack = buildFallbackFontStackForStyle(styleId, language.id);
             const fallbackFontStackString = fallbackFontStack.length > 0
                 ? fallbackFontStack.map(f => f.fontFamily).join(', ')
                 : 'sans-serif';
+
+            // Get primary font settings for comparison
+            const primarySettings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
 
             result[styleId] = contentToRender.split('').map((char, index) => {
                 const glyphIndex = primaryFontObject.charToGlyphIndex(char);
@@ -245,7 +230,7 @@ const LanguageCard = ({ language }) => {
                         usedFallback = fallbackFontStack[fallbackFontStack.length - 1];
                     }
 
-                    const fallbackSettings = usedFallback.settings || { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing, weight: 400 };
+                    const fallbackSettings = getEffectiveFontSettingsForStyle(styleId, usedFallback.fontId) || { baseFontSize, scale: fontScales.fallback, lineHeight: 1.2, letterSpacing: 0, weight: 400 };
 
                     const fontIndex = fonts.findIndex(f => f.id === usedFallback.fontId);
                     const fontObj = fonts[fontIndex];
@@ -281,14 +266,14 @@ const LanguageCard = ({ language }) => {
                             style={{
                                 fontFamily: fallbackFontStackString,
                                 color: fontColor,
-                                fontSize: `${fontSizeEm} em`,
+                                fontSize: `${fontSizeEm}em`,
                                 lineHeight: (
                                     (fallbackSettings.lineGapOverride !== undefined && fallbackSettings.lineGapOverride !== '') ||
                                     (fallbackSettings.ascentOverride !== undefined && fallbackSettings.ascentOverride !== '') ||
                                     (fallbackSettings.descentOverride !== undefined && fallbackSettings.descentOverride !== '')
                                 ) ? 'normal'
                                     : undefined,
-                                letterSpacing: `${fallbackSettings.letterSpacing} em`,
+                                letterSpacing: `${fallbackSettings.letterSpacing}em`,
 
                                 fontWeight: weight,
                                 fontVariationSettings: isVariable ? `'wght' ${weight} ` : undefined,
@@ -311,7 +296,7 @@ const LanguageCard = ({ language }) => {
         });
 
         return result;
-    }, [buildFallbackFontStackForStyle, contentToRender, colors.missing, colors.primary, fontStyles, getEffectiveFontSettingsForStyle, getFallbackScaleOverrideForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors, showBrowserGuides, getPrimaryFontOverrideForStyle]);
+    }, [buildFallbackFontStackForStyle, contentToRender, colors.missing, colors.primary, fontStyles, getEffectiveFontSettingsForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors, showBrowserGuides, getPrimaryFontOverrideForStyle]);
 
     // Stats based on current content (moved check to end of render)
 
@@ -324,7 +309,6 @@ const LanguageCard = ({ language }) => {
     const metricsFallbackFontStack = buildFallbackFontStackForStyle(activeMetricsStyleId, language.id);
 
     const fallbackOverrideFontId = getFallbackFontOverrideForStyle(activeMetricsStyleId, language.id) || '';
-    const fallbackOverrideFont = (getFontsForStyle(activeMetricsStyleId) || []).find(f => f.id === fallbackOverrideFontId);
 
     const fallbackOverrideOptions = useMemo(() => {
         const fonts = getFontsForStyle(activeMetricsStyleId) || [];
@@ -384,15 +368,16 @@ const LanguageCard = ({ language }) => {
 
     if (!fontObject) return null;
 
-    const primaryFontLabel = metricsPrimaryFont?.fileName?.replace(/\.[^/.]+$/, '') || metricsPrimaryFont?.name || 'Default Primary';
 
 
 
-    const isActive = activeConfigTab === language.id;
+    const isActive = isHighlighted || activeConfigTab === language.id || (activeConfigTab === 'primary' && language.id === 'en-US');
 
     return (
         <div
+            id={'language-card-' + language.id}
             ref={cardRef}
+            onClick={() => setActiveConfigTab(language.id === 'en-US' ? 'primary' : language.id)}
             className={`
 bg - white border rounded - xl transition - all duration - 300
                 ${configDropdownOpen ? 'z-50 relative' : 'z-0'}
@@ -429,13 +414,12 @@ bg - white border rounded - xl transition - all duration - 300
                 <div className="flex flex-wrap items-center gap-4">
 
                     <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">LANG/FONT</span>
+                        <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">ASSIGN Font</span>
                         <FontConfigDropdown
                             language={language}
                             currentFallbackLabel={currentFallbackLabel}
                             fallbackOverrideFontId={fallbackOverrideFontId}
                             fallbackOverrideOptions={fallbackOverrideOptions}
-                            fallbackOverrideFont={fallbackOverrideFont}
                             onSelectFallback={(val) => {
                                 if (!val) {
                                     clearFallbackFontOverrideForStyle(activeMetricsStyleId, language.id);
@@ -603,14 +587,14 @@ bg - white border rounded - xl transition - all duration - 300
                             );
 
                             const browserGuideStyle = showBrowserGuides ? {
-                                backgroundImage: `repeating - linear - gradient(
+                                backgroundImage: `repeating-linear-gradient(
     to bottom,
     rgba(59, 130, 246, 0.05) 0em,
     rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
     rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
     rgba(59, 130, 246, 0.2) ${numericLineHeight}em
 )`,
-                                backgroundSize: `100 % ${numericLineHeight} em`
+                                backgroundSize: `100% ${numericLineHeight}em`
                             } : {};
 
                             const isActualOverride = primaryFont?.id === primaryOverrideId;
@@ -744,14 +728,14 @@ bg - white border rounded - xl transition - all duration - 300
                         // Browser Guide: Line Box Visualization
                         // Vertical repeating stripes matching effectiveLineHeight
                         const browserGuideStyle = showBrowserGuides ? {
-                            backgroundImage: `repeating - linear - gradient(
+                            backgroundImage: `repeating-linear-gradient(
     to bottom,
     rgba(59, 130, 246, 0.05) 0em,
     rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
     rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
     rgba(59, 130, 246, 0.2) ${numericLineHeight}em
 )`,
-                            backgroundSize: `100 % ${numericLineHeight} em`
+                            backgroundSize: `100% ${numericLineHeight}em`
                         } : {};
 
                         const isActualOverride = primaryFont?.id === primaryOverrideId;
@@ -806,7 +790,6 @@ const FontConfigDropdown = ({
     currentFallbackLabel,
     fallbackOverrideFontId,
     fallbackOverrideOptions,
-    fallbackOverrideFont,
     onSelectFallback,
     isOpen,
     onToggle,
@@ -875,35 +858,55 @@ const FontConfigDropdown = ({
             />
             <button
                 onClick={onToggle}
-                className={`flex items - center gap - 1.5 bg - white border rounded - md pl - 2 pr - 2 py - 1 text - [11px] font - medium min - w - [120px] justify - between transition - colors ${isOpen ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-gray-200 hover:border-gray-300'
-                    } `}
+                className={`
+                    group flex items-center justify-between gap-2 
+                    h-8 min-w-[140px] max-w-[200px]
+                    pl-3 pr-2.5 py-1.5 
+                    bg-white border rounded-lg 
+                    text-xs font-medium text-slate-700
+                    transition-all duration-200 ease-in-out
+                    ${isOpen
+                        ? 'border-indigo-500 ring-4 ring-indigo-500/10 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 shadow-sm'
+                    }
+                `}
                 title="Configure Fonts"
             >
-                <span className="truncate max-w-[140px] text-slate-700">
+                <span className="truncate flex-1 text-left">
                     {label}
                 </span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 flex-shrink-0">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className={`
+                        w-4 h-4 text-slate-400 transition-transform duration-200
+                        ${isOpen ? 'rotate-180 text-indigo-500' : 'group-hover:text-slate-500'}
+                    `}
+                >
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                 </svg>
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                    <div className="p-2 space-y-1">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-100 rounded-xl shadow-xl shadow-slate-200/50 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 slide-in-from-top-2 origin-top-right">
+                    <div className="p-1.5 space-y-0.5">
                         {/* Select Font Button */}
                         <button
                             onClick={() => {
                                 setShowFontModal(true);
                                 onClose();
                             }}
-                            className="w-full text-left px-3 py-2.5 text-sm rounded-lg flex items-center gap-3 group text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+                            className="w-full text-left px-3 py-2.5 rounded-lg flex items-start gap-3 group transition-colors hover:bg-slate-50"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-indigo-600">
-                                <path fillRule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
-                            </svg>
+                            <div className="p-2 bg-indigo-50 rounded-md group-hover:bg-indigo-100 transition-colors mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-indigo-600">
+                                    <path fillRule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                                </svg>
+                            </div>
                             <div className="flex-1">
-                                <div className="font-medium text-slate-800">Select Font</div>
-                                <div className="text-xs text-slate-500 mt-0.5">Choose from uploaded fonts</div>
+                                <div className="text-sm font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">Select Font</div>
+                                <div className="text-xs text-slate-500 leading-normal mt-0.5">Choose from uploaded fonts</div>
                             </div>
                         </button>
 
@@ -913,14 +916,16 @@ const FontConfigDropdown = ({
                                 fileInputRef.current?.click();
                                 onClose();
                             }}
-                            className="w-full text-left px-3 py-2.5 text-sm rounded-lg flex items-center gap-3 group text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+                            className="w-full text-left px-3 py-2.5 rounded-lg flex items-start gap-3 group transition-colors hover:bg-slate-50"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-indigo-600">
-                                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                            </svg>
+                            <div className="p-2 bg-indigo-50 rounded-md group-hover:bg-indigo-100 transition-colors mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-indigo-600">
+                                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                                </svg>
+                            </div>
                             <div className="flex-1">
-                                <div className="font-medium text-slate-800">Upload Font</div>
-                                <div className="text-xs text-slate-500 mt-0.5">Add a new font file</div>
+                                <div className="text-sm font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">Upload Font</div>
+                                <div className="text-xs text-slate-500 leading-normal mt-0.5">Add a new font file</div>
                             </div>
                         </button>
                     </div>
@@ -946,7 +951,6 @@ FontConfigDropdown.propTypes = {
     currentFallbackLabel: PropTypes.string.isRequired,
     fallbackOverrideFontId: PropTypes.string,
     fallbackOverrideOptions: PropTypes.array.isRequired,
-    fallbackOverrideFont: PropTypes.object,
     onSelectFallback: PropTypes.func.isRequired,
     isOpen: PropTypes.bool.isRequired,
     onToggle: PropTypes.func.isRequired,

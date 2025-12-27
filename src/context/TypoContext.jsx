@@ -1,13 +1,14 @@
-import { createContext, useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { fallbackOptions, DEFAULT_PALETTE } from '../data/constants';
 import languages from '../data/languages.json';
 import { resolveWeightForFont } from '../utils/weightUtils';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import { ConfigService } from '../services/ConfigService';
 
-export const TypoContext = createContext();
+import { TypoContext } from './TypoContextDefinition';
 
-const VISIBLE_LANGUAGE_IDS_STORAGE_KEY = 'localize-type:visibleLanguageIds:v3';
+
+
 
 const createEmptyStyleState = () => ({
     fonts: [
@@ -39,7 +40,6 @@ const createEmptyStyleState = () => ({
     fallbackLineHeight: 'normal',
     fallbackLetterSpacing: 0,
     lineHeightOverrides: {},
-    fallbackScaleOverrides: {},
     fallbackScaleOverrides: {},
     fallbackFontOverrides: {},
     primaryFontOverrides: {},
@@ -148,7 +148,7 @@ export const TypoProvider = ({ children }) => {
     }, [headerOverrides, markHeaderOverride]);
 
     // activeConfigTab tracks the sidebar selection (e.g. 'primary' or a language ID)
-    const [activeConfigTab, setActiveConfigTab] = useState('primary');
+    const [activeConfigTab, setActiveConfigTab] = useState('ALL');
 
     // Content Overrides
     const [textOverrides, setTextOverrides] = useState({});
@@ -365,65 +365,12 @@ export const TypoProvider = ({ children }) => {
     };
 
     const getDefaultVisibleLanguageIds = () => [
-        'en-US', // English
-        'ru-RU', // Russian
-        'el-GR', // Greek
-        'ar-SA', // Arabic
-        'hi-IN', // Hindi
-        'vi-VN', // Vietnamese
-        'bn-IN', // Bengali
-        'zh-CN', // Chinese (Simplified)
-        'zh-TW', // Chinese (Traditional)
-        'ja-JP', // Japanese
-        'ko-KR', // Korean
-        'th-TH', // Thai
-        'gu-IN', // Gujarati
-        'pa-IN', // Punjabi (Gurmukhi)
-        'kn-IN', // Kannada
-        'ml-IN', // Malayalam
-        'ta-IN', // Tamil
-        'te-IN'  // Telugu
+        // Default to empty. 'en-US' will be shown as a placeholder if this list is empty.
     ];
 
     const [visibleLanguageIds, setVisibleLanguageIds] = useState(() => {
-        const defaultIds = getDefaultVisibleLanguageIds();
-        try {
-            const raw = localStorage.getItem(VISIBLE_LANGUAGE_IDS_STORAGE_KEY);
-            if (!raw) return defaultIds;
-
-            const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed)) return defaultIds;
-
-            // Respect the saved selection order, but only keep IDs that still exist.
-            // This ensures hidden languages remain hidden after a reload.
-            const validSet = new Set(languages.map(l => l.id));
-            const seen = new Set();
-            return parsed
-                .filter(id => typeof id === 'string')
-                .filter(id => validSet.has(id))
-                .filter(id => {
-                    if (seen.has(id)) return false;
-                    seen.add(id);
-                    return true;
-                });
-        } catch (err) {
-            if (process.env.NODE_ENV === 'development') {
-                console.warn('Failed to load visible languages from localStorage:', err);
-            }
-            return defaultIds;
-        }
+        return getDefaultVisibleLanguageIds();
     });
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(VISIBLE_LANGUAGE_IDS_STORAGE_KEY, JSON.stringify(visibleLanguageIds));
-        } catch (err) {
-            // Ignore persistence failures (private mode, quota exceeded, etc.)
-            if (process.env.NODE_ENV === 'development') {
-                console.warn('Failed to save visible languages to localStorage:', err);
-            }
-        }
-    }, [visibleLanguageIds]);
 
     const isLanguageVisible = (langId) => visibleLanguageIds.includes(langId);
 
@@ -460,7 +407,25 @@ export const TypoProvider = ({ children }) => {
         setVisibleLanguageIds(getDefaultVisibleLanguageIds());
     };
 
-    const visibleLanguages = languages.filter(l => visibleLanguageIds.includes(l.id));
+    // List of ALL languages that have any configuration (explicit or overrides)
+    const allConfiguredLanguageIds = useMemo(() => {
+        return Array.from(new Set([
+            'en-US', // Always include default
+            ...visibleLanguageIds,
+            ...(activeStyle.configuredLanguages || []),
+            ...Object.keys(activeStyle.primaryFontOverrides || {}),
+            ...Object.keys(activeStyle.fallbackFontOverrides || {})
+        ]));
+    }, [visibleLanguageIds, activeStyle.configuredLanguages, activeStyle.primaryFontOverrides, activeStyle.fallbackFontOverrides]);
+
+    // List of visible languages should now always follow configured languages.
+    // Individual filtering (e.g. by Group) is handled at the UI layer in App.jsx.
+    // This prevents the "Focus Mode" that was hiding languages when selecting a sidebar item.
+    const effectiveVisibleLanguageIds = useMemo(() => {
+        return allConfiguredLanguageIds;
+    }, [allConfiguredLanguageIds]);
+
+    const visibleLanguages = languages.filter(l => effectiveVisibleLanguageIds.includes(l.id));
 
     const loadFont = (font, url, name, metadata = {}) => {
         const styleId = activeFontStyleId;
@@ -732,11 +697,13 @@ export const TypoProvider = ({ children }) => {
 
             // Create the clone
             const newFont = {
-                ...originalFont,
+                ...originalFont, // Clone properties
                 id: newFontId,
                 type: 'fallback',
                 isLangSpecific: true,
-                // Do not copy language overrides or hidden status
+                // Reset/Remove specific properties that shouldn't be blindly copied if they were overrides on the original (though original is likely global)
+                // If original was a global fallback, it has normal props.
+                // We want to start 'fresh' effectively, but inheriting the File/FontObject.
                 hidden: false,
                 weightOverride: undefined,
                 scale: undefined,
@@ -747,8 +714,18 @@ export const TypoProvider = ({ children }) => {
                 descentOverride: undefined
             };
 
-            // Remove any existing language-specific font for this language to avoid orphans
-            const existingOverrideFontId = prev.fallbackFontOverrides?.[langId];
+            // Remove any existing override for THIS specific original font in THIS language
+            // (In case one exists, though UI might prevent it)
+            const currentOverrides = prev.fallbackFontOverrides?.[langId];
+            let existingOverrideFontId = null;
+            if (typeof currentOverrides === 'object' && currentOverrides !== null) {
+                existingOverrideFontId = currentOverrides[originalFontId];
+            } else if (typeof currentOverrides === 'string') {
+                // Legacy support/cleanup (unlikely to hit if we migrate properly, but safe to check)
+                // If the legacy single override happens to be for this font (we can't know for sure without the map)
+                // So we assume legacy clears out.
+            }
+
             let nextFonts = [...fonts];
             if (existingOverrideFontId) {
                 const existingFont = nextFonts.find(f => f.id === existingOverrideFontId);
@@ -760,10 +737,15 @@ export const TypoProvider = ({ children }) => {
             // Add the new font
             nextFonts.push(newFont);
 
-            // Update the override map
+            // Update the override map: ensure structure is { [langId]: { [originalFontId]: overrideId } }
+            const startOverrides = prev.fallbackFontOverrides || {};
+            const langOverrides = typeof startOverrides[langId] === 'object' ? { ...startOverrides[langId] } : {};
+
+            langOverrides[originalFontId] = newFontId;
+
             const nextOverrides = {
-                ...(prev.fallbackFontOverrides || {}),
-                [langId]: newFontId
+                ...startOverrides,
+                [langId]: langOverrides
             };
 
             return {
@@ -775,7 +757,7 @@ export const TypoProvider = ({ children }) => {
     };
 
     // New function to create a language-specific clone of the PRIMARY font
-    const addLanguageSpecificPrimaryFont = (langId, targetGroupId = null) => {
+    const addLanguageSpecificPrimaryFont = (langId) => {
         const styleId = activeFontStyleId;
         updateStyleState(styleId, prev => {
             const fonts = prev.fonts || [];
@@ -836,6 +818,65 @@ export const TypoProvider = ({ children }) => {
                 primaryFontOverrides: nextOverrides
             };
         });
+        setLanguageVisibility(langId, true);
+    };
+
+    // New function to create a language-specific clone of an EXISTING font (by ID) as a primary override
+    const addLanguageSpecificPrimaryFontFromId = (sourceFontId, langId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const fonts = prev.fonts || [];
+            const sourceFont = fonts.find(f => f.id === sourceFontId);
+
+            if (!sourceFont) {
+                console.warn('[TypoContext] Source font not found for cloning:', sourceFontId);
+                return prev;
+            }
+
+            // Create a unique ID for the new language-specific font
+            const newFontId = `lang-primary-${langId}-${Date.now()}`;
+
+            // Create the clone
+            const newFont = {
+                ...sourceFont,
+                id: newFontId,
+                type: 'fallback', // Technical type for CSS generation
+                isLangSpecific: true,
+                isPrimaryOverride: true,
+                hidden: false,
+                // Reset overrides so they start fresh
+                weightOverride: undefined,
+                scale: undefined,
+                lineHeight: undefined,
+                letterSpacing: undefined,
+                lineGapOverride: undefined,
+                ascentOverride: undefined,
+                descentOverride: undefined
+            };
+
+            // Remove any existing override font for this language
+            const existingOverrideFontId = prev.primaryFontOverrides?.[langId];
+            let nextFonts = [...fonts];
+            if (existingOverrideFontId) {
+                nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+            }
+
+            // Add the new font
+            nextFonts.push(newFont);
+
+            // Update the override map
+            const nextOverrides = {
+                ...(prev.primaryFontOverrides || {}),
+                [langId]: newFontId
+            };
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                primaryFontOverrides: nextOverrides
+            };
+        });
+        setLanguageVisibility(langId, true);
     };
 
 
@@ -900,6 +941,7 @@ export const TypoProvider = ({ children }) => {
                 primaryFontOverrides: nextOverrides
             };
         });
+        setLanguageVisibility(langId, true);
     };
 
     /**
@@ -952,6 +994,7 @@ export const TypoProvider = ({ children }) => {
                 fallbackFontOverrides: nextOverrides
             };
         });
+        setLanguageVisibility(langId, true);
     };
 
 
@@ -988,9 +1031,18 @@ export const TypoProvider = ({ children }) => {
             const nextOverrides = { ...(prev.fallbackFontOverrides || {}) };
 
             // Find which keys point to this fontId and delete them
-            Object.keys(nextOverrides).forEach(key => {
-                if (nextOverrides[key] === fontId) {
-                    delete nextOverrides[key];
+            Object.keys(nextOverrides).forEach(langId => {
+                const val = nextOverrides[langId];
+                if (val && typeof val === 'object') {
+                    // Nested map: { originalId: overrideId }
+                    Object.keys(val).forEach(origId => {
+                        if (val[origId] === fontId) {
+                            delete val[origId];
+                        }
+                    });
+                } else if (val === fontId) {
+                    // Legacy single string
+                    delete nextOverrides[langId];
                 }
             });
 
@@ -1013,6 +1065,7 @@ export const TypoProvider = ({ children }) => {
                 configuredLanguages: [...current, langId]
             };
         });
+        setLanguageVisibility(langId, true);
     };
 
     const removeConfiguredLanguage = (langId) => {
@@ -1057,6 +1110,7 @@ export const TypoProvider = ({ children }) => {
                 fallbackFontOverrides: nextFallbackOverrides
             };
         });
+        setLanguageVisibility(langId, false);
     };
 
     const getPrimaryFontOverrideForStyle = (styleId, langId) => {
@@ -1090,7 +1144,21 @@ export const TypoProvider = ({ children }) => {
             // Cleanup Fallback Overrides
             const nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
             Object.keys(nextFallbackOverrides).forEach(langId => {
-                if (nextFallbackOverrides[langId] === fontId) {
+                const val = nextFallbackOverrides[langId];
+                // Check if this font ID is the override itself
+                if (val && typeof val === 'object') {
+                    Object.keys(val).forEach(origId => {
+                        if (val[origId] === fontId) {
+                            delete val[origId];
+                        }
+                        // Also, if the REMOVED font (fontId) was the *Original* font, we should remove the override mapping for it.
+                        if (origId === fontId) {
+                            // Optionally delete the override font itself?
+                            // For now we just unlink it.
+                            delete val[origId];
+                        }
+                    });
+                } else if (val === fontId) {
                     delete nextFallbackOverrides[langId];
                 }
             });
@@ -1598,9 +1666,9 @@ export const TypoProvider = ({ children }) => {
     return (
         <TypoContext.Provider value={{
             languages,
-            visibleLanguageIds,
+            visibleLanguageIds: effectiveVisibleLanguageIds, // Expose the effective list (with placeholder)
             visibleLanguages,
-            isLanguageVisible,
+            isLanguageVisible: (langId) => effectiveVisibleLanguageIds.includes(langId),
             setLanguageVisibility,
             toggleLanguageVisibility,
             showAllLanguages,
@@ -1651,6 +1719,7 @@ export const TypoProvider = ({ children }) => {
             updateFontWeight,
             addLanguageSpecificFont,
             addLanguageSpecificPrimaryFont,
+            addLanguageSpecificPrimaryFontFromId,
             addPrimaryLanguageOverrides,
             addPrimaryLanguageOverrideWithFont,
             addLanguageSpecificFallbackFont,
@@ -1658,7 +1727,7 @@ export const TypoProvider = ({ children }) => {
             addConfiguredLanguage,
             removeConfiguredLanguage,
 
-            configuredLanguages: activeStyle.configuredLanguages || [],
+            configuredLanguages: allConfiguredLanguageIds, // Show everything that has config in Sidebar/Tabs
 
             getPrimaryFontOverrideForStyle,
             clearPrimaryFontOverride,

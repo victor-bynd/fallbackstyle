@@ -1,23 +1,60 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TypoProvider } from './context/TypoContext';
 import { useTypo } from './context/useTypo';
 import FontUploader from './components/FontUploader';
-import Controller from './components/Controller';
+import SideBar from './components/SideBar';
 import LanguageCard from './components/LanguageCard';
 import LanguageSelectorModal from './components/LanguageSelectorModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import TextCasingSelector from './components/TextCasingSelector';
 import ViewModeSelector from './components/ViewModeSelector';
 import MissingFontsModal from './components/MissingFontsModal';
+import LanguageGroupFilter from './components/LanguageGroupFilter';
+import AddLanguageModal from './components/AddLanguageModal';
 import { useConfigImport } from './hooks/useConfigImport';
 
 import { useFontFaceStyles } from './hooks/useFontFaceStyles';
+import { getLanguageGroup } from './utils/languageUtils';
 
-const MainContent = ({ sidebarMode, setSidebarMode }) => {
-  const { fontObject, fontStyles, gridColumns, setGridColumns, visibleLanguages, visibleLanguageIds, languages, showFallbackColors, setShowFallbackColors, showAlignmentGuides, toggleAlignmentGuides, showBrowserGuides, toggleBrowserGuides } = useTypo();
+const MainContent = ({
+  sidebarMode,
+  setSidebarMode,
+  selectedGroup,
+  setSelectedGroup,
+  onAddLanguage,
+  showLanguageModal,
+  setShowLanguageModal,
+  addLanguageGroupFilter,
+  setAddLanguageGroupFilter,
+  highlitLanguageId
+}) => {
+  const {
+    fontObject,
+    gridColumns,
+    setGridColumns,
+    visibleLanguages,
+    visibleLanguageIds,
+    languages,
+    showFallbackColors,
+    setShowFallbackColors,
+    showAlignmentGuides,
+    toggleAlignmentGuides,
+    showBrowserGuides,
+    toggleBrowserGuides,
+    activeConfigTab,
+    setActiveConfigTab,
+    configuredLanguages,
+    removeConfiguredLanguage,
+    primaryFontOverrides,
+    fallbackFontOverrides,
+    addConfiguredLanguage,
+    addLanguageSpecificPrimaryFontFromId
+  } = useTypo();
+
   const { importConfig, missingFonts, resolveMissingFonts, cancelImport } = useConfigImport();
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showListSettings, setShowListSettings] = useState(false);
+
   const listSettingsRef = useRef(null);
   const toolbarRef = useRef(null);
   const buttonRef = useRef(null);
@@ -48,7 +85,7 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
       {
         root: null,
         threshold: 0,
-        rootMargin: "0px" // Trigger when it leaves the viewport completely
+        rootMargin: "0px"
       }
     );
 
@@ -87,12 +124,8 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
 
   return (
     <div className="flex-1 bg-slate-50 min-h-screen relative">
-      {/* Dynamic Style Injection for uploaded fonts */}
       <style>{fontFaceStyles}</style>
 
-      {/* Fixed Edit Styles Button (Active State Replica) */}
-      {/* Position matches the toolbar padding (p-8 md:p-10) -> top-8 left-8 md:top-10 md:left-10 */}
-      {/* We use exact same styling as the active toolbar button to prevent visual jump */}
       {fontObject && sidebarMode === 'headers' && buttonX !== null && (
         <div
           className="fixed top-8 md:top-10 z-50 transition-none"
@@ -102,7 +135,6 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
             onClick={() => setSidebarMode('main')}
             className="bg-white border border-transparent text-indigo-700 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px] ring-2 ring-indigo-500 shadow-sm"
             type="button"
-            title="Done editing header styles"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -112,10 +144,9 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
         </div>
       )}
 
-      {/* Fixed Settings Button */}
       {fontObject && (
         <div
-          className={`fixed top-8 right-8 md:top-10 md:right-10 z-50 transition-all duration-300 ${!isToolbarVisible ? 'translate-y-0' : ''}`}
+          className={`fixed top-8 right-8 md:top-10 md:right-10 z-50 transition-all duration-300 ${!isToolbarVisible ? 'translate-y-0' : ''} `}
           ref={listSettingsRef}
         >
           <button
@@ -123,8 +154,7 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
             className={`p-1 rounded-lg border flex items-center justify-center w-[42px] h-[42px] text-slate-600 hover:text-indigo-600 transition-all duration-300 ${isToolbarVisible
               ? 'bg-white border-gray-200 hover:bg-slate-50 shadow-none'
               : 'bg-white/90 backdrop-blur border-slate-200 shadow-xl hover:bg-white'
-              }`}
-            title="List settings"
+              } `}
             type="button"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
@@ -134,21 +164,18 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
 
           {showListSettings && (
             <div className={`absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl p-3 shadow-xl origin-top-right transition-all duration-200 animate-in fade-in zoom-in-95`}>
-              {/* Adaptive Controls: Show only when toolbar is scrolled out */}
-              {(!isToolbarVisible) && (
-                <div className="mb-3 space-y-3 pb-3 border-b border-gray-100">
-                  <div>
-                    <div className="border border-gray-100 rounded-lg p-1 bg-slate-50">
-                      <TextCasingSelector />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="border border-gray-100 rounded-lg p-1 bg-slate-50 overflow-x-auto">
-                      <ViewModeSelector />
-                    </div>
+              <div className="mb-3 space-y-3 pb-3 border-b border-gray-100">
+                <div>
+                  <div className="border border-gray-100 rounded-lg p-1 bg-slate-50">
+                    <TextCasingSelector />
                   </div>
                 </div>
-              )}
+                <div>
+                  <div className="border border-gray-100 rounded-lg p-1 bg-slate-50 overflow-x-auto">
+                    <ViewModeSelector />
+                  </div>
+                </div>
+              </div>
 
               <button
                 onClick={() => {
@@ -156,7 +183,6 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                   setShowListSettings(false);
                 }}
                 className="w-full bg-white border border-gray-200 flex items-center justify-between px-3 h-[42px] text-sm text-slate-700 font-medium hover:bg-slate-50 transition-colors rounded-lg"
-                title="Show/hide languages"
                 type="button"
               >
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Languages</span>
@@ -183,7 +209,6 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                 </div>
               </div>
 
-              {/* Fallback Color Toggle */}
               <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Fallback Colors</span>
@@ -194,7 +219,7 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                   aria-checked={showFallbackColors}
                   onClick={() => setShowFallbackColors(!showFallbackColors)}
                   className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showFallbackColors ? 'bg-indigo-600' : 'bg-slate-200'
-                    }`}
+                    } `}
                 >
                   <span
                     aria-hidden="true"
@@ -204,50 +229,31 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                 </button>
               </div>
 
-              {/* Guides Group - Only show when toolbar is hidden (scrolled) */}
               {(!isToolbarVisible) && (
                 <div className="mt-2 pt-2 border-t border-gray-100">
                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Guides</div>
-
-                  {/* Type Grid Toggle */}
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-slate-700 font-medium">Type Grid</span>
-                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Type Grid</span>
                     <button
                       type="button"
                       role="switch"
                       aria-checked={showAlignmentGuides}
                       onClick={toggleAlignmentGuides}
-                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showAlignmentGuides ? 'bg-indigo-600' : 'bg-slate-200'
-                        }`}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${showAlignmentGuides ? 'bg-indigo-600' : 'bg-slate-200'}`}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={`${showAlignmentGuides ? 'translate-x-[18px]' : 'translate-x-0.5'
-                          } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                      />
+                      <span className={`${showAlignmentGuides ? 'translate-x-[18px]' : 'translate-x-0.5'} inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out`} />
                     </button>
                   </div>
-
-                  {/* Browser Render Toggle */}
                   <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-slate-700 font-medium">Browser Render</span>
-                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Browser Render</span>
                     <button
                       type="button"
                       role="switch"
                       aria-checked={showBrowserGuides}
                       onClick={toggleBrowserGuides}
-                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showBrowserGuides ? 'bg-indigo-600' : 'bg-slate-200'
-                        }`}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${showBrowserGuides ? 'bg-indigo-600' : 'bg-slate-200'}`}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={`${showBrowserGuides ? 'translate-x-[18px]' : 'translate-x-0.5'
-                          } pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                      />
+                      <span className={`${showBrowserGuides ? 'translate-x-[18px]' : 'translate-x-0.5'} inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out`} />
                     </button>
                   </div>
                 </div>
@@ -291,33 +297,49 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
         <div className="p-8 md:p-10">
           <div
             ref={toolbarRef}
-            className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 min-h-[42px]"
+            className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4 min-h-[42px]"
           >
-            <div className={`flex items-center gap-3 transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className="w-full md:w-auto overflow-hidden">
+              <LanguageGroupFilter
+                selectedGroup={selectedGroup}
+                onSelectGroup={(group) => {
+                  setSelectedGroup(group);
+                  setActiveConfigTab('ALL');
+                }}
+                configuredLanguages={configuredLanguages}
+                primaryFontOverrides={primaryFontOverrides}
+                fallbackFontOverrides={fallbackFontOverrides}
+                onAddLanguage={onAddLanguage}
+              />
+            </div>
 
-              {/* When active, we show the FIXED button above, so we hide this one but keep layout space */}
+            <div className={`flex flex-col sm:flex-row gap-4 items-center transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'} `}>
               <button
                 ref={buttonRef}
                 onClick={() => setSidebarMode(sidebarMode === 'headers' ? 'main' : 'headers')}
-                className={`bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px] ${sidebarMode === 'headers' ? 'opacity-0 pointer-events-none' : ''}`}
+                className={`bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px] ${sidebarMode === 'headers' ? 'opacity-0 pointer-events-none' : ''} `}
                 type="button"
-                title="Edit header styles"
-                aria-hidden={sidebarMode === 'headers'}
               >
                 <span className="text-xs font-serif italic">Aa</span>
                 <span className="text-[10px] font-bold uppercase tracking-wider">Edit Styles</span>
               </button>
-            </div>
 
-            <div className={`flex flex-col sm:flex-row gap-4 items-center transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <TextCasingSelector />
-              <ViewModeSelector />
-              {/* Alignment Guides Toggle (Dropdown) */}
+              <button
+                onClick={() => setShowLanguageSelector(true)}
+                className="bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px]"
+                type="button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S12 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S12 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m-15.686 0A11.953 11.953 0 0112 10.5c2.998 0 5.74-1.1 7.843-2.918m-15.686 0A8.959 8.959 0 013 12c0 .778.099 1.533.284 2.253" />
+                </svg>
+                <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Languages</span>
+                <span className="font-mono text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 ml-1">{visibleLanguageIds.length}</span>
+              </button>
+
               <div className="relative group">
                 <button
-                  className={`bg-white border border-gray-200 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-2 h-[42px] ${(showAlignmentGuides || showBrowserGuides) ? 'text-indigo-600 border-indigo-200 bg-indigo-50' : 'text-slate-400'}`}
+                  className={`bg-white border border-gray-200 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-2 h-[42px] ${(showAlignmentGuides || showBrowserGuides) ? 'text-indigo-600 border-indigo-200 bg-indigo-50' : 'text-slate-400'} `}
                   type="button"
-                  title="Visual guides"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                     <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
@@ -327,76 +349,89 @@ const MainContent = ({ sidebarMode, setSidebarMode }) => {
                     <path d="m17.5 15.5 2-2" />
                   </svg>
                   <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Guides</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 opacity-60">
-                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                  </svg>
                 </button>
 
-                {/* Dropdown Menu */}
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl p-2 shadow-xl origin-top-right transition-all duration-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible z-50">
                   <div className="space-y-1">
                     <button
                       onClick={() => toggleAlignmentGuides()}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${showAlignmentGuides ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${showAlignmentGuides ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'} `}
                     >
                       <span>Type Grid</span>
-                      {showAlignmentGuides && (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-indigo-600">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
                     </button>
                     <button
                       onClick={() => toggleBrowserGuides()}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${showBrowserGuides ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${showBrowserGuides ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'} `}
                     >
                       <span>Browser Render</span>
-                      {showBrowserGuides && (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-indigo-600">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
                     </button>
                   </div>
                 </div>
               </div>
-              {/* Spacer for Fixed Settings Button */}
               <div className="w-[42px] h-[42px] hidden sm:block shrink-0" aria-hidden="true" />
             </div>
           </div>
           <div className="grid gap-4 transition-all duration-300 ease-in-out" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
-            {visibleLanguages.map(lang => (
-              <LanguageCard key={lang.id} language={lang} />
+            {visibleLanguages.filter(lang => {
+              if (selectedGroup === 'ALL') return true;
+              if (!selectedGroup) return true;
+              return getLanguageGroup(lang) === selectedGroup;
+            }).map(lang => (
+              <LanguageCard
+                key={lang.id}
+                language={lang}
+                isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && lang.id === 'en-US')}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {
-        showLanguageSelector && (
-          <LanguageSelectorModal onClose={() => setShowLanguageSelector(false)} />
-        )
-      }
+      {showLanguageSelector && (
+        <LanguageSelectorModal onClose={() => setShowLanguageSelector(false)} />
+      )}
 
-      {
-        missingFonts && (
-          <MissingFontsModal
-            missingFonts={missingFonts}
-            onResolve={resolveMissingFonts}
-            onCancel={cancelImport}
-          />
-        )
-      }
-    </div >
+      {showLanguageModal && (
+        <AddLanguageModal
+          onClose={() => setShowLanguageModal(false)}
+          onConfirm={(langId, fontId) => {
+            addConfiguredLanguage(langId);
+            if (fontId && fontId !== 'inherit') {
+              addLanguageSpecificPrimaryFontFromId(fontId, langId);
+            }
+            setActiveConfigTab(langId);
+            setShowLanguageModal(false);
+          }}
+          configuredLanguages={configuredLanguages}
+          filterGroup={addLanguageGroupFilter}
+        />
+      )}
+
+      {missingFonts && (
+        <MissingFontsModal
+          missingFonts={missingFonts}
+          onResolve={resolveMissingFonts}
+          onCancel={cancelImport}
+        />
+      )}
+    </div>
   );
 };
 
-// LivePreview import handled at top of file
 import LivePreview from './components/LivePreview';
 
 function App() {
   const [sidebarMode, setSidebarMode] = useState('main');
   const [previewMode, setPreviewMode] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState('ALL');
+  const [highlitLanguageId, setHighlitLanguageId] = useState(null);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [addLanguageGroupFilter, setAddLanguageGroupFilter] = useState(null);
+
+  const handleAddLanguage = (group) => {
+    setAddLanguageGroupFilter(group);
+    setShowLanguageModal(true);
+  };
 
   return (
     <ErrorBoundary>
@@ -405,13 +440,28 @@ function App() {
           <LivePreview onClose={() => setPreviewMode(false)} />
         )}
         <div className="flex min-h-screen w-full">
-          <Controller
+          <SideBar
             sidebarMode={sidebarMode}
             setSidebarMode={setSidebarMode}
             previewMode={previewMode}
             setPreviewMode={setPreviewMode}
+            selectedGroup={selectedGroup}
+            onAddLanguage={handleAddLanguage}
+            highlitLanguageId={highlitLanguageId}
+            setHighlitLanguageId={setHighlitLanguageId}
           />
-          <MainContent sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
+          <MainContent
+            sidebarMode={sidebarMode}
+            setSidebarMode={setSidebarMode}
+            selectedGroup={selectedGroup}
+            setSelectedGroup={setSelectedGroup}
+            onAddLanguage={handleAddLanguage}
+            showLanguageModal={showLanguageModal}
+            setShowLanguageModal={setShowLanguageModal}
+            addLanguageGroupFilter={addLanguageGroupFilter}
+            setAddLanguageGroupFilter={setAddLanguageGroupFilter}
+            highlitLanguageId={highlitLanguageId}
+          />
         </div>
       </TypoProvider>
     </ErrorBoundary>

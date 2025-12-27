@@ -1,7 +1,8 @@
 import { render, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import React, { useEffect, useContext } from 'react';
-import { TypoProvider, TypoContext } from '../context/TypoContext';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 
 // Mock FontLoader services
 vi.mock('../services/FontLoader', () => ({

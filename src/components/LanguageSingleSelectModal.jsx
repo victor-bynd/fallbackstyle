@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import LanguageList from './LanguageList';
 
-const LanguageSingleSelectModal = ({ onClose, onSelect, currentId, title = "Select Language" }) => {
+const LanguageSingleSelectModal = ({ onClose, onSelect, currentId, title = "Select Language", subtitle = null }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -25,6 +25,7 @@ const LanguageSingleSelectModal = ({ onClose, onSelect, currentId, title = "Sele
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0 bg-slate-50/50">
                     <div>
                         <h2 className="text-base font-bold text-slate-800">{title}</h2>
+                        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
                     </div>
                     <button
                         onClick={onClose}
@@ -55,7 +56,8 @@ LanguageSingleSelectModal.propTypes = {
     onClose: PropTypes.func.isRequired,
     onSelect: PropTypes.func.isRequired,
     currentId: PropTypes.string,
-    title: PropTypes.string
+    title: PropTypes.string,
+    subtitle: PropTypes.node
 };
 
 export default LanguageSingleSelectModal;

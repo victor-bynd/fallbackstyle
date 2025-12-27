@@ -1,15 +1,16 @@
 
 import React, { useContext } from 'react';
+import { describe, test, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { TypoProvider, TypoContext } from '../context/TypoContext';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 
 const TestComponent = () => {
     const {
         addLanguageSpecificPrimaryFont,
         fontStyles,
         setFontScales,
-        getEffectiveFontSettingsForStyle,
-        addFallbackFont // Need a font to exist first? addLanguageSpecificPrimaryFont clones Primary.
+        getEffectiveFontSettingsForStyle
         // Primary exists by default in context? Yes, 'primary' style has one.
     } = useContext(TypoContext);
 

@@ -1,6 +1,7 @@
-import { render, screen, act } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { TypoContext, TypoProvider } from '../context/TypoContext';
+import { render, act } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 import { useContext } from 'react';
 
 // Component that exposes context for testing

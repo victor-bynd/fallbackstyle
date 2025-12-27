@@ -1,6 +1,7 @@
 import { render, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { TypoContext, TypoProvider } from '../context/TypoContext';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 import { useContext } from 'react';
 
 const TestComponent = ({ onContext }) => {
@@ -67,7 +68,7 @@ describe('Primary Override H1 Rem', () => {
         const overrideFont = capturedContext.fonts.find(f => f.id === overrideId);
         expect(overrideFont.h1Rem).toBe(4.5);
 
-        // 5. Verify it persists via updateFallbackFontOverride (which is what FontTabs uses)
+        // 5. Verify it persists via updateFallbackFontOverride (which is what FontCards uses)
         // (Step 3 already used updateFallbackFontOverride, ensuring it works for primary overrides too)
     });
 });

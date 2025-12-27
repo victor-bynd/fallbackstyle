@@ -1,6 +1,5 @@
 
-import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import React from 'react';
 
 // We need to mock the full App structure or just test the logic locally. 

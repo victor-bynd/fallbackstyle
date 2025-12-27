@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import TypoContext from './TypoContext';
+import { TypoContext } from './TypoContextDefinition';
 
 export const useTypo = () => {
     const context = useContext(TypoContext);

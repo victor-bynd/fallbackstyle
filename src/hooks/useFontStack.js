@@ -14,8 +14,6 @@ export const useFontStack = () => {
         const fallbackFont = style?.fallbackFont || 'sans-serif';
         const baseFontSize = style?.baseFontSize ?? 60;
         const fontScales = style?.fontScales || { active: 100, fallback: 100 };
-        const lineHeight = style?.lineHeight ?? 1.2;
-        const letterSpacing = style?.letterSpacing ?? 0;
         const fallbackLineHeight = style?.fallbackLineHeight ?? 'normal';
         const fallbackLetterSpacing = style?.fallbackLetterSpacing ?? 0;
 

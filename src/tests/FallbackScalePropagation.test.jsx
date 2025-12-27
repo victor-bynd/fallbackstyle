@@ -1,7 +1,9 @@
 
 import React from 'react';
-import { render, screen, act, fireEvent } from '@testing-library/react';
-import { TypoProvider, TypoContext } from '../context/TypoContext';
+import { describe, test, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 import { useContext } from 'react';
 
 // Test component to interact with context

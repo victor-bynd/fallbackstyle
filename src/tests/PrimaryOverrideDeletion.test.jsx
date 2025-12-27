@@ -1,7 +1,8 @@
 
-import { render, act, waitFor } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { TypoContext, TypoProvider } from '../context/TypoContext';
+import { TypoProvider } from '../context/TypoContext';
+import { TypoContext } from '../context/TypoContextDefinition';
 import { useContext } from 'react';
 
 const TestComponent = ({ onContext }) => {

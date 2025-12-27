@@ -14,9 +14,6 @@ export const useFontFaceStyles = () => {
                 // Resolve primary settings (handles group if applicable, though primarily for base props)
                 const primarySettings = primary ? getEffectiveFontSettingsForStyle(styleId, primary.id) : null;
 
-                const primarySizeAdjust = (primarySettings && primarySettings.scale !== undefined && primarySettings.scale !== 100)
-                    ? `size-adjust: ${primarySettings.scale}%;`
-                    : '';
 
                 // Override properties are floats (0-1), convert to %
                 const primaryLineGapOverride = (primarySettings && primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '')

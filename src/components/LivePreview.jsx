@@ -17,7 +17,6 @@ const LivePreview = ({ onClose }) => {
         weight: globalWeight,
         textCase,
         getFontsForStyle,
-        getPrimaryFontFromStyle,
         getPrimaryFontOverrideForStyle,
         getEffectiveFontSettingsForStyle
     } = useTypo();
