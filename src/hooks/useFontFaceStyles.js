@@ -5,7 +5,7 @@ export const useFontFaceStyles = () => {
     const { fontStyles, getEffectiveFontSettingsForStyle } = useTypo();
 
     const fontFaceStyles = useMemo(() => {
-        return ['primary']
+        return Object.keys(fontStyles || {})
             .map(styleId => {
                 const style = fontStyles?.[styleId];
                 if (!style) return '';
@@ -36,7 +36,6 @@ export const useFontFaceStyles = () => {
           @font-face {
             font-family: 'UploadedFont-${styleId}';
             src: url('${primary.fontUrl}');
-            ${primarySizeAdjust}
             ${primaryLineGapOverride}
             ${primaryAscentOverride}
             ${primaryDescentOverride}
@@ -45,7 +44,7 @@ export const useFontFaceStyles = () => {
                     : '';
 
                 const fallbackRules = (style.fonts || [])
-                    .filter(f => f.type === 'fallback' && f.fontUrl)
+                    .filter(f => f.type === 'fallback' && (f.fontUrl || f.name))
                     .map(font => {
                         const settings = getEffectiveFontSettingsForStyle(styleId, font.id);
 
@@ -101,10 +100,12 @@ export const useFontFaceStyles = () => {
                             ? `descent-override: ${settings.descentOverride * 100}%;`
                             : '';
 
+                        const src = font.fontUrl ? `url('${font.fontUrl}')` : `local('${font.name}')`;
+
                         return `
             @font-face {
               font-family: 'FallbackFont-${styleId}-${font.id}';
-              src: url('${font.fontUrl}');
+              src: ${src};
               ${sizeAdjust}
               ${variationSettings}
               ${lineGapOverride}

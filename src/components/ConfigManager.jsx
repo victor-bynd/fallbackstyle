@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTypo } from '../context/useTypo';
 import MissingFontsModal from './MissingFontsModal';
 import { useConfigImport } from '../hooks/useConfigImport';
+import FontLanguageModal from './FontLanguageModal';
+import { parseFontFile, createFontUrl } from '../services/FontLoader';
 
 const ConfigManager = () => {
-    const { getExportConfiguration } = useTypo();
+    const { getExportConfiguration, addLanguageSpecificFallbackFont, loadFont } = useTypo();
     const { importConfig, missingFonts, existingFiles, resolveMissingFonts, cancelImport } = useConfigImport();
+
+    const [pendingFonts, setPendingFonts] = useState([]);
+    const [pendingFileMap, setPendingFileMap] = useState(null);
 
     const handleExport = () => {
         const config = getExportConfiguration();
@@ -45,6 +50,64 @@ const ConfigManager = () => {
         e.target.value = '';
     };
 
+    const handleResolve = async (fileMap) => {
+        const files = Object.values(fileMap);
+        const processed = [];
+
+        for (const file of files) {
+            try {
+                const { font, metadata } = await parseFontFile(file);
+                const url = createFontUrl(file);
+                processed.push({ font, metadata, url, file });
+            } catch (err) {
+                console.error("Error parsing during import resolution:", err);
+            }
+        }
+
+        if (processed.length > 0) {
+            setPendingFonts(processed);
+            setPendingFileMap(fileMap);
+        } else {
+            resolveMissingFonts(fileMap);
+        }
+    };
+
+    const handleAssignmentsConfirm = async ({ assignments, orderedFonts }) => {
+        // First restore the main config
+        await resolveMissingFonts(pendingFileMap);
+
+        // Load the designated Primary font to ensure it's the main session font
+        // We do this AFTER restoration because restoreConfiguration overwrites fontStyles
+        const primaryItem = orderedFonts[0];
+        if (primaryItem) {
+            loadFont(
+                primaryItem.font,
+                primaryItem.url,
+                primaryItem.file.name,
+                primaryItem.metadata
+            );
+        }
+
+        // Then apply the language fallback overrides for the newly uploaded fonts, respecting the user's order
+        orderedFonts.forEach((item, index) => {
+            if (index === 0) return; // Skip primary
+
+            const assignment = assignments[item.file.name];
+            if (assignment !== 'auto') {
+                addLanguageSpecificFallbackFont(
+                    item.font,
+                    item.url,
+                    item.file.name,
+                    item.metadata,
+                    assignment
+                );
+            }
+        });
+
+        setPendingFonts([]);
+        setPendingFileMap(null);
+    };
+
     return (
         <>
             <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-slate-100">
@@ -80,8 +143,20 @@ const ConfigManager = () => {
                 <MissingFontsModal
                     missingFonts={missingFonts}
                     existingFiles={existingFiles}
-                    onResolve={resolveMissingFonts}
+                    onResolve={handleResolve}
                     onCancel={cancelImport}
+                />
+            )}
+
+            {pendingFonts.length > 0 && (
+                <FontLanguageModal
+                    pendingFonts={pendingFonts}
+                    onConfirm={handleAssignmentsConfirm}
+                    onCancel={() => {
+                        setPendingFonts([]);
+                        setPendingFileMap(null);
+                        cancelImport();
+                    }}
                 />
             )}
         </>

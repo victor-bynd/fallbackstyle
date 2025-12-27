@@ -1,8 +1,9 @@
-
 import { useTypo } from '../context/useTypo';
-import React from 'react';
+import React, { useState } from 'react';
 import SidebarHeaderConfig from './SidebarHeaderConfig';
 import FontTabs, { SortableFontCard } from './FontTabs';
+import LanguageMultiSelectModal from './LanguageMultiSelectModal';
+import languagesData from '../data/languages.json';
 import ConfigManager from './ConfigManager';
 import OverridesManager from './OverridesManager';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
@@ -55,8 +56,21 @@ const Controller = ({ sidebarMode, setPreviewMode }) => {
         fallbackLineHeight,
         setFallbackLineHeight,
         fallbackLetterSpacing,
-        setFallbackLetterSpacing
+        setFallbackLetterSpacing,
+        primaryFontOverrides,
+        addPrimaryLanguageOverrides,
+        clearPrimaryFontOverride,
+        removeLanguageSpecificFont,
+        activeConfigTab,
+        setActiveConfigTab,
+        configuredLanguages,
+        addConfiguredLanguage,
+        removeConfiguredLanguage
     } = useTypo();
+
+    const activeTab = activeConfigTab;
+    const setActiveTab = setActiveConfigTab;
+    const [showLanguageModal, setShowLanguageModal] = useState(false);
 
 
     const sensors = useSensors(
@@ -146,164 +160,93 @@ const Controller = ({ sidebarMode, setPreviewMode }) => {
                         </button>
                     </div>
 
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <SortableContext
-                            items={getVisualFontIdOrder(fonts, fallbackFontOverrides)}
-                            strategy={verticalListSortingStrategy}
-                        >
-                            {/* Main Font */}
-                            <div>
-                                <div className="mt-3">
-                                    <div>
-                                        {primaryFont && (
-                                            <>
-                                                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
-                                                    Primary Font
-                                                </label>
-                                                <SortableFontCard
-                                                    font={primaryFont}
-                                                    index={0}
-                                                    isActive={primaryFont.id === activeFont}
-                                                    globalWeight={weight}
-                                                    globalLineHeight={lineHeight}
-                                                    globalLetterSpacing={letterSpacing}
-                                                    setGlobalLineHeight={setGlobalLineHeight}
-                                                    setGlobalLetterSpacing={setGlobalLetterSpacing}
-                                                    hasLineHeightOverrides={hasOverrides}
-                                                    lineHeightOverrideCount={Object.keys(lineHeightOverrides).length}
-                                                    resetAllLineHeightOverrides={resetAllLineHeightOverrides}
-                                                    getFontColor={getFontColor}
-                                                    updateFontColor={updateFontColor}
-                                                    getEffectiveFontSettings={getEffectiveFontSettings}
-                                                    fontScales={fontScales}
-                                                    lineHeight={lineHeight}
-                                                    updateFallbackFontOverride={updateFallbackFontOverride}
-                                                    resetFallbackFontOverrides={resetFallbackFontOverrides}
-                                                    setActiveFont={setActiveFont}
-                                                    handleRemove={() => { }}
-                                                    updateFontWeight={updateFontWeight}
-                                                />
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                    <div className="flex flex-col gap-4">
+                        {/* Tabs at the Top */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar shrink-0">
+                            <button
+                                onClick={() => setActiveTab('primary')}
+                                className={`
+                                    px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap
+                                    ${activeTab === 'primary'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                    }
+                                `}
+                            >
+                                Primary
+                            </button>
+                            {/* Compute unique language IDs from configured languages and existing overrides */}
+                            {Array.from(new Set([
+                                ...(configuredLanguages || []),
+                                ...Object.keys(primaryFontOverrides || {}),
+                                ...Object.keys(fallbackFontOverrides || {})
+                            ])).map(langId => {
+                                const lang = languagesData.find(l => l.id === langId);
+                                const label = lang ? (lang.shortName || lang.id.split('-')[0].toUpperCase()) : langId;
+                                return (
+                                    <div key={langId} className="relative group">
+                                        <button
+                                            onClick={() => setActiveTab(langId)}
+                                            className={`
+                                                px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap pr-5
+                                                ${activeTab === langId
+                                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                }
+                                            `}
+                                            title={lang?.name || langId}
+                                        >
+                                            {label}
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm(`Remove overrides for ${lang?.name || langId}?`)) {
+                                                    removeConfiguredLanguage(langId);
 
-                            <div>
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                                                GLOBAL FALLBACKS
-                                            </label>
-                                            {(fontScales.fallback !== 100) && (
-                                                <button
-                                                    onClick={() => {
-                                                        setFontScales(prev => ({ ...prev, fallback: 100 }));
-                                                        setIsFallbackLinked(false);
-                                                    }}
-                                                    className="text-[10px] text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors"
-                                                    title="Reset all global fallbacks"
-                                                    type="button"
-                                                >
-                                                    <span className="text-[10px]">Reset</span>
-                                                    <span className="text-xs">↺</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-between text-xs text-slate-600 mb-1">
-                                            <div className="flex items-center gap-2">
-                                                <span>Size Adjust</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {fontScales.fallback !== 100 && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setFontScales(prev => ({ ...prev, fallback: 100 }));
-                                                            setIsFallbackLinked(false);
-                                                        }}
-                                                        className="text-[10px] text-slate-400 hover:text-rose-500"
-                                                        title="Reset to 100%"
-                                                        type="button"
-                                                    >
-                                                        ↺
-                                                    </button>
-                                                )}
-                                                <div className="flex items-center gap-1">
-                                                    <input
-                                                        type="number"
-                                                        min="25"
-                                                        max="300"
-                                                        step="5"
-                                                        value={fontScales.fallback === 100 ? '' : fontScales.fallback}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            if (val === '') {
-                                                                setFontScales(prev => ({ ...prev, fallback: '' }));
-                                                            } else {
-                                                                const parsed = parseInt(val);
-                                                                setFontScales(prev => ({
-                                                                    ...prev,
-                                                                    fallback: isNaN(parsed) ? '' : parsed
-                                                                }));
-                                                            }
-                                                            setIsFallbackLinked(false);
-                                                        }}
-                                                        onBlur={(e) => {
-                                                            let val = parseInt(e.target.value);
-                                                            if (isNaN(val)) {
-                                                                val = 100; // default
-                                                            } else {
-                                                                val = Math.max(25, Math.min(300, val));
-                                                            }
-                                                            setFontScales(prev => ({
-                                                                ...prev,
-                                                                fallback: val
-                                                            }));
-                                                        }}
-                                                        className="w-12 text-right font-mono text-xs bg-transparent border-b border-slate-300 focus:border-indigo-600 focus:outline-none px-1"
-                                                    />
-                                                    <span className="text-xs">%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="25"
-                                            max="300"
-                                            step="5"
-                                            value={fontScales.fallback}
-                                            onChange={(e) => {
-                                                const val = parseInt(e.target.value);
-                                                setFontScales(prev => ({
-                                                    ...prev,
-                                                    fallback: val
-                                                }));
-                                                setIsFallbackLinked(false);
+                                                    // If we were on this tab, go back to primary
+                                                    if (activeTab === langId) setActiveTab('primary');
+                                                }
                                             }}
-                                            className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer block ${fontScales.fallback !== 100
-                                                ? 'accent-indigo-600'
-                                                : 'accent-slate-400'
-                                                }`}
-                                        />
+                                            className={`
+                                                absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded-full transition-colors
+                                                ${activeTab === langId
+                                                    ? 'text-indigo-200 hover:bg-white/20 hover:text-white'
+                                                    : 'text-slate-400 hover:bg-slate-200 hover:text-rose-500'
+                                                }
+                                            `}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                                                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                            </svg>
+                                        </button>
                                     </div>
+                                );
+                            })}
+                            <button
+                                onClick={() => setShowLanguageModal(true)}
+                                className="px-2.5 py-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                                </svg>
+                                Add Language
+                            </button>
+                        </div>
 
-
-
-                                    <div>
-                                        <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">
-                                            Fallback Fonts ({(fonts || []).filter(f => f.type !== 'primary' && !Object.values(fallbackFontOverrides || {}).includes(f.id)).length})
-                                        </label>
-                                        <FontTabs />
-                                    </div>
-                                </div>
-                            </div>
-                        </SortableContext>
-                    </DndContext>
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <SortableContext
+                                items={getVisualFontIdOrder(fonts, fallbackFontOverrides)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <FontTabs activeTab={activeTab} />
+                            </SortableContext>
+                        </DndContext>
+                    </div>
 
                     {/* Overrides Manager */}
                     <OverridesManager />
@@ -314,6 +257,22 @@ const Controller = ({ sidebarMode, setPreviewMode }) => {
                     {/* Export CSS Button - Bottom of Sidebar */}
                     {/* Config Manager - Import/Export */}
                     <ConfigManager />
+
+                    {showLanguageModal && (
+                        <LanguageMultiSelectModal
+                            onClose={() => setShowLanguageModal(false)}
+                            onConfirm={(selectedIds) => {
+                                selectedIds.forEach(id => addConfiguredLanguage(id));
+                                if (selectedIds.length > 0) {
+                                    setActiveTab(selectedIds[0]);
+                                }
+                                setShowLanguageModal(false);
+                            }}
+                            title="Add Language Configuration"
+                            confirmLabel="Add Languages"
+                            initialSelectedIds={configuredLanguages}
+                        />
+                    )}
                 </>
             )}
 

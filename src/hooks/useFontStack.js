@@ -85,16 +85,9 @@ export const useFontStack = () => {
         const fontStack = [];
 
         fallbackFonts.forEach(font => {
-            if (font.fontUrl) {
+            if (font.fontUrl || font.name) {
                 fontStack.push({
                     fontFamily: `'FallbackFont-${styleId}-${font.id}'`,
-                    fontId: font.id,
-                    fontObject: font.fontObject,
-                    settings: getEffectiveFontSettingsForStyle(styleId, font.id)
-                });
-            } else if (font.name) {
-                fontStack.push({
-                    fontFamily: font.name,
                     fontId: font.id,
                     fontObject: font.fontObject,
                     settings: getEffectiveFontSettingsForStyle(styleId, font.id)

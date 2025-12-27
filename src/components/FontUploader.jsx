@@ -1,10 +1,12 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useTypo } from '../context/useTypo';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import FontLanguageModal from './FontLanguageModal';
 
 const FontUploader = () => {
-    const { loadFont, addFallbackFonts } = useTypo();
+    const { loadFont, addFallbackFonts, addLanguageSpecificFallbackFont } = useTypo();
+    const [pendingFonts, setPendingFonts] = useState([]);
 
     const handleFiles = useCallback(async (fileList) => {
         if (!fileList || fileList.length === 0) return;
@@ -20,39 +22,72 @@ const FontUploader = () => {
                 const url = createFontUrl(file);
                 processedFonts.push({ font, metadata, url, file });
             } catch (err) {
-                console.error(`Error parsing font ${file.name}:`, err);
+                console.error(`Error parsing font ${file.name}: `, err);
                 errorCount++;
             }
         }
 
         if (processedFonts.length > 0) {
-            // First font becomes Primary
-            const primary = processedFonts[0];
-            loadFont(primary.font, primary.url, primary.file.name, primary.metadata);
-
-            // Remaining fonts become Fallbacks
-            if (processedFonts.length > 1) {
-                const fallbacks = processedFonts.slice(1).map(item => {
-                    return {
-                        id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        type: 'fallback',
-                        fontObject: item.font,
-                        fontUrl: item.url,
-                        fileName: item.file.name,
-                        name: item.file.name,
-                        axes: item.metadata.axes,
-                        isVariable: item.metadata.isVariable,
-                        staticWeight: item.metadata.staticWeight ?? null
-                    };
-                });
-                addFallbackFonts(fallbacks);
-            }
+            setPendingFonts(processedFonts);
         }
 
         if (errorCount > 0) {
             alert(`Failed to parse ${errorCount} font file(s).`);
         }
-    }, [loadFont, addFallbackFonts]);
+    }, []);
+
+    const handleModalConfirm = ({ assignments, orderedFonts }) => {
+        const autoFonts = [];
+        const primaryItem = orderedFonts[0];
+
+        // Use the ordered list from the modal
+        orderedFonts.forEach((item, index) => {
+            if (index === 0) return; // Skip primary
+
+            const assignment = assignments[item.file.name];
+            if (assignment === 'auto') {
+                autoFonts.push(item);
+            } else {
+                // Language specific fallback assignment
+                addLanguageSpecificFallbackFont(
+                    item.font,
+                    item.url,
+                    item.file.name,
+                    item.metadata,
+                    assignment
+                );
+            }
+        });
+
+        // Load the designated Primary font first
+        if (primaryItem) {
+            loadFont(primaryItem.font, primaryItem.url, primaryItem.file.name, primaryItem.metadata);
+        }
+
+        // Remaining auto fonts become Fallbacks in the order they were in orderedFonts
+        if (autoFonts.length > 0) {
+            const fallbacks = autoFonts.map(item => {
+                return {
+                    id: `fallback - ${Date.now()} -${Math.random().toString(36).substr(2, 9)} `,
+                    type: 'fallback',
+                    fontObject: item.font,
+                    fontUrl: item.url,
+                    fileName: item.file.name,
+                    name: item.file.name,
+                    axes: item.metadata.axes,
+                    isVariable: item.metadata.isVariable,
+                    staticWeight: item.metadata.staticWeight ?? null
+                };
+            });
+            addFallbackFonts(fallbacks);
+        }
+
+        setPendingFonts([]);
+    };
+
+    const handleModalCancel = () => {
+        setPendingFonts([]);
+    };
 
     const onDrop = useCallback((e) => {
         e.preventDefault();
@@ -122,6 +157,14 @@ const FontUploader = () => {
                     ))}
                 </div>
             </div>
+
+            {pendingFonts.length > 0 && (
+                <FontLanguageModal
+                    pendingFonts={pendingFonts}
+                    onConfirm={handleModalConfirm}
+                    onCancel={handleModalCancel}
+                />
+            )}
         </>
     );
 };

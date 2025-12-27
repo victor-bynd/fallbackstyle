@@ -8,7 +8,8 @@ const SidebarHeaderConfig = () => {
         resetHeaderStyleProperty,
         resetAllHeaderStyles,
         baseRem,
-        setBaseRem
+        setBaseRem,
+        fontScales
     } = useTypo();
 
     const handleScaleChange = (tag, value) => {

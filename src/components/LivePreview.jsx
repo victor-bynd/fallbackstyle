@@ -105,8 +105,7 @@ const LivePreview = ({ onClose }) => {
             fontSize: `${hStyle.scale}rem`,
             lineHeight: effectiveHeaderLineHeight === 'normal' ? 'normal' : effectiveHeaderLineHeight,
             letterSpacing: `${hStyle.letterSpacing}em`,
-            fontWeight: effectiveSettings.weight || globalWeight,
-            fontVariationSettings: isVariable ? `'wght' ${effectiveSettings.weight || globalWeight}` : undefined
+            // Removed forced weight application to restore appropriate header styles (bold)
         };
     };
 

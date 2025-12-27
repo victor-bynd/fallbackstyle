@@ -1,43 +1,49 @@
-import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 import { useFontStack } from '../hooks/useFontStack';
 import { languageCharacters } from '../data/languageCharacters';
+import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import FontSelectionModal from './FontSelectionModal';
 
 const LanguageCard = ({ language }) => {
     const {
+        activeFontStyleId,
         fontObject,
-        colors,
-        headerFontStyleMap,
-        headerStyles,
-        textCase,
-        viewMode,
-        textOverrides,
-        setTextOverride,
-        resetTextOverride,
+        fontStyles,
         getFontsForStyle,
         getPrimaryFontFromStyle,
-        getFallbackFontOverrideForStyle,
-        setFallbackFontOverrideForStyle,
-        clearFallbackFontOverrideForStyle,
+        colors,
+        textCase,
+        fontScales,
+        lineHeight,
+        showFallbackColors,
+        getFontColorForStyle,
         getFallbackScaleOverrideForStyle,
         getEffectiveFontSettingsForStyle,
-
-        fontStyles,
-        activeFontStyleId,
-        showFallbackColors,
         showAlignmentGuides,
         showBrowserGuides,
-        baseRem,
         addLanguageSpecificFont,
         addLanguageSpecificPrimaryFont,
         primaryFontOverrides,
         getPrimaryFontOverrideForStyle,
         clearPrimaryFontOverride,
-        metricGroups,
-        addMetricGroup,
-        assignFontToMetricGroup,
-        removeFontFromMetricGroup
+        activeConfigTab,
+
+        // Restore missing props
+        textOverrides,
+        setTextOverride,
+        resetTextOverride,
+        viewMode,
+        headerStyles,
+        headerFontStyleMap,
+        baseRem,
+
+        getFallbackFontOverrideForStyle,
+        setFallbackFontOverrideForStyle,
+        clearFallbackFontOverrideForStyle,
+
+        addLanguageSpecificFallbackFont
     } = useTypo();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
@@ -90,12 +96,12 @@ const LanguageCard = ({ language }) => {
         // Dash pattern: 4px on, 3px off.
         const dashOn = 4 * scaleFactor;
         const dashOff = 3 * scaleFactor;
-        const dashArray = `${dashOn} ${dashOff}`;
+        const dashArray = `${dashOn} ${dashOff} `;
 
         const strokeColor = "rgba(0,0,0,0.5)"; // Updated to 50% transparent black per user request
 
         const paths = guideLines.map(line =>
-            `<path d="M0 ${line.y} H${totalHeightUnits * 10}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${dashArray}" />`
+            `< path d = "M0 ${line.y} H${totalHeightUnits * 10}" stroke = "${strokeColor}" stroke - width="${strokeWidth}" stroke - dasharray="${dashArray}" /> `
         ).join('');
 
         // Use a wide viewBox width to ensure horizontal lines cover enough (though pattern repeats).
@@ -111,21 +117,29 @@ const LanguageCard = ({ language }) => {
         // 7px * scaleFactor.
         const patternWidthUnits = (dashOn + dashOff);
 
-        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${patternWidthUnits}' height='${totalHeightUnits}' viewBox='0 0 ${patternWidthUnits} ${totalHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
+        const svgString = `< svg xmlns = 'http://www.w3.org/2000/svg' width = '${patternWidthUnits}' height = '${totalHeightUnits}' viewBox = '0 0 ${patternWidthUnits} ${totalHeightUnits}' preserveAspectRatio = 'none' > ${paths}</svg > `;
 
         // Use Base64 to avoid encoding issues
         const base64Svg = btoa(svgString);
-        const svgDataUri = `data:image/svg+xml;base64,${base64Svg}`;
+        const svgDataUri = `data: image / svg + xml; base64, ${base64Svg} `;
 
         return {
             backgroundImage: `url("${svgDataUri}")`,
-            backgroundSize: `${4 + 3}px ${numericLineHeight}em`, // Width matches pattern period in px
+            backgroundSize: `${4 + 3}px ${numericLineHeight} em`, // Width matches pattern period in px
             backgroundRepeat: 'repeat'
         };
     };
 
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
+    const [configDropdownOpen, setConfigDropdownOpen] = useState(false);
+    const cardRef = useRef(null);
+
+    useEffect(() => {
+        if (activeConfigTab === language.id) {
+            cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [activeConfigTab, language.id]);
 
     const getStyleIdForHeader = (tag) => {
         if (tag && headerFontStyleMap?.[tag]) return headerFontStyleMap[tag];
@@ -172,7 +186,7 @@ const LanguageCard = ({ language }) => {
 
     const renderedTextByStyleId = useMemo(() => {
         const result = {};
-        (['primary']).forEach(styleId => {
+        Object.keys(fontStyles || {}).forEach(styleId => {
             const primaryOverrideId = getPrimaryFontOverrideForStyle(styleId, language.id);
             const allFonts = getFontsForStyle(styleId);
             let effectivePrimaryFont = primaryOverrideId
@@ -194,8 +208,8 @@ const LanguageCard = ({ language }) => {
             const fallbackLineHeight = style?.fallbackLineHeight ?? 'normal';
             const fallbackLetterSpacing = style?.fallbackLetterSpacing ?? 0;
 
-            const primarySettings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
-            const primaryFontSize = primarySettings.baseFontSize * (primarySettings.scale / 100);
+            const primarySettings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary') || { baseFontSize, scale: 100, lineHeight };
+            const primaryFontSize = primarySettings.baseFontSize;
 
             const fallbackFontStack = buildFallbackFontStackForStyle(styleId, language.id);
             const fallbackFontStackString = fallbackFontStack.length > 0
@@ -267,17 +281,17 @@ const LanguageCard = ({ language }) => {
                             style={{
                                 fontFamily: fallbackFontStackString,
                                 color: fontColor,
-                                fontSize: `${fontSizeEm}em`,
+                                fontSize: `${fontSizeEm} em`,
                                 lineHeight: (
                                     (fallbackSettings.lineGapOverride !== undefined && fallbackSettings.lineGapOverride !== '') ||
                                     (fallbackSettings.ascentOverride !== undefined && fallbackSettings.ascentOverride !== '') ||
                                     (fallbackSettings.descentOverride !== undefined && fallbackSettings.descentOverride !== '')
                                 ) ? 'normal'
                                     : undefined,
-                                letterSpacing: `${fallbackSettings.letterSpacing}em`,
+                                letterSpacing: `${fallbackSettings.letterSpacing} em`,
 
                                 fontWeight: weight,
-                                fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
+                                fontVariationSettings: isVariable ? `'wght' ${weight} ` : undefined,
                                 ...inlineBoxStyle
                             }}
                         >
@@ -296,7 +310,6 @@ const LanguageCard = ({ language }) => {
             });
         });
 
-        return result;
         return result;
     }, [buildFallbackFontStackForStyle, contentToRender, colors.missing, colors.primary, fontStyles, getEffectiveFontSettingsForStyle, getFallbackScaleOverrideForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors, showBrowserGuides, getPrimaryFontOverrideForStyle]);
 
@@ -373,11 +386,21 @@ const LanguageCard = ({ language }) => {
 
     const primaryFontLabel = metricsPrimaryFont?.fileName?.replace(/\.[^/.]+$/, '') || metricsPrimaryFont?.name || 'Default Primary';
 
-    const [configDropdownOpen, setConfigDropdownOpen] = useState(false);
+
+
+    const isActive = activeConfigTab === language.id;
 
     return (
         <div
-            className={`bg-white border border-gray-200/60 rounded-xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] transition-all duration-300 ${configDropdownOpen ? 'z-50 relative' : 'z-0'}`}
+            ref={cardRef}
+            className={`
+bg - white border rounded - xl transition - all duration - 300
+                ${configDropdownOpen ? 'z-50 relative' : 'z-0'}
+                ${isActive
+                    ? 'border-indigo-500 ring-2 ring-indigo-500/10 shadow-lg'
+                    : 'border-gray-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)]'
+                }
+`}
         >
             <div className="bg-slate-50/50 px-5 py-3 border-b border-gray-100 flex flex-wrap gap-y-2 justify-between items-center backdrop-blur-sm relative z-20 rounded-t-xl">
                 <div className="flex flex-wrap items-center gap-3">
@@ -389,12 +412,12 @@ const LanguageCard = ({ language }) => {
                     </div>
 
                     <div
-                        className={`text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap ${!hasVerifiableFont
+                        className={`text - [10px] font - mono border px - 2 py - 0.5 rounded - md whitespace - nowrap ${!hasVerifiableFont
                             ? 'bg-slate-100 text-slate-500 border-slate-200'
                             : isFullSupport
                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                 : 'bg-rose-50 text-rose-600 border-rose-100'
-                            }`}
+                            } `}
                     >
                         {!hasVerifiableFont ? 'Unknown Support' : `${supportedPercent}% Supported`}
                     </div>
@@ -412,42 +435,21 @@ const LanguageCard = ({ language }) => {
                             currentFallbackLabel={currentFallbackLabel}
                             fallbackOverrideFontId={fallbackOverrideFontId}
                             fallbackOverrideOptions={fallbackOverrideOptions}
-                            hasPrimaryOverride={!!primaryFontOverrides?.[language.id]}
-                            primaryOverrideFontId={primaryFontOverrides?.[language.id]}
-                            primaryFont={metricsPrimaryFont} // Fallback for name if override not found? No, this is global primary.
-                            // We need the ACTUAL override font object to check grouping
-                            primaryOverrideFont={getFontsForStyle(activeMetricsStyleId).find(f => f.id === primaryFontOverrides?.[language.id])}
-                            onTogglePrimary={() => {
-                                if (primaryFontOverrides?.[language.id]) {
-                                    clearPrimaryFontOverride(language.id);
-                                } else {
-                                    addLanguageSpecificPrimaryFont(language.id);
-                                }
-                            }}
+                            fallbackOverrideFont={fallbackOverrideFont}
                             onSelectFallback={(val) => {
                                 if (!val) {
                                     clearFallbackFontOverrideForStyle(activeMetricsStyleId, language.id);
                                 } else if (val === 'legacy') {
                                     setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, 'legacy');
                                 } else {
-                                    addLanguageSpecificFont(val, language.id);
+                                    // Direct assignment instead of cloning
+                                    setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, val);
                                 }
                             }}
-                            fallbackOverrideFont={fallbackOverrideFont}
-                            primaryFontLabel={primaryFontLabel}
-
-                            // Grouping Props
-                            metricGroups={metricGroups}
-                            addMetricGroup={addMetricGroup}
-                            assignFontToMetricGroup={assignFontToMetricGroup}
-                            removeFontFromMetricGroup={removeFontFromMetricGroup}
-                            fontScales={fontStyles?.[activeMetricsStyleId]?.fontScales}
-                            getEffectiveFontSettingsForStyle={(fid) => getEffectiveFontSettingsForStyle(activeMetricsStyleId, fid)}
-
-                            // Visibility Control
                             isOpen={configDropdownOpen}
                             onToggle={() => setConfigDropdownOpen(!configDropdownOpen)}
                             onClose={() => setConfigDropdownOpen(false)}
+                            addLanguageSpecificFallbackFont={addLanguageSpecificFallbackFont}
                         />
                     </div>
 
@@ -509,10 +511,24 @@ const LanguageCard = ({ language }) => {
             {/* Set Base Font Size on Container */}
             {/* Set Base Font Size on Container */}
             <div className="p-4">
+                {/* DEBUG: Check viewMode */}
+                {console.error('[DEBUG] Current viewMode:', viewMode)}
                 {viewMode === 'all' && (
                     <div className="space-y-2">
                         {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((tag) => {
-                            const headerStyle = headerStyles[tag];
+                            const headerStyle = headerStyles?.[tag];
+                            // Safety check: ensure headerStyle exists
+                            if (!headerStyle) {
+                                console.warn(`[LanguageCard] Missing headerStyle for ${tag}`);
+                                return null;
+                            }
+
+                            // DEBUG: Very visible logging
+                            if (tag === 'h1') {
+                                console.error('[DEBUG] Headers rendering - checking h1 headerStyle:', headerStyle);
+                                console.error('[DEBUG] All headerStyles:', headerStyles);
+                            }
+
                             const styleIdForTag = resolveStyleIdForHeader(tag);
                             const currentFallbackFontId = getCurrentFallbackFontIdForStyle(styleIdForTag);
 
@@ -528,22 +544,30 @@ const LanguageCard = ({ language }) => {
                             }
 
                             const style = fontStyles?.[styleIdForTag];
+                            const styleBaseRem = style?.baseRem || 16; // Get baseRem from this specific style
                             const baseFontSize = style?.baseFontSize ?? 60;
                             const fontScales = style?.fontScales || { active: 100, fallback: 100 };
                             const lineHeight = style?.lineHeight ?? 1.2;
 
                             const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
                             // Calculate Final Pixel Size
-                            // PrimaryFontSize is irrelevant for the header container size now, which is purely REM-based.
+                            // Use styleBaseRem from the specific style, not the global baseRem
 
-                            let finalSizePx = headerStyle.scale * baseRem;
+                            let finalSizePx = headerStyle.scale * styleBaseRem;
                             if (tag === 'h1' && primaryFont?.isPrimaryOverride && primarySettings?.h1Rem) {
-                                finalSizePx = primarySettings.h1Rem * baseRem;
+                                finalSizePx = primarySettings.h1Rem * styleBaseRem;
                             }
 
-                            const activeGroup = primaryFont?.metricGroupId ? metricGroups?.[primaryFont.metricGroupId] : null;
+                            // DEBUG: Log the calculation for each header
+                            console.log(`[LanguageCard] ${tag}:`, {
+                                scale: headerStyle.scale,
+                                styleBaseRem,
+                                primaryScale: primarySettings.scale,
+                                finalSizePx,
+                                styleIdForTag
+                            });
+
                             const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
-                                (activeGroup?.lineHeight !== undefined && activeGroup?.lineHeight !== '' && activeGroup?.lineHeight !== 'normal') ||
                                 (primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== '' && primaryFont?.lineHeight !== 'normal')
                             );
 
@@ -579,21 +603,20 @@ const LanguageCard = ({ language }) => {
                             );
 
                             const browserGuideStyle = showBrowserGuides ? {
-                                backgroundImage: `repeating-linear-gradient(
-                                    to bottom,
-                                    rgba(59, 130, 246, 0.05) 0em,
-                                    rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
-                                    rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
-                                    rgba(59, 130, 246, 0.2) ${numericLineHeight}em
-                                )`,
-                                backgroundSize: `100% ${numericLineHeight}em`
+                                backgroundImage: `repeating - linear - gradient(
+    to bottom,
+    rgba(59, 130, 246, 0.05) 0em,
+    rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
+    rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
+    rgba(59, 130, 246, 0.2) ${numericLineHeight}em
+)`,
+                                backgroundSize: `100 % ${numericLineHeight} em`
                             } : {};
 
+                            const isActualOverride = primaryFont?.id === primaryOverrideId;
                             return (
                                 <div key={tag}>
                                     <span className="text-[10px] text-slate-400 font-mono uppercase mb-1 block">{tag}</span>
-                                    const isActualOverride = primaryFont?.id === primaryOverrideId;
-
                                     <div
                                         dir={language.dir || 'ltr'}
                                         style={{
@@ -608,13 +631,13 @@ const LanguageCard = ({ language }) => {
                                                 (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
                                             ) ? 'normal'
                                                 : effectiveLineHeight,
-                                            letterSpacing: `${headerStyle.letterSpacing || 0}em`,
+                                            letterSpacing: `${headerStyle.letterSpacing || 0} em`,
                                             textTransform: textCase,
                                             position: 'relative',
                                             ...browserGuideStyle
                                         }}
                                     >
-                                        {renderedTextByStyleId[styleIdForTag]}
+                                        {renderedTextByStyleId[styleIdForTag] || contentToRender}
                                         {alignmentStyle.backgroundImage && (
                                             <div
                                                 aria-hidden="true"
@@ -637,7 +660,14 @@ const LanguageCard = ({ language }) => {
                 {viewMode.startsWith('h') && (
                     (() => {
                         const styleIdForTag = resolveStyleIdForHeader(viewMode);
-                        const headerStyle = headerStyles[viewMode];
+                        const headerStyle = headerStyles?.[viewMode];
+
+                        // Safety check: ensure headerStyle exists
+                        if (!headerStyle) {
+                            console.warn(`[LanguageCard] Missing headerStyle for ${viewMode}`);
+                            return null;
+                        }
+
                         const currentFallbackFontId = getCurrentFallbackFontIdForStyle(styleIdForTag);
 
                         // Calculate Base Size
@@ -652,6 +682,7 @@ const LanguageCard = ({ language }) => {
                         }
 
                         const style = fontStyles?.[styleIdForTag];
+                        const styleBaseRem = style?.baseRem || 16; // Get baseRem from this specific style
                         const baseFontSize = style?.baseFontSize ?? 60;
                         const fontScales = style?.fontScales || { active: 100, fallback: 100 };
                         const lineHeight = style?.lineHeight ?? 1.2;
@@ -661,18 +692,26 @@ const LanguageCard = ({ language }) => {
                         const isVariable = primaryFont?.isVariable;
 
                         // Calculate Final Pixel Size
-                        let finalSizePx = headerStyle.scale * baseRem;
+                        // Use styleBaseRem from the specific style, not the global baseRem
+                        let finalSizePx = headerStyle.scale * styleBaseRem;
                         if (viewMode === 'h1' && primaryFont?.isPrimaryOverride && primarySettings?.h1Rem) {
-                            finalSizePx = primarySettings.h1Rem * baseRem;
+                            finalSizePx = primarySettings.h1Rem * styleBaseRem;
                         }
+
+                        // DEBUG: Log the calculation for single header view
+                        console.log(`[LanguageCard Single] ${viewMode}:`, {
+                            scale: headerStyle.scale,
+                            styleBaseRem,
+                            primaryScale: primarySettings.scale,
+                            finalSizePx,
+                            styleIdForTag
+                        });
 
                         const forcedLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
                             ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
                             : undefined;
 
-                        const activeGroup = primaryFont?.metricGroupId ? metricGroups?.[primaryFont.metricGroupId] : null;
                         const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
-                            (activeGroup?.lineHeight !== undefined && activeGroup?.lineHeight !== '' && activeGroup?.lineHeight !== 'normal') ||
                             (primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== '' && primaryFont?.lineHeight !== 'normal')
                         );
 
@@ -705,14 +744,14 @@ const LanguageCard = ({ language }) => {
                         // Browser Guide: Line Box Visualization
                         // Vertical repeating stripes matching effectiveLineHeight
                         const browserGuideStyle = showBrowserGuides ? {
-                            backgroundImage: `repeating-linear-gradient(
-                                to bottom,
-                                rgba(59, 130, 246, 0.05) 0em,
-                                rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
-                                rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
-                                rgba(59, 130, 246, 0.2) ${numericLineHeight}em
-                            )`,
-                            backgroundSize: `100% ${numericLineHeight}em`
+                            backgroundImage: `repeating - linear - gradient(
+    to bottom,
+    rgba(59, 130, 246, 0.05) 0em,
+    rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
+    rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
+    rgba(59, 130, 246, 0.2) ${numericLineHeight}em
+)`,
+                            backgroundSize: `100 % ${numericLineHeight} em`
                         } : {};
 
                         const isActualOverride = primaryFont?.id === primaryOverrideId;
@@ -733,13 +772,13 @@ const LanguageCard = ({ language }) => {
                                             (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
                                         ) ? 'normal'
                                             : effectiveLineHeight,
-                                        letterSpacing: `${headerStyle.letterSpacing || 0}em`,
+                                        letterSpacing: `${headerStyle.letterSpacing || 0} em`,
                                         textTransform: textCase,
                                         position: 'relative',
                                         ...browserGuideStyle
                                     }}
                                 >
-                                    {renderedTextByStyleId[styleIdForTag]}
+                                    {renderedTextByStyleId[styleIdForTag] || contentToRender}
                                     {alignmentStyle.backgroundImage && (
                                         <div
                                             aria-hidden="true"
@@ -768,32 +807,15 @@ const FontConfigDropdown = ({
     fallbackOverrideFontId,
     fallbackOverrideOptions,
     fallbackOverrideFont,
-    hasPrimaryOverride,
-    primaryOverrideFont,
-    primaryFontLabel,
-    metricGroups,
-    activeGroup, // passed or derived
-    onTogglePrimary,
     onSelectFallback,
-    assignFontToMetricGroup,
-    removeFontFromMetricGroup,
-    addMetricGroup,
-    getEffectiveFontSettingsForStyle,
-    fontScales,
     isOpen,
     onToggle,
-    onClose
+    onClose,
+    addLanguageSpecificFallbackFont
 }) => {
-    const [menuView, setMenuView] = useState('main');
     const dropdownRef = useRef(null);
-
-    // activeGroup is likely passed as prop but let's derive if needed or use prop
-    // The parent passes 'activeGroup' based on previous context, but let's ensure.
-    // Actually the parent props seemed to lack 'activeGroup' in propTypes but it was used in code?
-    // Let's re-derive it to be safe if it's available in scope, 
-    // BUT 'metricGroups' and 'primaryOverrideFont' are passed.
-    const derivedActiveGroup = primaryOverrideFont?.metricGroupId && metricGroups ? metricGroups[primaryOverrideFont.metricGroupId] : null;
-    const currentActiveGroup = activeGroup || derivedActiveGroup;
+    const fileInputRef = useRef(null);
+    const [showFontModal, setShowFontModal] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -810,30 +832,54 @@ const FontConfigDropdown = ({
         };
     }, [isOpen, onClose]);
 
-    // Reset view when closed
-    useEffect(() => {
-        if (!isOpen) {
-            setMenuView('main');
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const { font: parsedFont, metadata } = await parseFontFile(file);
+            const url = createFontUrl(file);
+
+            addLanguageSpecificFallbackFont(
+                parsedFont,
+                url,
+                file.name,
+                metadata,
+                language.id
+            );
+
+            // Close dropdown
+            onClose();
+        } catch (err) {
+            console.error('Error uploading fallback font:', err);
+            alert('Failed to load font file. Please try another file.');
+        } finally {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
-    }, [isOpen]);
+    };
 
-    // Determine label using prop
-    let label = currentFallbackLabel;
-
-    // If Primary Override is active, show summary
-    if (hasPrimaryOverride) {
-        label = `Primary + ${label}`;
-    }
+    // Use the current fallback label directly
+    const label = currentFallbackLabel;
 
     return (
         <div className="relative" ref={dropdownRef}>
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".ttf,.otf,.woff,.woff2"
+                onChange={handleFileUpload}
+            />
             <button
                 onClick={onToggle}
-                className={`flex items-center gap-1.5 bg-white border rounded-md pl-2 pr-2 py-1 text-[11px] font-medium min-w-[120px] justify-between transition-colors ${isOpen ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                className={`flex items - center gap - 1.5 bg - white border rounded - md pl - 2 pr - 2 py - 1 text - [11px] font - medium min - w - [120px] justify - between transition - colors ${isOpen ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-gray-200 hover:border-gray-300'
+                    } `}
                 title="Configure Fonts"
             >
-                <span className={`truncate max-w-[140px] ${hasPrimaryOverride ? 'text-indigo-600' : 'text-slate-700'}`}>
+                <span className="truncate max-w-[140px] text-slate-700">
                     {label}
                 </span>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 flex-shrink-0">
@@ -843,238 +889,53 @@ const FontConfigDropdown = ({
 
             {isOpen && (
                 <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-
-                    {menuView === 'main' ? (
-                        <>
-                            {/* Primary Section */}
-                            <div className="p-2 border-b border-gray-100 bg-slate-50/50">
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center justify-between">
-                                        {hasPrimaryOverride && currentActiveGroup ? (
-                                            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 w-full justify-between">
-                                                <span className="text-[9px] font-bold text-indigo-600 truncate" title={currentActiveGroup.name}>
-                                                    {currentActiveGroup.name}
-                                                </span>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        removeFontFromMetricGroup(primaryOverrideFont.id);
-                                                    }}
-                                                    className="text-indigo-400 hover:text-rose-500 rounded-full hover:bg-white p-0.5"
-                                                    title="Unlink from group"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
-                                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setMenuView('options');
-                                                }}
-                                                className={`w-full flex items-center justify-between gap-1 text-[10px] font-medium px-2 py-1.5 rounded transition-colors ${hasPrimaryOverride
-                                                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
-                                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
-                                                    }`}
-                                            >
-                                                <span>{hasPrimaryOverride ? 'Overridden' : 'Override Primary'}</span>
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 opacity-50">
-                                                    <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                                                </svg>
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                    <div className="p-2 space-y-1">
+                        {/* Select Font Button */}
+                        <button
+                            onClick={() => {
+                                setShowFontModal(true);
+                                onClose();
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-sm rounded-lg flex items-center gap-3 group text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-indigo-600">
+                                <path fillRule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                            </svg>
+                            <div className="flex-1">
+                                <div className="font-medium text-slate-800">Select Font</div>
+                                <div className="text-xs text-slate-500 mt-0.5">Choose from uploaded fonts</div>
                             </div>
+                        </button>
 
-                            {/* Fallback Section */}
-                            <div className="max-h-60 overflow-y-auto p-1">
-                                {fallbackOverrideOptions.length > 0 && (
-                                    <>
-                                        <div className="px-2 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                            CUSTOM
-                                        </div>
-                                        {fallbackOverrideOptions.map(opt => (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => onSelectFallback(opt.id)}
-                                                className={`w-full text-left px-2 py-1.5 text-xs rounded mb-0.5 flex items-center gap-2 group ${(fallbackOverrideFontId === opt.id || (fallbackOverrideFont?.fileName === opt.fileName && fallbackOverrideFont?.name === opt.name))
-                                                    ? 'bg-indigo-50/50 text-indigo-700 font-medium' : 'text-slate-600 hover:bg-slate-50'
-                                                    }`}
-                                            >
-                                                <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${(fallbackOverrideFontId === opt.id || (fallbackOverrideFont?.fileName === opt.fileName && fallbackOverrideFont?.name === opt.name))
-                                                    ? 'border-indigo-600 bg-white'
-                                                    : 'border-slate-300 bg-transparent group-hover:border-slate-400'
-                                                    }`}>
-                                                    {(fallbackOverrideFontId === opt.id || (fallbackOverrideFont?.fileName === opt.fileName && fallbackOverrideFont?.name === opt.name)) && (
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                                                    )}
-                                                </span>
-                                                <span className="truncate">{opt.label}</span>
-                                            </button>
-                                        ))}
-                                        <div className="h-px bg-gray-100 my-1 mx-2"></div>
-                                    </>
-                                )}
-
-                                <div className="px-2 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                    DEFAULTS
-                                </div>
-
-                                <button
-                                    onClick={() => onSelectFallback('')}
-                                    className={`w-full text-left px-2 py-1.5 text-xs rounded mb-0.5 flex items-center gap-2 group ${!fallbackOverrideFontId ? 'bg-indigo-50/50 text-indigo-700 font-medium' : 'text-slate-600 hover:bg-slate-50'
-                                        }`}
-                                >
-                                    <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${!fallbackOverrideFontId
-                                        ? 'border-indigo-600 bg-white'
-                                        : 'border-slate-300 bg-transparent group-hover:border-slate-400'
-                                        }`}>
-                                        {!fallbackOverrideFontId && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                                        )}
-                                    </span>
-                                    <span>Auto (Default)</span>
-                                </button>
-
-                                <button
-                                    onClick={() => onSelectFallback('legacy')}
-                                    className={`w-full text-left px-2 py-1.5 text-xs rounded mb-0.5 flex items-center gap-2 group ${fallbackOverrideFontId === 'legacy' ? 'bg-indigo-50/50 text-indigo-700 font-medium' : 'text-slate-600 hover:bg-slate-50'
-                                        }`}
-                                >
-                                    <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${fallbackOverrideFontId === 'legacy'
-                                        ? 'border-indigo-600 bg-white'
-                                        : 'border-slate-300 bg-transparent group-hover:border-slate-400'
-                                        }`}>
-                                        {fallbackOverrideFontId === 'legacy' && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                                        )}
-                                    </span>
-                                    <span>System Fallback</span>
-                                </button>
+                        {/* Upload Font Button */}
+                        <button
+                            onClick={() => {
+                                fileInputRef.current?.click();
+                                onClose();
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-sm rounded-lg flex items-center gap-3 group text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-indigo-600">
+                                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                            </svg>
+                            <div className="flex-1">
+                                <div className="font-medium text-slate-800">Upload Font</div>
+                                <div className="text-xs text-slate-500 mt-0.5">Add a new font file</div>
                             </div>
-                        </>
-                    ) : (
-                        // Options View
-                        <div className="p-1 min-h-[200px] flex flex-col">
-                            <div className="p-2 border-b border-gray-100 flex items-center gap-2 mb-1">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setMenuView('main');
-                                    }}
-                                    className="text-slate-400 hover:text-slate-600"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                                        <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l-4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
-                                <span className="text-xs font-semibold text-slate-700">Primary Options</span>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onTogglePrimary(); // Toggles override
-                                        setMenuView('main');
-                                    }}
-                                    className={`w-full text-left px-3 py-2 text-xs font-medium flex items-center gap-2 hover:bg-slate-50 ${hasPrimaryOverride ? 'text-rose-600' : 'text-indigo-600'}`}
-                                >
-                                    {hasPrimaryOverride ? (
-                                        <>
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                                            </svg>
-                                            Remove Override
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                                            </svg>
-                                            Override for this language
-                                        </>
-                                    )}
-                                </button>
-
-                                <div className="h-px bg-slate-100 my-1 mx-2" />
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const groupName = prompt('Enter name for new group:');
-                                        if (groupName) {
-                                            const settings = {
-                                                scale: undefined,
-                                                h1Rem: undefined,
-                                                lineHeight: undefined,
-                                                letterSpacing: undefined,
-                                                weight: undefined
-                                            };
-
-                                            // Use existing font settings if available
-                                            if (primaryOverrideFont) {
-                                                const effectiveSettings = getEffectiveFontSettingsForStyle(primaryOverrideFont.id);
-                                                settings.scale = effectiveSettings?.scale !== fontScales?.fallback ? effectiveSettings?.scale : undefined;
-                                                settings.h1Rem = primaryOverrideFont.h1Rem;
-                                                settings.lineHeight = primaryOverrideFont.lineHeight;
-                                                settings.letterSpacing = primaryOverrideFont.letterSpacing;
-                                                settings.weight = primaryOverrideFont.weightOverride;
-                                                settings.ascentOverride = primaryOverrideFont.ascentOverride;
-                                                settings.descentOverride = primaryOverrideFont.descentOverride;
-                                                settings.lineGapOverride = primaryOverrideFont.lineGapOverride;
-                                            }
-
-                                            const newGroupId = addMetricGroup(groupName, settings);
-
-                                            if (primaryOverrideFont) {
-                                                assignFontToMetricGroup(primaryOverrideFont.id, newGroupId);
-                                            } else {
-                                                alert("Please 'Override for this language' first before grouping.");
-                                            }
-                                            setMenuView('main');
-                                        }
-                                    }}
-                                    className={`w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 font-medium flex items-center gap-2 ${!hasPrimaryOverride ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    disabled={!hasPrimaryOverride}
-                                    title={!hasPrimaryOverride ? "Active override required to group" : ""}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                        <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                                    </svg>
-                                    Create New Group
-                                </button>
-
-                                {Object.values(metricGroups || {}).length > 0 && (
-                                    <>
-                                        <div className="px-2 py-1 text-[9px] font-bold text-slate-400 uppercase mt-1">Existing Groups</div>
-                                        {Object.values(metricGroups).map(g => (
-                                            <button
-                                                key={g.id}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (primaryOverrideFont) {
-                                                        if (window.confirm(`Adding this language to "${g.name}" will overwrite its current configuration with the group's settings. Continue?`)) {
-                                                            assignFontToMetricGroup(primaryOverrideFont.id, g.id);
-                                                            setMenuView('main');
-                                                        }
-                                                    }
-                                                }}
-                                                className={`w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 truncate ${!hasPrimaryOverride ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                disabled={!hasPrimaryOverride}
-                                            >
-                                                {g.name}
-                                            </button>
-                                        ))}
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                        </button>
+                    </div>
                 </div>
+            )}
+
+            {/* Font Selection Modal */}
+            {showFontModal && (
+                <FontSelectionModal
+                    onClose={() => setShowFontModal(false)}
+                    onSelect={onSelectFallback}
+                    currentFontId={fallbackOverrideFontId || ''}
+                    fontOptions={fallbackOverrideOptions}
+                    title={`Select Font for ${language.name}`}
+                />
             )}
         </div>
     );
@@ -1085,11 +946,12 @@ FontConfigDropdown.propTypes = {
     currentFallbackLabel: PropTypes.string.isRequired,
     fallbackOverrideFontId: PropTypes.string,
     fallbackOverrideOptions: PropTypes.array.isRequired,
-    hasPrimaryOverride: PropTypes.bool.isRequired,
     fallbackOverrideFont: PropTypes.object,
-    primaryFontLabel: PropTypes.string,
-    onTogglePrimary: PropTypes.func.isRequired,
-    onSelectFallback: PropTypes.func.isRequired
+    onSelectFallback: PropTypes.func.isRequired,
+    isOpen: PropTypes.bool.isRequired,
+    onToggle: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
+    addLanguageSpecificFallbackFont: PropTypes.func.isRequired
 };
 
 LanguageCard.propTypes = {
