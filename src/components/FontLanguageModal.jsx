@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -18,7 +18,7 @@ import { useTypo } from '../context/useTypo';
 import LanguageList from './LanguageList';
 import SortableFontRow from './SortableFontRow';
 
-const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel }) => {
+const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialAssignments = {} }) => {
     const { languages } = useTypo();
     const [fonts, setFonts] = useState(() =>
         pendingFonts.map((f, i) => ({ ...f, id: `pending-${i}` }))
@@ -26,14 +26,48 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel }) => {
     const [assignments, setAssignments] = useState(() => {
         const initial = {};
         pendingFonts.forEach(f => {
-            initial[f.file.name] = 'auto';
+            initial[f.file.name] = initialAssignments[f.file.name] || 'auto';
         });
         return initial;
     });
 
+    // Sync assignments when initialAssignments changes (e.g. if config is parsed after mount)
+    React.useEffect(() => {
+        if (!initialAssignments || Object.keys(initialAssignments).length === 0) return;
+
+        setAssignments(prev => {
+            const next = { ...prev };
+            let hasChanges = false;
+            pendingFonts.forEach(f => {
+                const prefilled = initialAssignments[f.file.name];
+                // Only overwrite if currently 'auto' (don't overwrite user choices) 
+                // OR if we assume this is the initialization phase.
+                // Given the use case (drop config + fonts), overwriting 'auto' is safe and desired.
+                if (prefilled && next[f.file.name] === 'auto') {
+                    next[f.file.name] = prefilled;
+                    hasChanges = true;
+                }
+            });
+            return hasChanges ? next : prev;
+        });
+    }, [initialAssignments, pendingFonts]);
+
     const [view, setView] = useState('list'); // 'list' or 'picker'
     const [pickingForFont, setPickingForFont] = useState(null);
     const [pickerSearchTerm, setPickerSearchTerm] = useState('');
+
+    const scrollContainerRef = useRef(null);
+    const scrollPositionRef = useRef(0);
+
+    useLayoutEffect(() => {
+        if (!scrollContainerRef.current) return;
+
+        if (view === 'list') {
+            scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+        } else if (view === 'picker') {
+            scrollContainerRef.current.scrollTop = 0;
+        }
+    }, [view]);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -79,6 +113,9 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel }) => {
     const handleOpenLanguagePicker = (fontId) => {
         const font = fonts.find(f => f.id === fontId);
         if (font) {
+            if (scrollContainerRef.current) {
+                scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+            }
             setPickingForFont(font.file.name);
             setView('picker');
         }
@@ -121,7 +158,10 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel }) => {
                 </div>
 
                 {/* Body */}
-                <div className="overflow-auto flex-1 p-6 custom-scrollbar bg-white min-h-0">
+                <div
+                    ref={scrollContainerRef}
+                    className="overflow-auto flex-1 p-6 custom-scrollbar bg-white min-h-0"
+                >
                     {view === 'list' ? (
                         <DndContext
                             sensors={sensors}

@@ -94,7 +94,7 @@ describe('ConfigService Persistence (Mega Test)', () => {
                     },
 
                     primaryFontOverrides: {
-                        // Future proofing if used
+                        'fr-FR': 'font-primary-1'
                     }
                 }
             },
@@ -120,6 +120,7 @@ describe('ConfigService Persistence (Mega Test)', () => {
             },
 
             // 5. UI STATE / VIEW SETTINGS
+            activeConfigTab: 'ja-JP', // Testing active tab persistence
             visibleLanguageIds: ['en-US', 'ja-JP', 'ru-RU'],
             headerFontStyleMap: {
                 h1: 'primary',
@@ -204,6 +205,12 @@ describe('ConfigService Persistence (Mega Test)', () => {
         // Ensure that valid overrides were NOT stripped
         expect(validated.fontStyles.primary.fallbackFontOverrides['ja-JP']).toEqual({ 'font-fallback-1': 'font-lang-jp' });
         expect(validated.fontStyles.primary.fallbackFontOverrides['ru-RU']).toBe('font-fallback-1');
+
+        // Verify Primary Font Override persistence
+        expect(validated.fontStyles.primary.primaryFontOverrides['fr-FR']).toBe('font-primary-1');
+
+        // Verify Active Config Tab persistence
+        expect(exportedData.activeConfigTab).toBe('ja-JP');
     });
 
     it('should clean up orphaned overrides during validation', () => {

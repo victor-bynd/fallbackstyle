@@ -10,18 +10,39 @@ const MissingFontsModal = ({ missingFonts, existingFiles = [], onResolve, onCanc
         }
     };
 
-    const isResolved = (filename) => {
-        return files.some(f => f.name === filename);
+    const isResolved = (fontName) => {
+        // Strict match or Fuzzy match
+        return files.some(f => {
+            if (f.name === fontName) return true;
+
+            // Fuzzy: if filename includes font name (e.g. "Brand Sans" in "BrandSans-Regular.ttf")
+            // Normalize both: remove spaces, lowercase
+            const normReq = fontName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const normFile = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            return normFile.includes(normReq);
+        });
     };
 
     const allResolved = missingFonts.every(isResolved);
 
     const handleConfirm = () => {
-        // Create map of filename -> file
-        const fileMap = {};
-        files.forEach(f => {
-            fileMap[f.name] = f;
+        // Create map of requestName -> matchedFile
+        // This is crucial: the app expects mapping from the REQUESTED 'filename' keys to the ACTUAL uploaded files.
+        const fileMap = {}; // requestedName -> file
+
+        missingFonts.forEach(req => {
+            const match = files.find(f => {
+                if (f.name === req) return true;
+                const normReq = req.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const normFile = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return normFile.includes(normReq);
+            });
+            if (match) {
+                fileMap[req] = match;
+            }
         });
+
         onResolve(fileMap);
     };
 

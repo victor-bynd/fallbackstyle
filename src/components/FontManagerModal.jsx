@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
     DndContext,
@@ -37,6 +37,20 @@ const FontManagerModal = ({ onClose }) => {
     const [pickingForFontId, setPickingForFontId] = useState(null);
     const [pickerSearchTerm, setPickerSearchTerm] = useState('');
 
+    const scrollContainerRef = useRef(null);
+    const scrollPositionRef = useRef(0);
+
+    // Manage scroll position between views
+    useLayoutEffect(() => {
+        if (!scrollContainerRef.current) return;
+
+        if (view === 'list') {
+            scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+        } else if (view === 'picker') {
+            scrollContainerRef.current.scrollTop = 0;
+        }
+    }, [view]);
+
     const pickingFont = useMemo(() => {
         if (!pickingForFontId) return null;
         return fonts.find(f => f.id === pickingForFontId);
@@ -49,10 +63,10 @@ const FontManagerModal = ({ onClose }) => {
         })
     );
 
-    // Compute assignments map: fontId -> langId (just for visualization component compatibility)
+    // Compute Targets map: fontId -> langId (just for visualization component compatibility)
     // But SortableFontRow expects a map of overrides? 
     // Actually, we need to reverse match: which language is using this font as an override?
-    const assignments = useMemo(() => {
+    const Targets = useMemo(() => {
         const map = {};
         // Check fallback overrides
         Object.entries(fallbackFontOverrides || {}).forEach(([langId, overrides]) => {
@@ -139,6 +153,9 @@ const FontManagerModal = ({ onClose }) => {
     };
 
     const handleOpenLanguagePicker = (fontId) => {
+        if (scrollContainerRef.current) {
+            scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+        }
         setPickingForFontId(fontId);
         setView('picker');
     };
@@ -203,7 +220,10 @@ const FontManagerModal = ({ onClose }) => {
                     )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
+                <div
+                    ref={scrollContainerRef}
+                    className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white"
+                >
                     {view === 'list' ? (
                         <>
                             {/* Font List */}
@@ -227,7 +247,7 @@ const FontManagerModal = ({ onClose }) => {
                                                     onRemove={handleRemove}
                                                     onSetPrimary={handleSetPrimary}
                                                     onOpenLanguagePicker={handleOpenLanguagePicker}
-                                                    assignments={assignments}
+                                                    assignments={Targets}
                                                     languages={languages || []}
                                                 />
                                             ))}
@@ -275,7 +295,7 @@ const FontManagerModal = ({ onClose }) => {
                                 </div>
                             </div>
                             <LanguageList
-                                selectedIds={assignments[pickingForFontId]}
+                                selectedIds={Targets[pickingForFontId]}
                                 onSelect={handleLanguageSelect}
                                 searchTerm={pickerSearchTerm}
                                 onSearchChange={setPickerSearchTerm}

@@ -10,7 +10,9 @@ const LanguageSelectorModal = ({ onClose }) => {
         toggleLanguageVisibility,
         showAllLanguages,
         hideAllLanguages,
-        resetVisibleLanguages
+        resetVisibleLanguages,
+        primaryLanguages, // New
+        togglePrimaryLanguage // New
     } = useTypo();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -80,6 +82,8 @@ const LanguageSelectorModal = ({ onClose }) => {
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     mode="multi"
+                    primaryLanguages={primaryLanguages}
+                    onTogglePrimary={togglePrimaryLanguage}
                 />
 
                 <div className="p-4 border-t border-gray-200 bg-slate-50 flex items-center justify-end shrink-0">

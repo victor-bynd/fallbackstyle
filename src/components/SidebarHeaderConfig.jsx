@@ -1,4 +1,5 @@
 import { useTypo } from '../context/useTypo';
+import InfoTooltip from './InfoTooltip';
 
 const SidebarHeaderConfig = () => {
     const {
@@ -36,7 +37,17 @@ const SidebarHeaderConfig = () => {
         <div className="flex flex-col gap-6 animate-fade-in">
             {/* Header / Back Button */}
             <div className="flex items-center justify-between pb-4">
-                <h3 className="font-bold text-slate-800 text-sm">Header Styles</h3>
+                <div className="flex items-center">
+                    <h3 className="font-bold text-slate-800 text-sm">Header Styles</h3>
+                    <InfoTooltip
+                        content={
+                            <span>
+                                <strong className="block mb-2 text-indigo-300">Core Principle</strong>
+                                Typography properties (line-height, letter-spacing, font-weight) are computed for the element, not per font. Fallback fonts inherit these values but may interpret them differently. To control these independently, you must use separate elements (e.g. spans) for different scripts.
+                            </span>
+                        }
+                    />
+                </div>
                 <button
                     onClick={resetAllHeaderStyles}
                     className={`text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded transition-colors ${hasAnyOverride ? '' : 'invisible pointer-events-none'}`}

@@ -8,14 +8,18 @@ const LanguageGroupFilter = ({
     configuredLanguages,
     primaryFontOverrides,
     fallbackFontOverrides,
-    onAddLanguage
+    onAddLanguage,
+    supportedLanguages,
+    targetedLanguages
 }) => {
     // 1. Get all relevant language objects (Same logic as valid languages)
+    // Deprecated inner calculation, preferring props, but fallback for safety
     const languageObjects = useMemo(() => {
+        if (supportedLanguages) return supportedLanguages;
         return (configuredLanguages || [])
             .map(id => languagesData.find(l => l.id === id))
             .filter(Boolean);
-    }, [configuredLanguages]);
+    }, [configuredLanguages, supportedLanguages]);
 
     // 2. Group them
     const groups = useMemo(() => {
@@ -38,7 +42,7 @@ const LanguageGroupFilter = ({
                 ALL
             </button>
 
-            {/* ALL TARGETTED Tab */}
+            {/* ALL TARGETED Tab */}
             <button
                 onClick={() => onSelectGroup('ALL_TARGETED')}
                 className={`
@@ -49,7 +53,7 @@ const LanguageGroupFilter = ({
                     }
                 `}
             >
-                ALL TARGETTED
+                ALL TARGETED
             </button>
 
             {groups.map((group) => {
@@ -70,15 +74,7 @@ const LanguageGroupFilter = ({
                     </button>
                 );
             })}
-            <button
-                onClick={() => onAddLanguage(null)}
-                className="ml-1 w-6 h-6 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors border border-indigo-100 shrink-0"
-                title="Add Language Group"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                </svg>
-            </button>
+
         </div>
     );
 };

@@ -11,10 +11,17 @@ import ViewModeSelector from './components/ViewModeSelector';
 import MissingFontsModal from './components/MissingFontsModal';
 import LanguageGroupFilter from './components/LanguageGroupFilter';
 import AddLanguageModal from './components/AddLanguageModal';
+import FontLanguageModal from './components/FontLanguageModal';
+import { parseFontFile, createFontUrl } from './services/FontLoader';
+
 import { useConfigImport } from './hooks/useConfigImport';
+import { TsExportService } from './services/TsExportService';
+import { TsImportService } from './services/TsImportService';
 
 import { useFontFaceStyles } from './hooks/useFontFaceStyles';
 import { getLanguageGroup } from './utils/languageUtils';
+import { PersistenceService } from './services/PersistenceService';
+import ResetConfirmModal from './components/ResetConfirmModal';
 
 const MainContent = ({
   sidebarMode,
@@ -26,34 +33,211 @@ const MainContent = ({
   setShowLanguageModal,
   addLanguageGroupFilter,
   setAddLanguageGroupFilter,
-  highlitLanguageId
+  highlitLanguageId,
+  setHighlitLanguageId,
+  setPreviewMode
 }) => {
   const {
     fontObject,
+    fontStyles,
+    headerStyles,
     gridColumns,
     setGridColumns,
-    visibleLanguages,
-    visibleLanguageIds,
+    primaryFontOverrides,
+    fallbackFontOverrides,
+    addConfiguredLanguage,
+    addLanguageSpecificPrimaryFontFromId,
+    isLanguageTargeted,
+    supportedLanguages, // New export
+    targetedLanguageIds,
     languages,
+    configuredLanguages,
+    primaryLanguages, // New
+
+    // Restore missing variables
     showFallbackColors,
     setShowFallbackColors,
     showAlignmentGuides,
     toggleAlignmentGuides,
     showBrowserGuides,
     toggleBrowserGuides,
-    activeConfigTab,
+
     setActiveConfigTab,
-    configuredLanguages,
-    removeConfiguredLanguage,
-    primaryFontOverrides,
-    fallbackFontOverrides,
-    addConfiguredLanguage,
-    addLanguageSpecificPrimaryFontFromId
+    activeConfigTab
   } = useTypo();
 
-  const { importConfig, missingFonts, resolveMissingFonts, cancelImport } = useConfigImport();
-  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+  const { importConfig, missingFonts, existingFiles, resolveMissingFonts, cancelImport, parsedAssignments } = useConfigImport();
+  // Removed local showLanguageSelector state
   const [showListSettings, setShowListSettings] = useState(false);
+  const [pendingFonts, setPendingFonts] = useState([]);
+  const [pendingFileMap, setPendingFileMap] = useState(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+
+
+  // Sync highlitLanguageId with activeConfigTab to prevent double selection
+  useEffect(() => {
+    if (activeConfigTab === 'ALL') {
+      if (highlitLanguageId !== null) {
+        setHighlitLanguageId(null);
+      }
+    } else {
+      const targetId = activeConfigTab === 'primary' ? 'en-US' : activeConfigTab;
+      if (highlitLanguageId !== targetId) {
+        setHighlitLanguageId(targetId);
+      }
+    }
+  }, [activeConfigTab, highlitLanguageId, setHighlitLanguageId]);
+
+  const { getExportConfiguration, addLanguageSpecificFallbackFont, loadFont } = useTypo();
+
+  const handleExport = () => {
+    const config = getExportConfiguration();
+    const json = JSON.stringify(config, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    // Month is 0-indexed, so +1
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+
+    const timestamp = `${month}-${day}-${year}`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `config-${timestamp}.fall`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleTsExport = () => {
+    // fontStyles, headerStyles, primaryFontOverrides, fallbackFontOverrides are available in scope
+    const tsContent = TsExportService.generateTsContent({
+      fontStyles,
+      headerStyles,
+      primaryFontOverrides,
+      fallbackFontOverrides
+    });
+
+    const blob = new Blob([tsContent], { type: 'text/typescript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `typography.types.ts`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+
+
+
+
+  const handleImport = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.name.endsWith('.ts')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const config = TsImportService.parseTsContent(event.target.result);
+            // We fake a wrapper for the importConfig to consume?
+            // importConfig expects the raw structure (which supports normalization).
+            // TsImportService returns a structure compatible with 'normalizedConfig'.
+            // But useConfigImport.importConfig normally reads the file itself. 
+            // We should expose a method on useConfigImport to 'loadRawConfig(data)' or similar?
+            // Or we can just call the internal validator if we had access?
+            // useConfigImport returns 'importConfig(file)'.
+
+            // Let's modify useConfigImport to allow passing an object directly? 
+            // Or we create a Blob/File from the JSON string of our parsed config and pass that?
+            // Creating a config blob is safer integration-wise.
+
+            const blob = new Blob([JSON.stringify(config)], { type: 'application/json' });
+            const jsonFile = new File([blob], "imported-config.json", { type: "application/json" });
+            importConfig(jsonFile);
+
+          } catch (err) {
+            console.error(err);
+            alert(err.message);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        importConfig(file);
+      }
+    }
+    // Reset input
+    e.target.value = '';
+  };
+
+  const handleResolve = async (fileMap) => {
+    const files = Object.values(fileMap);
+    const processed = [];
+
+    for (const file of files) {
+      try {
+        const { font, metadata } = await parseFontFile(file);
+        const url = createFontUrl(file);
+        processed.push({ font, metadata, url, file });
+      } catch (err) {
+        console.error("Error parsing during import resolution:", err);
+      }
+    }
+
+    if (processed.length > 0) {
+      setPendingFonts(processed);
+      setPendingFileMap(fileMap);
+    } else {
+      resolveMissingFonts(fileMap);
+    }
+  };
+
+  const handleAssignmentsConfirm = async ({ assignments, orderedFonts }) => {
+    // First restore the main config
+    await resolveMissingFonts(pendingFileMap);
+
+    // Load the designated Primary font to ensure it's the main session font
+    // We do this AFTER restoration because restoreConfiguration overwrites fontStyles
+    const primaryItem = orderedFonts[0];
+    if (primaryItem) {
+      loadFont(
+        primaryItem.font,
+        primaryItem.url,
+        primaryItem.file.name,
+        primaryItem.metadata
+      );
+    }
+
+    // Then apply the language fallback overrides for the newly uploaded fonts, respecting the user's order
+    orderedFonts.forEach((item, index) => {
+      if (index === 0) return; // Skip primary
+
+      const target = assignments[item.file.name];
+      if (target !== 'auto') {
+        addLanguageSpecificFallbackFont(
+          item.font,
+          item.url,
+          item.file.name,
+          item.metadata,
+          target
+        );
+      }
+    });
+
+    setPendingFonts([]);
+    setPendingFileMap(null);
+  };
+
+  const handleResetApp = async () => {
+    await PersistenceService.clear();
+    window.location.reload();
+  };
 
   const listSettingsRef = useRef(null);
   const toolbarRef = useRef(null);
@@ -175,19 +359,76 @@ const MainContent = ({
                     <ViewModeSelector />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Import Config */}
+                  <label className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg cursor-pointer transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Import</span>
+                    <input
+                      type="file"
+                      accept=".json,.fall"
+                      className="hidden"
+                      onChange={handleImport}
+                    />
+                  </label>
+
+                  {/* Export Config */}
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg transition-all shadow-sm shadow-indigo-100"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Export</span>
+                  </button>
+
+                  {/* Import TS */}
+                  <label className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg cursor-pointer transition-all">
+                    <span className="font-mono text-[10px]">TS</span>
+                    <span>Import</span>
+                    <input
+                      type="file"
+                      accept=".ts"
+                      className="hidden"
+                      onChange={handleImport}
+                    />
+                  </label>
+
+                  {/* Export TS */}
+                  <button
+                    onClick={handleTsExport}
+                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition-all"
+                  >
+                    <span className="font-mono text-[10px]">TS</span>
+                    <span>Export</span>
+                  </button>
+                </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setShowLanguageSelector(true);
-                  setShowListSettings(false);
-                }}
-                className="w-full bg-white border border-gray-200 flex items-center justify-between px-3 h-[42px] text-sm text-slate-700 font-medium hover:bg-slate-50 transition-colors rounded-lg"
-                type="button"
-              >
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Languages</span>
-                <span className="font-mono text-xs text-slate-500">{visibleLanguageIds.length}/{languages.length}</span>
-              </button>
+              <div className="mb-3 pb-3 border-b border-gray-100">
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-lg transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                  </svg>
+                  <span>Reset App State</span>
+                </button>
+              </div>
+
+              {/* REMOVED: Language button inside dropdown */}
+              {/* <button ... Languages ... /> */}
 
               <div className="mt-3">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Columns</div>
@@ -256,6 +497,19 @@ const MainContent = ({
                       <span className={`${showBrowserGuides ? 'translate-x-[18px]' : 'translate-x-0.5'} inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out`} />
                     </button>
                   </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-slate-700 font-medium">Live Website Preview</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewMode(true);
+                        setShowListSettings(false);
+                      }}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
+                    >
+                      Open
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -268,50 +522,35 @@ const MainContent = ({
           <div className="max-w-xl w-full">
             <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">Fallback Styles</h1>
             <p className="text-center text-gray-500 mb-8">Stress-test fallback fonts for beautiful localized typography.</p>
-            <FontUploader />
+            <FontUploader importConfig={importConfig} />
 
-            <div className="mt-8 pt-8 border-t border-gray-100 flex justify-center">
-              <label className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 hover:text-indigo-600 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-200 rounded-lg cursor-pointer transition-all shadow-sm hover:shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>Import Configuration</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      importConfig(e.target.files[0]);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-              </label>
-            </div>
+
           </div>
         </div>
       ) : (
-        <div className="p-8 md:p-10">
+        <div
+          className="p-8 md:p-10 min-h-screen cursor-default"
+          onClick={() => {
+            // Background click to unselect
+            setActiveConfigTab('ALL');
+            if (setHighlitLanguageId) setHighlitLanguageId(null);
+            // useTypo context handles this generally, but we might need to reset highlight if it was passed down differently?
+            // Actually MainContent props has highlitLanguageId, but activeConfigTab is in context.
+            // Let's assume activeConfigTab is the main "selection" state.
+            // If the user meant "highlight" in sidebar also clears, we might need a prop callback or context usage.
+            // The sidebar handles setHighlitLanguageId locally/via prop. MainContent receives it.
+            // So to clear highlight, we might need to call a prop function if it existed?
+            // Wait, App.jsx manages setHighlitLanguageId. MainContent receives highlitLanguageId but not setHighlitLanguageId?
+            // MainContent definition: const MainContent = ({ ... highlitLanguageId, ... })
+            // It clearly doesn't receive setHighlitLanguageId in destructuring at line 30.
+            // Ah, wait. I should check if I can modify setHighlitLanguageId from here or if clearConfigTab is enough.
+          }}
+        >
           <div
             ref={toolbarRef}
             className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4 min-h-[42px]"
           >
-            <div className="w-full md:w-auto overflow-hidden">
-              <LanguageGroupFilter
-                selectedGroup={selectedGroup}
-                onSelectGroup={(group) => {
-                  setSelectedGroup(group);
-                  setActiveConfigTab('ALL');
-                }}
-                configuredLanguages={configuredLanguages}
-                primaryFontOverrides={primaryFontOverrides}
-                fallbackFontOverrides={fallbackFontOverrides}
-                onAddLanguage={onAddLanguage}
-              />
-            </div>
+            {/* LanguageGroupFilter moved to SideBar */}
 
             <div className={`flex flex-col sm:flex-row gap-4 items-center transition-opacity duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'} `}>
               <button
@@ -325,15 +564,15 @@ const MainContent = ({
               </button>
 
               <button
-                onClick={() => setShowLanguageSelector(true)}
+                onClick={() => setPreviewMode(true)}
                 className="bg-white border border-gray-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-2 h-[42px]"
                 type="button"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S12 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S12 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m-15.686 0A11.953 11.953 0 0112 10.5c2.998 0 5.74-1.1 7.843-2.918m-15.686 0A8.959 8.959 0 013 12c0 .778.099 1.533.284 2.253" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                  <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 8.201 2.66 9.336 6.41.147.481.147.974 0 1.455C18.201 14.66 14.257 17.335 10 17.335s-8.201-2.675-9.336-6.745zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd" />
                 </svg>
-                <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Languages</span>
-                <span className="font-mono text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 ml-1">{visibleLanguageIds.length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline">Live Website Preview</span>
               </button>
 
               <div className="relative group">
@@ -372,11 +611,25 @@ const MainContent = ({
             </div>
           </div>
           <div className="grid gap-4 transition-all duration-300 ease-in-out" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
-            {(selectedGroup === 'ALL' ? languages : visibleLanguages).filter(lang => {
-              if (selectedGroup === 'ALL' || selectedGroup === 'ALL_TARGETED') return true;
-              if (!selectedGroup) return true;
-              return getLanguageGroup(lang) === selectedGroup;
-            }).map(lang => (
+            {(() => {
+              if (selectedGroup === 'ALL_TARGETED') {
+                // Filter full DB languages by targeted IDs
+                return languages.filter(l => targetedLanguageIds.includes(l.id));
+              }
+
+              if (selectedGroup === 'ALL') {
+                return supportedLanguages;
+              }
+
+              // For specific groups, we filter supportedLanguages
+              // For specific groups, we filter supportedLanguages AND include primaryLanguages
+              const visible = supportedLanguages.filter(lang =>
+                getLanguageGroup(lang) === selectedGroup || primaryLanguages.includes(lang.id)
+              );
+              // De-duplicate in case a primary language is also in the group
+              return Array.from(new Set(visible.map(l => l.id)))
+                .map(id => visible.find(l => l.id === id));
+            })().map(lang => (
               <LanguageCard
                 key={lang.id}
                 language={lang}
@@ -387,9 +640,12 @@ const MainContent = ({
         </div>
       )}
 
+      {/* REMOVED: LanguageSelectorModal moved to App */}
+      {/* 
       {showLanguageSelector && (
         <LanguageSelectorModal onClose={() => setShowLanguageSelector(false)} />
       )}
+      */}
 
       {showLanguageModal && (
         <AddLanguageModal
@@ -410,10 +666,30 @@ const MainContent = ({
       {missingFonts && (
         <MissingFontsModal
           missingFonts={missingFonts}
-          onResolve={resolveMissingFonts}
+          existingFiles={existingFiles}
+          onResolve={handleResolve}
           onCancel={cancelImport}
         />
       )}
+
+      {pendingFonts.length > 0 && (
+        <FontLanguageModal
+          pendingFonts={pendingFonts}
+          initialAssignments={parsedAssignments}
+          onConfirm={handleAssignmentsConfirm}
+          onCancel={() => {
+            setPendingFonts([]);
+            setPendingFileMap(null);
+            cancelImport();
+          }}
+        />
+      )}
+
+      <ResetConfirmModal
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={handleResetApp}
+      />
     </div>
   );
 };
@@ -427,6 +703,7 @@ function App() {
   const [highlitLanguageId, setHighlitLanguageId] = useState(null);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [addLanguageGroupFilter, setAddLanguageGroupFilter] = useState(null);
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   const handleAddLanguage = (group) => {
     setAddLanguageGroupFilter(group);
@@ -446,9 +723,11 @@ function App() {
             previewMode={previewMode}
             setPreviewMode={setPreviewMode}
             selectedGroup={selectedGroup}
+            onSelectGroup={setSelectedGroup}
             onAddLanguage={handleAddLanguage}
             highlitLanguageId={highlitLanguageId}
             setHighlitLanguageId={setHighlitLanguageId}
+            onManageLanguages={() => setShowLanguageSelector(true)}
           />
           <MainContent
             sidebarMode={sidebarMode}
@@ -461,8 +740,13 @@ function App() {
             addLanguageGroupFilter={addLanguageGroupFilter}
             setAddLanguageGroupFilter={setAddLanguageGroupFilter}
             highlitLanguageId={highlitLanguageId}
+            setHighlitLanguageId={setHighlitLanguageId}
+            setPreviewMode={setPreviewMode}
           />
         </div>
+        {showLanguageSelector && (
+          <LanguageSelectorModal onClose={() => setShowLanguageSelector(false)} />
+        )}
       </TypoProvider>
     </ErrorBoundary>
   );

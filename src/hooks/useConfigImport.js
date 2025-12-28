@@ -3,16 +3,96 @@ import { useTypo } from '../context/useTypo';
 import { ConfigService } from '../services/ConfigService';
 
 export const useConfigImport = () => {
-    const { restoreConfiguration, fontStyles } = useTypo();
+    const { restoreConfiguration, fontStyles, batchAddConfiguredLanguages } = useTypo();
     const [missingFonts, setMissingFonts] = useState(null);
     const [existingFiles, setExistingFiles] = useState([]);
+    const [parsedAssignments, setParsedAssignments] = useState({});
     const [pendingConfig, setPendingConfig] = useState(null);
 
+    const extractAssignments = (rawConfig) => {
+        const data = rawConfig.data || rawConfig;
+        const extracted = {};
+
+        if (data.fontStyles?.primary) {
+            const style = data.fontStyles.primary;
+            // Helper map: fontId -> { fileName, name }
+            const idsToInfo = {};
+            (style.fonts || []).forEach(f => {
+                if (f.id) {
+                    idsToInfo[f.id] = {
+                        fileName: f.fileName,
+                        name: f.name
+                    };
+                }
+            });
+
+            const addAssignment = (fontId, langId) => {
+                const info = idsToInfo[fontId];
+                if (!info) return;
+
+                if (info.fileName) extracted[info.fileName] = langId;
+                if (info.name) extracted[info.name] = langId;
+            };
+
+            // Process Fallback Overrides
+            if (style.fallbackFontOverrides) {
+                Object.entries(style.fallbackFontOverrides).forEach(([langId, val]) => {
+                    if (typeof val === 'string') {
+                        addAssignment(val, langId);
+                    } else if (typeof val === 'object' && val !== null) {
+                        Object.values(val).forEach(targetId => {
+                            addAssignment(targetId, langId);
+                        });
+                    }
+                });
+            }
+
+            // Process Primary Overrides
+            if (style.primaryFontOverrides) {
+                Object.entries(style.primaryFontOverrides).forEach(([langId, fontId]) => {
+                    addAssignment(fontId, langId);
+                });
+            }
+        }
+        return extracted;
+    };
+
     const validateAndRestore = async (rawConfig) => {
+        // ... (User Language List support checks remain same) ...
+        // Feature: Support User's Language List JSON { "languages": [ { "code": "..." } ] }
+        if (rawConfig.languages && Array.isArray(rawConfig.languages)) {
+            const langIds = rawConfig.languages
+                .map(l => l.code)
+                .filter(c => typeof c === 'string');
+
+            if (langIds.length > 0) {
+                batchAddConfiguredLanguages(langIds);
+                alert(`Enabled ${langIds.length} languages from list.`);
+                return;
+            }
+        }
+
+        // Feature: Support simple Language List import ["en-US", ...]
+        if (Array.isArray(rawConfig) && rawConfig.some(i => typeof i === 'string')) {
+            const langIds = rawConfig.filter(i => typeof i === 'string');
+            if (langIds.length > 0) {
+                batchAddConfiguredLanguages(langIds);
+                alert(`Enabled ${langIds.length} languages.`);
+                return;
+            }
+        }
+
         let data;
         try {
             data = ConfigService.normalizeConfig(rawConfig);
             console.log("Normalized data:", data);
+
+            // Extract assignments immediately when validating
+            const assignments = extractAssignments(rawConfig);
+            if (Object.keys(assignments).length > 0) {
+                setParsedAssignments(assignments);
+            }
+
         } catch (e) {
             console.error("Normalization error:", e);
             alert(`Config processing error: ${e.message}`);
@@ -103,6 +183,7 @@ export const useConfigImport = () => {
         setMissingFonts(null);
         setExistingFiles([]);
         setPendingConfig(null);
+        setParsedAssignments({});
     };
 
     return {
@@ -110,6 +191,7 @@ export const useConfigImport = () => {
         missingFonts,
         existingFiles,
         resolveMissingFonts: handleResolveMissingFonts,
-        cancelImport
+        cancelImport,
+        parsedAssignments // Expose this
     };
 };

@@ -1,167 +1,372 @@
 [
   {
     "id": "en-US",
-    "name": "English (Latin Basic)",
+    "name": "English - US",
     "script": "Latn",
     "pangram": "Snapchat Hits 250 Million Monthly Active Users"
   },
   {
-    "id": "lt-LT",
-    "name": "Lithuanian (Latin Extended)",
+    "id": "en-GB",
+    "name": "English - UK",
     "script": "Latn",
-    "pangram": "Snapchat sasniedz 250 miljonus ikmēneša aktīvo lietotāju"
-  },
-  {
-    "id": "vi-VN",
-    "name": "Vietnamese (Stacked Diacritics)",
-    "script": "Latn",
-    "pangram": "Snapchat đạt 250 triệu người dùng hoạt động hằng tháng"
+    "pangram": "Snapchat Hits 250 Million Monthly Active Users"
   },
   {
     "id": "es-ES",
-    "name": "Spanish (Latin)",
+    "name": "Español - España",
+    "script": "Latn",
+    "pangram": "El veloz murciélago hindú comía feliz cardillo y kiwi"
+  },
+  {
+    "id": "es-MX",
+    "name": "Español - México",
+    "script": "Latn",
+    "pangram": "El veloz murciélago hindú comía feliz cardillo y kiwi"
+  },
+  {
+    "id": "es-AR",
+    "name": "Español - Argentina",
     "script": "Latn",
     "pangram": "El veloz murciélago hindú comía feliz cardillo y kiwi"
   },
   {
     "id": "fr-FR",
-    "name": "French (Latin)",
+    "name": "Français - France",
     "script": "Latn",
     "pangram": "Portez ce vieux whisky au juge blond qui fume"
   },
   {
-    "id": "tr-TR",
-    "name": "Turkish (Latin)",
+    "id": "fr-CA",
+    "name": "Français - Canada",
     "script": "Latn",
-    "pangram": "Pijamalı hasta yağız şoföre çabucak güvendi"
+    "pangram": "Portez ce vieux whisky au juge blond qui fume"
   },
   {
-    "id": "id-ID",
-    "name": "Indonesian (Latin)",
+    "id": "pt-BR",
+    "name": "Português - Brasil",
     "script": "Latn",
-    "pangram": "Muharjo seorang xenofobia universal yang takut pada warga jazirah"
+    "pangram": "A ligeira raposa marrom ataca o cão preguiçoso"
   },
   {
-    "id": "el-GR",
-    "name": "Greek (Greek Script)",
-    "script": "Grek",
-    "pangram": "Το Snapchat φτάνει τους 250 εκατομμύρια μηνιαίους ενεργούς χρήστες"
+    "id": "pt-PT",
+    "name": "Português - Portugal",
+    "script": "Latn",
+    "pangram": "A ligeira raposa marrom ataca o cão preguiçoso"
   },
   {
-    "id": "ru-RU",
-    "name": "Russian (Cyrillic Script)",
-    "script": "Cyrl",
-    "pangram": "Snapchat хиты 250 миллион ежемесячно"
+    "id": "de-DE",
+    "name": "Deutsch",
+    "script": "Latn",
+    "pangram": "Victor jagt zwölf Boxkämpfer quer über den großen Sylter Deich"
   },
   {
-    "id": "bg-BG",
-    "name": "Bulgarian (Cyrillic)",
-    "script": "Cyrl",
-    "pangram": "Я, пазачът Вальо уж бди, а скришом хапва кюфтенца"
+    "id": "it-IT",
+    "name": "Italiano",
+    "script": "Latn",
+    "pangram": "In quel campo si trovan funghi in abbondanza"
   },
   {
-    "id": "ar-SA",
-    "name": "Arabic (Right-to-Left)",
+    "id": "nl-NL",
+    "name": "Nederlands",
+    "script": "Latn",
+    "pangram": "De snelle bruine vos springt over de luie hond"
+  },
+  {
+    "id": "zh-Hans",
+    "name": "中文简体 - Chinese Simplified",
+    "script": "Hans",
+    "pangram": "Snapchat 月活跃用户数达到 2.5 亿。"
+  },
+  {
+    "id": "zh-Hant",
+    "name": "中文繁體 - Chinese Traditional",
+    "script": "Hant",
+    "pangram": "Snapchat 的月活躍用戶數量達到 2.5 億。"
+  },
+  {
+    "id": "ja-JP",
+    "name": "日本語 - Japanese",
+    "script": "Jpan",
+    "pangram": "Snapchatの月間アクティブユーザー数が2億5000万人に達した。"
+  },
+  {
+    "id": "ko-KR",
+    "name": "한국어 - Korean",
+    "script": "Kore",
+    "pangram": "스냅챗 월간 활성 사용자가 2억 5천만 명에 도달했다."
+  },
+  {
+    "id": "ar",
+    "name": "العربية - Arabic",
     "script": "Arab",
     "dir": "rtl",
     "pangram": "سناب شات يصل إلى 250 مليون مستخدم نشط شهريًا"
   },
   {
+    "id": "he-IL",
+    "name": "עברית - Hebrew",
+    "script": "Hebr",
+    "dir": "rtl",
+    "pangram": "דג סקרן שט בים זך אך ולפתע מצא חבורה נחמדה"
+  },
+  {
     "id": "fa-IR",
-    "name": "Persian (Persio-Arabic)",
+    "name": "فارسی - Persian",
     "script": "Arab",
     "dir": "rtl",
     "pangram": "اسنپ\u200cچت به ۲۵۰ میلیون کاربر فعال ماهانه رسید."
   },
   {
     "id": "ur-PK",
-    "name": "Urdu (Arabic Script)",
+    "name": "اردو - Urdu",
     "script": "Arab",
     "dir": "rtl",
     "pangram": "ٹھنڈ میں، ایک قحط زدہ گاؤں سے گذرتے وقت ایک چڑچڑے، باأثر و فارغ شخص کو بعض جل پری نما اژدہے نظر آئے۔"
   },
   {
+    "id": "ru-RU",
+    "name": "Русский - Russian",
+    "script": "Cyrl",
+    "pangram": "Snapchat хиты 250 миллион ежемесячно"
+  },
+  {
+    "id": "uk-UA",
+    "name": "Українська - Ukrainian",
+    "script": "Cyrl",
+    "pangram": "Чуєш їх, доцю, га? Кумедна ж ти, прощайся без ґольфів!"
+  },
+  {
+    "id": "pl-PL",
+    "name": "Polski - Polish",
+    "script": "Latn",
+    "pangram": "Jeżu klątw, spłódź Finom część gry hańb!"
+  },
+  {
+    "id": "tr-TR",
+    "name": "Türkçe - Turkish",
+    "script": "Latn",
+    "pangram": "Pijamalı hasta yağız şoföre çabucak güvendi"
+  },
+  {
+    "id": "cs-CZ",
+    "name": "Čeština - Czech",
+    "script": "Latn",
+    "pangram": "Příliš žluťoučký kůň úpěl ďábelské ódy"
+  },
+  {
+    "id": "hu-HU",
+    "name": "Magyar - Hungarian",
+    "script": "Latn",
+    "pangram": "Árvíztűrő tükörfúrógép"
+  },
+  {
+    "id": "ro-RO",
+    "name": "Română - Romanian",
+    "script": "Latn",
+    "pangram": "Muzicologă în bej vând whisky și tequila, preț fix"
+  },
+  {
+    "id": "bg-BG",
+    "name": "Български - Bulgarian",
+    "script": "Cyrl",
+    "pangram": "Я, пазачът Вальо уж бди, а скришом хапва кюфтенца"
+  },
+  {
+    "id": "kk-KZ",
+    "name": "Қазақша - Kazakh",
+    "script": "Cyrl",
+    "pangram": "А, қамқор, ғафу өтінем, бажу жаз – һау"
+  },
+  {
+    "id": "th-TH",
+    "name": "ภาษาไทย - Thai",
+    "script": "Thai",
+    "pangram": "เป็นมนุษย์สุดประเสริฐเลิศคุณค่า กว่าบรรดาฝูงสัตว์เดรัจฉาน"
+  },
+  {
+    "id": "vi-VN",
+    "name": "Tiếng Việt - Vietnamese",
+    "script": "Latn",
+    "pangram": "Snapchat đạt 250 triệu người dùng hoạt động hằng tháng"
+  },
+  {
+    "id": "id-ID",
+    "name": "Bahasa Indonesia - Indonesian",
+    "script": "Latn",
+    "pangram": "Muharjo seorang xenofobia universal yang takut pada warga jazirah"
+  },
+  {
     "id": "hi-IN",
-    "name": "Hindi (Devanagari)",
+    "name": "हिन्दी - Hindi",
     "script": "Deva",
     "pangram": "स्नैपचैट के मंथली एक्टिव यूज़र्स की संख्या 250 मिलियन हुई"
   },
   {
-    "id": "mr-IN",
-    "name": "Marathi (Devanagari)",
-    "script": "Deva",
-    "pangram": "तू कसा आहेस? मराठी फोंठ तपासणीसाठी हे एक उदाहरण वाक्य आहे."
-  },
-  {
-    "id": "bn-IN",
-    "name": "Bengali (Complex Indic)",
+    "id": "bn-BD",
+    "name": "বাংলা - Bengali",
     "script": "Beng",
     "pangram": "Snapchat-এর মাসিক সক্রিয় ব্যবহারকারীর সংখ্যা ২৫০ মিলিয়নে পৌঁছেছে"
   },
   {
-    "id": "gu-IN",
-    "name": "Gujarati (Gujarati Script)",
-    "script": "Gujr",
-    "pangram": "સરળતા એ સાચા શ્રેષ્ઠતાની નિશાની છે"
-  },
-  {
-    "id": "pa-IN",
-    "name": "Punjabi (Gurmukhi)",
-    "script": "Guru",
-    "pangram": "ਉੜਾ ਐੜਾ ਈੜੀ ਸੱਸਾ ਹਾਹਾ ਕੱਕਾ ਖੱਖਾ ਗੱਗਾ ਘੱਘਾ ਙੰਙਾ"
-  },
-  {
-    "id": "ml-IN",
-    "name": "Malayalam (Malayalam Script)",
-    "script": "Mlym",
-    "pangram": "അഊ അം അഃ ക ഖ ഗ ഘ ങ ച ഛ ജ ഝ ഞ ട ഠ ഡ ഢ ണ ത ഥ ദ ധ ന പ ഫ ബ ഭ മ"
-  },
-  {
     "id": "ta-IN",
-    "name": "Tamil (Tamil Script)",
+    "name": "தமிழ் - Tamil",
     "script": "Taml",
     "pangram": "அனைவருக்கும் வணக்கம். தமிழ் எழுத்துக்கள் அனைத்தும் இதில் உள்ளன."
   },
   {
-    "id": "kn-IN",
-    "name": "Kannada (Indic Script)",
-    "script": "Knda",
-    "pangram": "Snapchat ತಿಂಗಳಿಗೆ 250 ಮಿಲಿಯನ್ ಸಕ್ರಿಯ ಬಳಕೆದಾರರನ್ನು ತಲುಪುತ್ತದೆ"
-  },
-  {
     "id": "te-IN",
-    "name": "Telugu (Indic Script)",
+    "name": "తెలుగు - Telugu",
     "script": "Telu",
     "pangram": "Snapchat నెలవారీ క్రియాశీల వినియోగదారులు 250 మిలియన్లకు చేరుకుంది"
   },
   {
-    "id": "th-TH",
-    "name": "Thai (Stacked Diacritics)",
-    "script": "Thai",
-    "pangram": "Snapchat มีผู้ใช้งานประจำเดือนถึง 250 ล้านคน"
+    "id": "pa-IN",
+    "name": "ਪੰਜਾਬੀ - Punjabi (Gurmukhi)",
+    "script": "Guru",
+    "pangram": "ਉੜਾ ਐੜਾ ਈੜੀ ਸੱਸਾ ਹਾਹਾ ਕੱਕਾ ਖੱਖਾ ਗੱਗਾ ਘੱਘਾ ਙੰਙਾ"
   },
   {
-    "id": "zh-CN",
-    "name": "Chinese (Simplified)",
-    "script": "Hans",
-    "pangram": "Snapchat 月活跃用户数达到 2.5 亿。"
+    "id": "ms-MY",
+    "name": "Bahasa Melayu - Malay",
+    "script": "Latn",
+    "pangram": "The quick brown fox jumps over the lazy dog"
   },
   {
-    "id": "zh-TW",
-    "name": "Chinese (Traditional)",
-    "script": "Hant",
-    "pangram": "Snapchat 的月活躍用戶數量達到 2.5 億。"
+    "id": "tl-PH",
+    "name": "Tagalog / Filipino",
+    "script": "Latn",
+    "pangram": "Ang mabilis na kayumangging aso ay tumalon sa tamad na aso"
   },
   {
-    "id": "ja-JP",
-    "name": "Japanese (Kanji/Kana)",
-    "script": "Jpan",
-    "pangram": "Snapchatの月間アクティブユーザー数が2億5000万人に達した。"
+    "id": "sw-KE",
+    "name": "Kiswahili - Swahili",
+    "script": "Latn",
+    "pangram": "Nataka kusema nawe juu ya mambo ya msingi"
   },
   {
-    "id": "ko-KR",
-    "name": "Korean (Hangul)",
-    "script": "Kore",
-    "pangram": "스냅챗 월간 활성 사용자가 2억 5천만 명에 도달했다."
+    "id": "am-ET",
+    "name": "አማርኛ - Amharic",
+    "script": "Ethi",
+    "pangram": "ሰማይ አይታረስ ንጉሥ አይከሰስ።"
+  },
+  {
+    "id": "zu-ZA",
+    "name": "isiZulu - Zulu",
+    "script": "Latn",
+    "pangram": "Ngiqeda ukubhala incwadi yami."
+  },
+  {
+    "id": "yo-NG",
+    "name": "Yorùbá - Yoruba",
+    "script": "Latn",
+    "pangram": "A ki i r’owo ra’iku"
+  },
+  {
+    "id": "af-ZA",
+    "name": "Afrikaans",
+    "script": "Latn",
+    "pangram": "Daar is 'n vinnige bruin jakkals wat oor die lui hond spring"
+  },
+  {
+    "id": "sv-SE",
+    "name": "Svenska - Swedish",
+    "script": "Latn",
+    "pangram": "Flygande bäckasiner söka hwila på mjuka tuvor"
+  },
+  {
+    "id": "da-DK",
+    "name": "Dansk - Danish",
+    "script": "Latn",
+    "pangram": "Høj bly gom vandt fræk sexquiz på wc"
+  },
+  {
+    "id": "nb-NO",
+    "name": "Norsk Bokmål - Norwegian",
+    "script": "Latn",
+    "pangram": "Vår sære Zulu fra badeøya spilte jo whist og quickstep i min taxi"
+  },
+  {
+    "id": "fi-FI",
+    "name": "Suomi - Finnish",
+    "script": "Latn",
+    "pangram": "Törkylempijävongahdus"
+  },
+  {
+    "id": "et-EE",
+    "name": "Eesti - Estonian",
+    "script": "Latn",
+    "pangram": "Põdur Zagrebi tšellomängija-följetonist Walko"
+  },
+  {
+    "id": "lv-LV",
+    "name": "Latviešu - Latvian",
+    "script": "Latn",
+    "pangram": "Sarkanās jūras cūciņas peld pa jūru"
+  },
+  {
+    "id": "lt-LT",
+    "name": "Lietuvių - Lithuanian",
+    "script": "Latn",
+    "pangram": "Įlinkdama fechtuotojo špaga sublykčiojusi pragręžė apvalų arbūzą"
+  },
+  {
+    "id": "el-GR",
+    "name": "Ελληνικά - Greek",
+    "script": "Grek",
+    "pangram": "Ξεσκεπάζω την ψυχοφθόρα σας βδελυγμία."
+  },
+  {
+    "id": "gu-IN",
+    "name": "ગુજરાતી - Gujarati",
+    "script": "Gujr",
+    "pangram": "પ્રતિષ્ઠા અને અધિકારોની દષ્ટિએ સર્વ માનવો જન્મથી સ્વતંત્ર અને સમાન હોય છે. તેમનામાં વિચારશકિત અને અંતઃકરણ હોય છે અને તેમણે પરસ્પર બંધુત્વની ભાવનાથી વર્તવું જોઇએ."
+  },
+  {
+    "id": "kn-IN",
+    "name": "ಕನ್ನಡ - Kannada",
+    "script": "Knda",
+    "pangram": "ಎಲ್ಲಾ ಮಾನವರು ಸ್ವತಂತ್ರರಾಗಿ, ಘನತೆ ಹಾಗೂ ಹಕ್ಕುಗಳಲ್ಲಿ ಸಮಾನರಾಗಿ ಹುಟ್ಟಿದ್ದಾರೆ. ಅವರಿಗೆ ವಿವೇಚನಾಶಕ್ತಿ ಮತ್ತು ಆತ್ಮಸಾಕ್ಷಿ ಇರುವುದರಿಂದ, ಅವರು ಪರಸ್ಪರ ಭ್ರಾತೃತ್ವದ ಭಾವನೆಯಿಂದ ವರ್ತಿಸಬೇಕು."
+  },
+  {
+    "id": "ml-IN",
+    "name": "മലയാളം - Malayalam",
+    "script": "Mlym",
+    "pangram": "മനുഷ്യരെല്ലാവരും തുല്യാവകാശങ്ങളോടും അന്തസ്സോടും സ്വാതന്ത്ര്യത്തോടുംകൂടി ജനിച്ചിട്ടുള്ളവരാണ്‌. അന്യോന്യം ഭ്രാതൃഭാവത്തോടെ പെരുമാറുവാനാണ്‌ മനുഷ്യന്നു വിവേകബുദ്ധിയും മനസ്സാക്ഷിയും സിദ്ധമായിരിക്കുന്നത്‌."
+  },
+  {
+    "id": "ga-IE",
+    "name": "Gaeilge - Irish",
+    "script": "Latn",
+    "pangram": "Chuaigh bé mhórshách le dlúthspád fíorfhinn trí hata mo dhea-phorcáin bhig."
+  },
+  {
+    "id": "mt-MT",
+    "name": "Malti - Maltese",
+    "script": "Latn",
+    "pangram": "Il-bnedmin kollha jitwieldu ħielsa u ugwali fid-dinjità u d-drittijiet."
+  },
+  {
+    "id": "sk-SK",
+    "name": "Slovenčina - Slovak",
+    "script": "Latn",
+    "pangram": "Vypätá dcéra grófa Maxwella s IQ nižším ako kôň núti čeľaď hrýzť hŕbu jabĺk."
+  },
+  {
+    "id": "hr-HR",
+    "name": "Hrvatski - Croatian",
+    "script": "Latn",
+    "pangram": "Gojazni đačić s biciklom drži hmelj i finu vatu u džepu nošnje."
+  },
+  {
+    "id": "sl-SI",
+    "name": "Slovenščina - Slovenian",
+    "script": "Latn",
+    "pangram": "Škodoželjno ga je zafrknil - ni mu pustil več hlebca."
+  },
+  {
+    "id": "mr-IN",
+    "name": "मराठी - Marathi",
+    "script": "Deva",
+    "pangram": "सर्व मानवी व्यक्ति जन्मतःच स्वतंत्र आहेत व त्यांना समान प्रतिष्ठा व समान अधिकार आहेत."
   }
 ]

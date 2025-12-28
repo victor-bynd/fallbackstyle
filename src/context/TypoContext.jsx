@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { fallbackOptions, DEFAULT_PALETTE } from '../data/constants';
 import languages from '../data/languages.json';
 import { resolveWeightForFont } from '../utils/weightUtils';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import { ConfigService } from '../services/ConfigService';
+import { PersistenceService } from '../services/PersistenceService';
 
 import { TypoContext } from './TypoContextDefinition';
 
@@ -43,6 +44,7 @@ const createEmptyStyleState = () => ({
     fallbackScaleOverrides: {},
     fallbackFontOverrides: {},
     primaryFontOverrides: {},
+    primaryLanguages: ['en-US'], // Default primary language
     configuredLanguages: [], // List of language IDs visible in sidebar
     // fontColors removed, stored in fonts
     baseRem: 16
@@ -52,6 +54,9 @@ const createEmptyStyleState = () => ({
 
 export const TypoProvider = ({ children }) => {
     const [activeFontStyleId, setActiveFontStyleId] = useState('primary');
+
+    // Ref to track which fonts have been saved to IDB to avoid re-saving
+    const persistedFontIds = useRef(new Set());
 
     const [fontStyles, setFontStyles] = useState(() => ({
         primary: createEmptyStyleState()
@@ -407,6 +412,23 @@ export const TypoProvider = ({ children }) => {
         setVisibleLanguageIds(getDefaultVisibleLanguageIds());
     };
 
+    const togglePrimaryLanguage = (langId) => {
+        updateStyleState(activeFontStyleId, prev => {
+            const current = prev.primaryLanguages || ['en-US'];
+            const exists = current.includes(langId);
+            let next;
+            if (exists) {
+                next = current.filter(id => id !== langId);
+            } else {
+                next = [...current, langId];
+            }
+            return {
+                ...prev,
+                primaryLanguages: next
+            };
+        });
+    };
+
     // List of ALL languages that have any configuration (explicit or overrides)
     const allConfiguredLanguageIds = useMemo(() => {
         return Array.from(new Set([
@@ -417,6 +439,15 @@ export const TypoProvider = ({ children }) => {
             ...Object.keys(activeStyle.fallbackFontOverrides || {})
         ]));
     }, [visibleLanguageIds, activeStyle.configuredLanguages, activeStyle.primaryFontOverrides, activeStyle.fallbackFontOverrides]);
+
+    // NEW: Strict targeting (Only explicit overrides, ignoring "Auto"/Inherit)
+    const strictlyTargetedLanguageIds = useMemo(() => {
+        return Array.from(new Set([
+            ...Object.keys(activeStyle.primaryFontOverrides || {}),
+            ...Object.keys(activeStyle.fallbackFontOverrides || {})
+        ]));
+    }, [activeStyle.primaryFontOverrides, activeStyle.fallbackFontOverrides]);
+
 
     // List of visible languages should now always follow configured languages.
     // Individual filtering (e.g. by Group) is handled at the UI layer in App.jsx.
@@ -701,6 +732,7 @@ export const TypoProvider = ({ children }) => {
                 id: newFontId,
                 type: 'fallback',
                 isLangSpecific: true,
+                isClone: true,
                 // Reset/Remove specific properties that shouldn't be blindly copied if they were overrides on the original (though original is likely global)
                 // If original was a global fallback, it has normal props.
                 // We want to start 'fresh' effectively, but inheriting the File/FontObject.
@@ -832,6 +864,9 @@ export const TypoProvider = ({ children }) => {
                 console.warn('[TypoContext] Source font not found for cloning:', sourceFontId);
                 return prev;
             }
+
+            // Ensure language is supported!
+            setLanguageVisibility(langId, true);
 
             // Create a unique ID for the new language-specific font
             const newFontId = `lang-primary-${langId}-${Date.now()}`;
@@ -1066,6 +1101,151 @@ export const TypoProvider = ({ children }) => {
             };
         });
         setLanguageVisibility(langId, true);
+    };
+
+    const batchAddConfiguredLanguages = (langIds) => {
+        const styleId = activeFontStyleId;
+
+        // 1. Update configuredLanguages in style state
+        updateStyleState(styleId, prev => {
+            const current = new Set(prev.configuredLanguages || []);
+            let changed = false;
+            langIds.forEach(id => {
+                // Basic validation: check if ID exists in master list? 
+                // We trust the input for now, or could filter against `languages`
+                if (!current.has(id)) {
+                    current.add(id);
+                    changed = true;
+                }
+            });
+
+            if (!changed) return prev;
+
+            return {
+                ...prev,
+                configuredLanguages: Array.from(current)
+            };
+        });
+
+        // 2. Update visibility
+        setVisibleLanguageIds(prev => {
+            const nextSet = new Set(prev);
+            let changed = false;
+            langIds.forEach(id => {
+                if (!nextSet.has(id)) {
+                    nextSet.add(id);
+                    changed = true;
+                }
+            });
+
+            if (!changed) return prev;
+
+            // Re-sort according to canonical order
+            const canonical = languages.map(l => l.id);
+            return canonical.filter(id => nextSet.has(id));
+        });
+    };
+
+    const batchAddFontsAndAssignments = ({ fonts, assignments, languageIds = [] }) => {
+        const styleId = activeFontStyleId;
+
+        updateStyleState(styleId, prev => {
+            let nextFonts = [...(prev.fonts || [])];
+            const currentConfigured = new Set(prev.configuredLanguages || []);
+
+            // 1. Add New Fonts
+            if (fonts && fonts.length > 0) {
+                // Check to avoid duplicates based on ID or Name
+                fonts.forEach(newFont => {
+                    const exists = nextFonts.some(f => f.id === newFont.id);
+                    if (!exists) {
+                        // Assign color if missing
+                        if (!newFont.color) {
+                            newFont.color = DEFAULT_PALETTE[nextFonts.length % DEFAULT_PALETTE.length];
+                        }
+                        nextFonts.push(newFont);
+                    }
+                });
+            }
+
+            // 2. Update Overrides
+            const nextPrimaryOverrides = { ...(prev.primaryFontOverrides || {}) };
+            const nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+
+            if (assignments) {
+                Object.entries(assignments).forEach(([langId, fontIdentifier]) => {
+                    // Check if fontIdentifier corresponds to a loaded font
+                    // In the uploader, we passed the file name as value.
+                    // We need to find the font ID that matches that filename in the NOW updated nextFonts list.
+                    // The uploader logic in `handleSetupConfirm` creates IDs like `uploaded-setup-...`
+                    // and also passes `assignments` as `langId -> fileName`.
+                    // So we map: fileName -> fontId
+
+                    const font = nextFonts.find(f => f.fileName === fontIdentifier || f.name === fontIdentifier);
+                    if (font) {
+                        // If it's the Primary font, strictly speaking we don't need an override if it matches global primary?
+                        // But typically this function is used when we explicitly want to assign specific fonts.
+                        // However, if the user chose "Use Pool: X" for a language, they want X as the font.
+                        // The uploader doesn't distinguish "Primary" vs "Fallback" override type in the assignments map easily 
+                        // without looking at the setup map. 
+                        // But `assignments` here is just `langId -> filename`.
+                        // We assume Fallback Override by default unless we want to support Primary Overrides via this batch?
+                        // The current `FontUploader` implementation of `handleSetupConfirm` does NOT distinguish. 
+                        // It puts everything into `assignments`.
+                        // AND it creates a `primarySelection` separately which `loadFont` is used for.
+                        // So these are likely Fallback Overrides (Language Specific Fonts).
+
+                        // BUT `FontUploader` also says:
+                        // "if ((state.type === 'upload' || state.type === 'pool') && state.file) { assignments[langId] = state.file.name; }"
+                        // So these are indeed specific assignments.
+
+                        // We will set them as FALLBACK overrides for that language, 
+                        // essentially saying "For this language, use THIS font family".
+                        // Note: `fallbackFontOverrides` maps `langId -> fontId` (the font to use).
+                        if (font.type === 'fallback') {
+                            nextFallbackOverrides[langId] = font.id;
+                        } else {
+                            // If it happened to be the primary font, we might not need an override if it matches?
+                            // But usually `fallbackFontOverrides` is checked first.
+                            nextFallbackOverrides[langId] = font.id;
+                        }
+                    }
+                });
+            }
+
+            // 3. Register All Languages (Configured)
+            // Union of existing configured + new assignments keys + explicitly passed languageIds
+            if (assignments) {
+                Object.keys(assignments).forEach(id => currentConfigured.add(id));
+            }
+            if (languageIds) {
+                languageIds.forEach(id => currentConfigured.add(id));
+            }
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                configuredLanguages: Array.from(currentConfigured),
+                primaryFontOverrides: nextPrimaryOverrides,
+                fallbackFontOverrides: nextFallbackOverrides
+            };
+        });
+
+        // 4. Update Visibility
+        const idsToShow = new Set(languageIds || []);
+        if (assignments) {
+            Object.keys(assignments).forEach(id => idsToShow.add(id));
+        }
+
+        if (idsToShow.size > 0) {
+            setVisibleLanguageIds(prev => {
+                const nextSet = new Set(prev);
+                idsToShow.forEach(id => nextSet.add(id));
+                // Canonical Sort
+                const canonical = languages.map(l => l.id);
+                return canonical.filter(id => nextSet.has(id));
+            });
+        }
     };
 
     const removeConfiguredLanguage = (langId) => {
@@ -1390,6 +1570,7 @@ export const TypoProvider = ({ children }) => {
 
     // Per-locale fallback font overrides
     const setFallbackFontOverride = (langId, fontId) => {
+        setLanguageVisibility(langId, true); // Ensure language is supported
         updateStyleState(activeFontStyleId, prev => ({
             ...prev,
             fallbackFontOverrides: {
@@ -1445,6 +1626,9 @@ export const TypoProvider = ({ children }) => {
 
     const getFontColor = (fontId) => {
         const font = fonts.find(f => f.id === fontId);
+        if (font && !font.fontObject && !font.fileName) {
+            return colors.missing;
+        }
         return font?.color || DEFAULT_PALETTE[0];
     };
 
@@ -1546,12 +1730,8 @@ export const TypoProvider = ({ children }) => {
     const getExportConfiguration = useCallback(() => {
         return ConfigService.serializeConfig({
             activeFontStyleId,
+            activeConfigTab,
             fontStyles,
-            headerStyles,
-            headerOverrides,
-            textOverrides,
-            visibleLanguageIds,
-            colors,
             headerFontStyleMap,
             textCase,
             viewMode,
@@ -1559,10 +1739,12 @@ export const TypoProvider = ({ children }) => {
             showFallbackColors,
             showAlignmentGuides,
             showBrowserGuides,
-            DEFAULT_PALETTE // Pass constant if needed by service, or let service handle default logic
+            appName: 'localize-type',
+            DEFAULT_PALETTE
         });
     }, [
         activeFontStyleId,
+        activeConfigTab,
         fontStyles,
         headerStyles,
         headerOverrides,
@@ -1587,6 +1769,10 @@ export const TypoProvider = ({ children }) => {
 
         // Restore simple state
         setActiveFontStyleId(config.activeFontStyleId || 'primary');
+        if (config.activeConfigTab) {
+            setActiveConfigTab(config.activeConfigTab);
+        }
+
         setHeaderStyles(config.headerStyles || DEFAULT_HEADER_STYLES);
         setHeaderOverrides(config.headerOverrides || {});
         setTextOverrides(config.textOverrides || {});
@@ -1663,6 +1849,182 @@ export const TypoProvider = ({ children }) => {
 
     }, [DEFAULT_HEADER_STYLES]);
 
+    // --- PERSISTENCE LOGIC START ---
+
+    // 1. Load Initial State on Mount
+    useEffect(() => {
+        const loadState = async () => {
+            try {
+                const savedConfig = await PersistenceService.loadConfig();
+                if (savedConfig) {
+                    // Validate/Normalize first
+                    const normalized = ConfigService.normalizeConfig({ data: savedConfig, metadata: { version: 1 } });
+                    const validated = ConfigService.validateConfig(normalized);
+
+                    if (validated) {
+                        // Restore basic state
+                        if (validated.activeFontStyleId) setActiveFontStyleId(validated.activeFontStyleId);
+                        if (validated.activeConfigTab) setActiveConfigTab(validated.activeConfigTab);
+                        if (validated.headerStyles) setHeaderStyles(validated.headerStyles);
+                        if (validated.headerOverrides) setHeaderOverrides(validated.headerOverrides);
+                        if (validated.textOverrides) setTextOverrides(validated.textOverrides);
+                        if (validated.visibleLanguageIds) setVisibleLanguageIds(validated.visibleLanguageIds);
+                        if (validated.colors) setColors(validated.colors);
+                        if (validated.headerFontStyleMap) setHeaderFontStyleMap(validated.headerFontStyleMap);
+                        if (validated.textCase) setTextCase(validated.textCase);
+                        if (validated.viewMode) setViewMode(validated.viewMode);
+                        if (validated.gridColumns) setGridColumns(validated.gridColumns);
+                        if (validated.showFallbackColors !== undefined) setShowFallbackColors(validated.showFallbackColors);
+                        if (validated.showAlignmentGuides !== undefined) setShowAlignmentGuides(validated.showAlignmentGuides);
+                        if (validated.showBrowserGuides !== undefined) setShowBrowserGuides(validated.showBrowserGuides);
+
+                        // Restore Font Styles
+                        if (validated.fontStyles) {
+                            const styles = validated.fontStyles;
+                            const newStyles = { ...styles };
+
+                            for (const styleId of Object.keys(styles)) {
+                                const style = styles[styleId];
+                                if (style.fonts) {
+                                    const hydratedFonts = await Promise.all(style.fonts.map(async (font) => {
+                                        try {
+                                            const blob = await PersistenceService.getFont(font.id);
+                                            if (blob) {
+                                                const { font: opentypeFont } = await parseFontFile(blob);
+                                                const url = createFontUrl(blob);
+
+                                                // Mark as persisted
+                                                persistedFontIds.current.add(font.id);
+
+                                                return {
+                                                    ...font,
+                                                    fontObject: opentypeFont,
+                                                    fontUrl: url
+                                                };
+                                            }
+                                        } catch (err) {
+                                            console.warn('[TypoContext] Failed to hydrate font:', font.id, err);
+                                        }
+                                        return font;
+                                    }));
+                                    newStyles[styleId].fonts = hydratedFonts;
+                                }
+                            }
+                            setFontStyles(newStyles);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('[TypoContext] Error loading persisted state:', err);
+            }
+        };
+
+        loadState();
+    }, []);
+
+    // 2. Save State on Change
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            const state = {
+                activeFontStyleId,
+                activeConfigTab,
+                fontStyles,
+                headerStyles,
+                headerOverrides,
+                textOverrides,
+                visibleLanguageIds,
+                colors,
+                headerFontStyleMap,
+                textCase,
+                viewMode,
+                gridColumns,
+                showFallbackColors,
+                showAlignmentGuides,
+                showBrowserGuides,
+                appName: 'localize-type',
+                DEFAULT_PALETTE
+            };
+
+            const serializedWrapper = ConfigService.serializeConfig(state);
+            const serialized = serializedWrapper.data;
+
+            // Size Check / Safety: Warn if config is getting very large, though we still attempt save.
+            try {
+                const jsonString = JSON.stringify(serialized);
+                const sizeBytes = new Blob([jsonString]).size;
+                if (sizeBytes > 5 * 1024 * 1024) {
+                    console.warn('[TypoContext] Config state is large:', (sizeBytes / 1024 / 1024).toFixed(2), 'MB');
+                }
+            } catch (e) {
+                console.warn('[TypoContext] Failed to check config size', e);
+            }
+
+            await PersistenceService.saveConfig(serialized);
+
+            const activeFontIds = new Set();
+
+            // Save Fonts
+            for (const styleId of Object.keys(fontStyles)) {
+                const style = fontStyles[styleId];
+                if (style.fonts) {
+                    for (const font of style.fonts) {
+                        activeFontIds.add(font.id);
+
+                        // Only save if it's a blob URL (uploaded) AND not already persisted
+                        if (font.fontUrl && font.fontUrl.startsWith('blob:') && font.fontObject) {
+                            if (!persistedFontIds.current.has(font.id)) {
+                                try {
+                                    const response = await fetch(font.fontUrl);
+                                    const blob = await response.blob();
+                                    await PersistenceService.saveFont(font.id, blob);
+                                    persistedFontIds.current.add(font.id);
+                                } catch (err) {
+                                    console.warn('[TypoContext] Failed to save font blob:', font.id, err);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Garbage Collection: Remove fonts from IDB that are no longer in activeFontIds
+            try {
+                const storedFontIds = await PersistenceService.getFontKeys();
+                for (const storedId of storedFontIds) {
+                    // Normalize: font IDs in store match font.id
+                    if (!activeFontIds.has(storedId)) {
+                        await PersistenceService.deleteFont(storedId);
+                        persistedFontIds.current.delete(storedId);
+                        console.log('[TypoContext] Garbage collected unused font:', storedId);
+                    }
+                }
+            } catch (err) {
+                console.warn('[TypoContext] Error during font garbage collection:', err);
+            }
+
+        }, 2000);
+
+        return () => clearTimeout(timeoutId);
+    }, [
+        activeFontStyleId,
+        activeConfigTab,
+        fontStyles,
+        headerStyles,
+        headerOverrides,
+        textOverrides,
+        visibleLanguageIds,
+        colors,
+        headerFontStyleMap,
+        textCase,
+        viewMode,
+        gridColumns,
+        showFallbackColors,
+        showAlignmentGuides,
+        showBrowserGuides
+    ]);
+
+    // --- PERSISTENCE LOGIC END ---
+
     return (
         <TypoContext.Provider value={{
             languages,
@@ -1674,6 +2036,8 @@ export const TypoProvider = ({ children }) => {
             showAllLanguages,
             hideAllLanguages,
             resetVisibleLanguages,
+            primaryLanguages: activeStyle.primaryLanguages || ['en-US'],
+            togglePrimaryLanguage,
 
             activeConfigTab,
             setActiveConfigTab,
@@ -1725,6 +2089,8 @@ export const TypoProvider = ({ children }) => {
             addLanguageSpecificFallbackFont,
 
             addConfiguredLanguage,
+            batchAddConfiguredLanguages,
+            batchAddFontsAndAssignments,
             removeConfiguredLanguage,
 
             configuredLanguages: allConfiguredLanguageIds, // Show everything that has config in Sidebar/Tabs
@@ -1815,7 +2181,14 @@ export const TypoProvider = ({ children }) => {
             toggleAlignmentGuides: () => setShowAlignmentGuides(v => !v),
             showBrowserGuides,
             setShowBrowserGuides,
-            toggleBrowserGuides: () => setShowBrowserGuides(v => !v)
+            toggleBrowserGuides: () => setShowBrowserGuides(v => !v),
+            // New "Supported" vs "Targeted" distinction
+            supportedLanguageIds: effectiveVisibleLanguageIds,
+            // Export the actual objects for the manual list so UI doesn't have to derive it
+            supportedLanguages: languages.filter(l => effectiveVisibleLanguageIds.includes(l.id) || l.id === 'en-US'),
+
+            targetedLanguageIds: strictlyTargetedLanguageIds, // STRICTLY OVERRIDES
+            isLanguageTargeted: (langId) => strictlyTargetedLanguageIds.includes(langId)
         }}>
             {children}
         </TypoContext.Provider>

@@ -10,6 +10,8 @@ const LanguageList = ({
     showAuto = false,
     searchTerm = '',
     onSearchChange,
+    primaryLanguages = [],
+    onTogglePrimary,
     filterGroup = null
 }) => {
     const { languages } = useTypo();
@@ -32,6 +34,8 @@ const LanguageList = ({
     const handleSelect = (id) => {
         onSelect(id);
     };
+
+    const isPrimary = (id) => primaryLanguages.includes(id);
 
     return (
         <div className="flex flex-col flex-1 overflow-hidden h-full">
@@ -90,42 +94,68 @@ const LanguageList = ({
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                 {group.items.map((lang) => {
                                     const selected = isSelected(lang.id);
+                                    const primary = isPrimary(lang.id);
                                     return (
-                                        <button
-                                            key={lang.id}
-                                            onClick={() => handleSelect(lang.id)}
-                                            className={`
-                                                flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all border text-left
-                                                ${selected
-                                                    ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500/10'
-                                                    : 'bg-white border-transparent hover:border-slate-200 hover:bg-slate-50'
-                                                }
-                                            `}
-                                        >
-                                            <div className="min-w-0 flex items-center gap-3">
-                                                {mode === 'multi' && (
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selected}
-                                                        readOnly
-                                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                    />
-                                                )}
-                                                <div className="min-w-0">
-                                                    <div className={`text-sm font-bold truncate ${selected ? 'text-indigo-900' : 'text-slate-700'}`}>
-                                                        {lang.name}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-400 font-mono font-medium">
-                                                        {lang.id}
+                                        <div key={lang.id} className="relative group">
+                                            <button
+                                                onClick={() => handleSelect(lang.id)}
+                                                className={`
+                                                    w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all border text-left
+                                                    ${selected
+                                                        ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500/10'
+                                                        : 'bg-white border-transparent hover:border-slate-200 hover:bg-slate-50'
+                                                    }
+                                                `}
+                                            >
+                                                <div className="min-w-0 flex items-center gap-3">
+                                                    {mode === 'multi' && (
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selected}
+                                                            readOnly
+                                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                        />
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <div className={`text-sm font-bold truncate ${selected ? 'text-indigo-900' : 'text-slate-700'}`}>
+                                                            {lang.name}
+                                                        </div>
+                                                        <div className="text-[10px] text-slate-400 font-mono font-medium">
+                                                            {lang.id}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            {mode === 'single' && selected && (
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-indigo-600">
-                                                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                                                </svg>
+
+                                            </button>
+
+                                            {/* Primary Toggle - Overlay */}
+                                            {onTogglePrimary && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onTogglePrimary(lang.id);
+                                                    }}
+                                                    className={`
+                                                        absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-all
+                                                        ${primary
+                                                            ? 'text-amber-400 hover:text-amber-500'
+                                                            : 'text-slate-300 hover:text-amber-400 opacity-0 group-hover:opacity-100'
+                                                        }
+                                                    `}
+                                                    title={primary ? "Remove from Primary Languages" : "Add to Primary Languages"}
+                                                >
+                                                    {primary ? (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                                            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                                                        </svg>
+                                                    )}
+                                                </button>
                                             )}
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </div>

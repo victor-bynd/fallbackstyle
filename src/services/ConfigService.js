@@ -12,6 +12,7 @@ export const ConfigService = {
     serializeConfig: (state) => {
         const {
             activeFontStyleId,
+            activeConfigTab,
             fontStyles,
             headerStyles,
             headerOverrides,
@@ -48,6 +49,7 @@ export const ConfigService = {
 
         const configData = {
             activeFontStyleId,
+            activeConfigTab,
             fontStyles: cleanFontStyles,
             headerStyles,
             headerOverrides,
@@ -158,6 +160,25 @@ export const ConfigService = {
 
             if (hasChanges) {
                 style.fallbackFontOverrides = validOverrides;
+            }
+
+            // Validate Primary Font Overrides
+            if (style.primaryFontOverrides) {
+                const validPrimaryOverrides = {};
+                let primaryHasChanges = false;
+
+                Object.entries(style.primaryFontOverrides).forEach(([langId, overrideFontId]) => {
+                    if (existingFontIds.has(overrideFontId)) {
+                        validPrimaryOverrides[langId] = overrideFontId;
+                    } else {
+                        primaryHasChanges = true;
+                        console.warn(`Removed orphaned primary override for language ${langId}: font ${overrideFontId} not found.`);
+                    }
+                });
+
+                if (primaryHasChanges) {
+                    style.primaryFontOverrides = validPrimaryOverrides;
+                }
             }
         });
 
