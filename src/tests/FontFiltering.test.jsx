@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import FontCards from '../components/FontCards';
@@ -81,13 +81,14 @@ describe('FontCards Filtering', () => {
         // Check for "Targeted Fonts" header
         expect(screen.getByText('Targeted Fonts')).toBeInTheDocument();
 
+        // Check for "FALLBACK FONTS" header (Renamed from Unassigned)
+        expect(screen.getByText('FALLBACK FONTS')).toBeInTheDocument();
+
         // CRITICAL CHECK: Ensure the "Targeted Fonts" list is NOT empty.
         expect(screen.queryByText('No fonts have been targeted yet.')).not.toBeInTheDocument();
 
-        // Check for "Unassigned" text. Should appear twice:
-        // 1. Header "Unassigned"
-        // 2. Font card name "Unassigned"
-        expect(screen.getAllByText('Unassigned').length).toBe(2);
+        // Check for "Unassigned" text. Should appear once (Font card name)
+        expect(screen.getAllByText('Unassigned').length).toBe(1);
 
         // Primary Override should NOT be visible (filtered by !isPrimaryOverride)
         expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
@@ -125,5 +126,62 @@ describe('FontCards Filtering', () => {
 
         // "unassigned-font" is now assigned.
         expect(screen.getAllByText(/Unassigned/).length).toBeGreaterThan(0);
+    });
+
+    it('hides fonts assigned to other languages from fallback list in language view', () => {
+        useTypo.mockReturnValue({
+            ...mockContext,
+            fallbackFontOverrides: {
+                'fr-FR': 'unassigned-font' // Originally unassigned, now assigned to French
+            },
+            primaryFontOverrides: {}
+        });
+
+        // Render for Spanish (es-ES)
+        render(<FontCards activeTab="es-ES" />);
+
+        // 1. Primary Font (always visible as "Primary Font" section)
+        expect(screen.getByText('Primary Font')).toBeInTheDocument();
+
+        // 2. Targeted Fonts Section
+        expect(screen.getByText('Targeted Font')).toBeInTheDocument();
+
+        // 3. FALLBACK FONTS Section
+        // 'unassigned-font' is assigned to 'fr-FR', so it should NOT appear in 'es-ES' fallback list.
+        expect(screen.queryByText('Unassigned Font')).not.toBeInTheDocument();
+
+        // 'System Font' is truly unassigned, so it should appear.
+        expect(screen.getByText('System Font')).toBeInTheDocument();
+    });
+    it('shows targeted font when override is a string (direct assignment)', () => {
+        const stringOverrideState = {
+            ...mockContext,
+            // Simulate that we are in a language tab (e.g., Japanese)
+            activeConfigTab: 'ja-JP',
+            fallbackFontOverrides: {
+                'ja-JP': 'unassigned-font' // The font ID directly
+            }
+        };
+
+        // Note: activeTab prop on FontCards should match
+        useTypo.mockReturnValue(stringOverrideState);
+
+        render(<FontCards activeTab="ja-JP" />);
+
+        // Should find "Targeted Font" section
+        const targetedHeader = screen.getByText('Targeted Font');
+        // The section containing the header
+        const targetedSection = targetedHeader.closest('div').parentElement;
+
+        // Verify "Unassigned Font" (which is now assigned) is in the Targeted section
+        expect(within(targetedSection).getByText('Unassigned')).toBeInTheDocument();
+
+        // Should NOT find it in the "FALLBACK FONTS" section
+        // Fallback Fonts header
+        const fallbackHeader = screen.getByText('FALLBACK FONTS');
+        // The section containing the header
+        const fallbackSection = fallbackHeader.closest('div').parentElement;
+
+        expect(within(fallbackSection).queryByText('Unassigned')).not.toBeInTheDocument();
     });
 });

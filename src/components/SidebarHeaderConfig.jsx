@@ -34,11 +34,13 @@ const SidebarHeaderConfig = () => {
     const hasAnyOverride = Object.values(headerOverrides).some(overrides => Object.keys(overrides).length > 0);
 
     return (
-        <div className="flex flex-col gap-6 animate-fade-in">
+        <div className="w-80 flex flex-col gap-4 p-4 h-full overflow-y-auto bg-white animate-fade-in">
             {/* Header / Back Button */}
-            <div className="flex items-center justify-between pb-4">
-                <div className="flex items-center">
-                    <h3 className="font-bold text-slate-800 text-sm">Header Styles</h3>
+            <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-2">
+                    <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                        HEADER STYLES
+                    </div>
                     <InfoTooltip
                         content={
                             <span>

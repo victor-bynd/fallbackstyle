@@ -1,10 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const InfoTooltip = ({ content, children }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const triggerRef = useRef(null);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (isVisible && triggerRef.current) {
+            const updatePosition = () => {
+                const rect = triggerRef.current.getBoundingClientRect();
+                setCoords({
+                    top: rect.top,
+                    left: rect.right + 12 // 12px gap
+                });
+            };
+
+            updatePosition();
+            window.addEventListener('scroll', updatePosition);
+            window.addEventListener('resize', updatePosition);
+
+            return () => {
+                window.removeEventListener('scroll', updatePosition);
+                window.removeEventListener('resize', updatePosition);
+            };
+        }
+    }, [isVisible]);
 
     return (
         <div
+            ref={triggerRef}
             className="relative inline-flex items-center group ml-2"
             onMouseEnter={() => setIsVisible(true)}
             onMouseLeave={() => setIsVisible(false)}
@@ -17,11 +42,19 @@ const InfoTooltip = ({ content, children }) => {
                 </svg>
             </div>
 
-            {isVisible && (
-                <div className="absolute top-0 right-6 w-64 p-3 bg-slate-800 text-white text-[11px] leading-relaxed rounded-lg shadow-xl z-50 animate-fade-in pointer-events-none">
-                    <div className="absolute top-2 right-[-4px] w-2 h-2 bg-slate-800 rotate-45"></div>
+            {isVisible && createPortal(
+                <div
+                    className="fixed w-64 p-3 bg-slate-800 text-white text-[11px] leading-relaxed rounded-lg shadow-xl z-[9999] animate-fade-in pointer-events-none"
+                    style={{
+                        top: coords.top,
+                        left: coords.left
+                    }}
+                >
+                    {/* Arrow on the left pointing left */}
+                    <div className="absolute top-2 left-[-4px] w-2 h-2 bg-slate-800 rotate-45"></div>
                     {content}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

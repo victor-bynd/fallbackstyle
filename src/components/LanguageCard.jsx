@@ -388,13 +388,13 @@ const LanguageCard = ({ language, isHighlighted }) => {
                 }
             }}
             className={`
-bg - white border rounded - xl transition - all duration - 300
+                bg-white border rounded-xl transition-all duration-300
                 ${configDropdownOpen ? 'z-50 relative' : 'z-0'}
                 ${isActive
                     ? 'border-indigo-500 ring-2 ring-indigo-500/10 shadow-lg'
                     : 'border-gray-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)]'
                 }
-`}
+            `}
         >
             <div className="bg-slate-50/50 px-5 py-3 border-b border-gray-100 flex flex-wrap gap-y-2 justify-between items-center backdrop-blur-sm relative z-20 rounded-t-xl">
                 <div className="flex flex-wrap items-center gap-3">

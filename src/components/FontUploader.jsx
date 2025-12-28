@@ -15,7 +15,8 @@ const FontUploader = ({ importConfig }) => {
         fontObject,
         addFallbackFonts,
         addLanguageSpecificPrimaryFontFromId,
-        addLanguageSpecificFallbackFont
+        addLanguageSpecificFallbackFont,
+        fonts
     } = useTypo();
 
     // Removed internal useConfigImport to use prop from App.jsx
@@ -159,10 +160,42 @@ const FontUploader = ({ importConfig }) => {
 
         const processedFonts = [];
         let errorCount = 0;
+        let skippedCount = 0;
+
+        // Create a set of existing font file names for quick lookup
+        // We look at the actual source filename if available, otherwise the font name
+        const existingFontNames = new Set(
+            (fonts || []).map(f => (f.fileName || f.name || "").toLowerCase())
+        );
+        // Also verify if we are trying to add a font that is ALREADY pending (in case user drops twice before confirming)
+        const pendingFontNames = new Set(
+            pendingFonts.map(f => (f.file.name || "").toLowerCase())
+        );
 
         for (const file of fontFiles) {
+            const fileNameToCheck = file.name.toLowerCase();
+
+            // 1. Check if it's already in the system
+            if (existingFontNames.has(fileNameToCheck)) {
+                console.log(`[FontUploader] Skipping duplicate upload (already installed): ${file.name}`);
+                skippedCount++;
+                continue;
+            }
+
+            // 2. Check if it's already pending
+            if (pendingFontNames.has(fileNameToCheck)) {
+                console.log(`[FontUploader] Skipping duplicate upload (already pending): ${file.name}`);
+                skippedCount++;
+                continue;
+            }
+
             try {
                 const { font, metadata } = await parseFontFile(file);
+                // 3. Double Check: Check if internal font name matches an existing one?
+                // This is stricter. Sometimes filenames differ but font is same. 
+                // Let's rely on Filename for now as per user request "prevent uploading the same font more than once".
+                // But if we wanted to be super smart, we could check font.names.fontFamily.en...
+
                 const url = createFontUrl(file);
                 processedFonts.push({ font, metadata, url, file });
             } catch (err) {
@@ -175,10 +208,15 @@ const FontUploader = ({ importConfig }) => {
             setPendingFonts(prev => [...prev, ...processedFonts]);
         }
 
-        if (errorCount > 0) {
+        if (skippedCount > 0) {
+            const msg = errorCount > 0
+                ? `Skipped ${skippedCount} duplicate(s) and failed to parse ${errorCount} file(s).`
+                : `Skipped ${skippedCount} duplicate font(s) that are already added.`;
+            alert(msg);
+        } else if (errorCount > 0) {
             alert(`Failed to parse ${errorCount} font file(s).`);
         }
-    }, [batchAddConfiguredLanguages, importConfig]);
+    }, [batchAddConfiguredLanguages, importConfig, fonts, pendingFonts]);
 
     const handleSetupConfirm = async (setupMap, pooledFonts = [], primarySelection = null) => {
         if (importedLanguages) {

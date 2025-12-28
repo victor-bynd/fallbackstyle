@@ -142,7 +142,7 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                             : 'text-slate-500 hover:text-slate-700'
                     )}
                 >
-                    Font Name
+                    System Font
                 </button>
             </div>
 

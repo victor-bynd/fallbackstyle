@@ -27,9 +27,7 @@ const SideBar = ({ sidebarMode, setPreviewMode, selectedGroup, onSelectGroup, on
 
             {/* Header Editor - Full Replacement (Occupies full sidebar width) */}
             {sidebarMode === 'headers' && (
-                <div className="w-full">
-                    <SidebarHeaderConfig />
-                </div>
+                <SidebarHeaderConfig />
             )}
         </div>
     );
