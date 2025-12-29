@@ -11,7 +11,7 @@ const SideBar = ({ sidebarMode, setSidebarMode, setPreviewMode, selectedGroup, o
 
     return (
         <div className={`
-            flex h-screen sticky top-0 bg-white z-10 border-gray-200 transition-all duration-300
+            flex h-screen sticky top-0 bg-white z-0 border-gray-200 transition-all duration-300
             ${sidebarMode === 'headers'
                 ? 'border-l shadow-[-4px_0_24px_-4px_rgba(0,0,0,0.05)]'
                 : 'border-r shadow-[4px_0_24px_-4px_rgba(0,0,0,0.05)]'

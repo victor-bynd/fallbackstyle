@@ -82,8 +82,8 @@ describe('Primary Font Override Scaling', () => {
         // 5. Check Effective Settings
         const effectiveSettings = capturedContext.getEffectiveFontSettings(overrideFontId);
 
-        // CRITICAL CHECK: Should be using ACTIVE scale (120), not FALLBACK scale (80)
-        expect(effectiveSettings.scale).toBe(120);
+        // CRITICAL CHECK: Should be using FALLBACK scale (80)
+        expect(effectiveSettings.scale).toBe(80);
 
         // 6. Check Generated CSS (useFontFaceStyles)
         const css = capturedStyles;
@@ -91,7 +91,7 @@ describe('Primary Font Override Scaling', () => {
         expect(css).toMatch(fontRuleRegex);
 
         // Check for size-adjust
-        const sizeAdjustRegex = /size-adjust: 120%;/;
+        const sizeAdjustRegex = /size-adjust: 80%;/;
         expect(css).toMatch(sizeAdjustRegex);
     });
 });

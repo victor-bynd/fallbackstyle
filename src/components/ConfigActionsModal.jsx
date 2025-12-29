@@ -42,30 +42,8 @@ const ConfigActionsModal = ({ mode, onClose, onImport, onExport, onTsExport }) =
                     </p>
 
                     <div className="grid gap-3">
-                        {/* Option 1: TypeScript */}
-                        {isImport ? (
-                            <label className="group relative flex items-center p-4 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-slate-50 cursor-pointer transition-all">
-                                <div className="absolute inset-x-0 bottom-0 top-auto h-1 bg-indigo-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left rounded-b-xl opac"></div>
-                                <div className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600 mr-4 group-hover:bg-indigo-100 transition-colors">
-                                    <span className="font-mono text-xs font-bold">TS</span>
-                                </div>
-                                <div className="flex-1">
-                                    <div className="font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">TypeScript Definitions</div>
-                                    <div className="text-xs text-slate-500">Import config from typography.types.ts</div>
-                                </div>
-                                <input
-                                    type="file"
-                                    accept=".ts"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        onImport(e);
-                                        // Close handled by parent potentially, but usually file picker blocks. 
-                                        // Parent will receive event. We can close modal after import in parent.
-                                        onClose();
-                                    }}
-                                />
-                            </label>
-                        ) : (
+                        {/* Option 1: TypeScript (Export Only) */}
+                        {!isImport && (
                             <button
                                 onClick={() => {
                                     onTsExport();
@@ -97,12 +75,12 @@ const ConfigActionsModal = ({ mode, onClose, onImport, onExport, onTsExport }) =
                                     </svg>
                                 </div>
                                 <div className="flex-1">
-                                    <div className="font-bold text-slate-800 group-hover:text-amber-700 transition-colors">Fallback Config</div>
-                                    <div className="text-xs text-slate-500">Import config.json or .fall file</div>
+                                    <div className="font-bold text-slate-800 group-hover:text-amber-700 transition-colors">Configuration (JSON)</div>
+                                    <div className="text-xs text-slate-500">Import config.json file</div>
                                 </div>
                                 <input
                                     type="file"
-                                    accept=".json,.fall"
+                                    accept=".json"
                                     className="hidden"
                                     onChange={(e) => {
                                         onImport(e);

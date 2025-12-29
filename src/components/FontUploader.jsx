@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { useTypo } from '../context/useTypo';
 
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
-import { TsImportService } from '../services/TsImportService';
+
 import FontLanguageModal from './FontLanguageModal';
 import LanguageSetupModal from './LanguageSetupModal';
 
@@ -216,7 +216,7 @@ const FontUploader = ({ importConfig }) => {
         } else if (errorCount > 0) {
             alert(`Failed to parse ${errorCount} font file(s).`);
         }
-    }, [batchAddConfiguredLanguages, importConfig, fonts, pendingFonts]);
+    }, [importConfig, fonts, pendingFonts]);
 
     const handleSetupConfirm = async (setupMap, pooledFonts = [], primarySelection = null) => {
         if (importedLanguages) {

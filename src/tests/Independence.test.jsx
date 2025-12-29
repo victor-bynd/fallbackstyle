@@ -57,7 +57,10 @@ describe('Font Independence', () => {
         );
 
         // 3. Identify the override font
-        const overrideFontId = capturedContext.fallbackFontOverrides['fr'];
+        const overrideMap = capturedContext.fallbackFontOverrides['fr'];
+        expect(overrideMap).toBeDefined();
+        const overrideFontId = overrideMap[genericFallbackId];
+
         expect(overrideFontId).toBeDefined();
         const overrideFont = capturedContext.fonts.find(f => f.id === overrideFontId);
         expect(overrideFont).toBeDefined();

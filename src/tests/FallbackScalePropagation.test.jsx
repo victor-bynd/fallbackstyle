@@ -23,8 +23,12 @@ const TestComponent = () => {
 
     // Helper to get effective scale for the language-specific override
     const getEffectiveScale = (langId) => {
-        const overrideFontId = style.fallbackFontOverrides[langId];
+        const overrideMap = style.fallbackFontOverrides[langId];
+        if (!overrideMap) return null;
+        // In this test, we cloned 'base-font', so we look up the override for that ID
+        const overrideFontId = overrideMap['base-font'];
         if (!overrideFontId) return null;
+
         const settings = getEffectiveFontSettingsForStyle(styleId, overrideFontId);
         return settings.scale;
     };

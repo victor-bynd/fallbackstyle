@@ -19,7 +19,7 @@ const ViewModeSelector = ({ variant = 'default' }) => {
                 <select
                     value={viewMode}
                     onChange={(e) => setViewMode(e.target.value)}
-                    className="w-full py-1 pl-2 pr-6 text-[10px] bg-slate-50 border border-slate-200 rounded-md focus:outline-none appearance-none font-bold text-slate-700 uppercase"
+                    className="w-full py-1 pl-2 pr-6 text-[10px] bg-slate-50 border border-slate-200 rounded-md focus:outline-none appearance-none font-bold text-slate-700"
                 >
                     {tabs.map(tab => (
                         <option key={tab.id} value={tab.id}>{tab.label}</option>
@@ -36,7 +36,7 @@ const ViewModeSelector = ({ variant = 'default' }) => {
 
     return (
         <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-3 h-[42px] gap-2">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider shrink-0">DISPLAY</span>
+            <span className="text-[10px] text-slate-400 font-bold tracking-wider shrink-0">Display</span>
             <div className="relative">
                 <select
                     value={viewMode}

@@ -72,6 +72,8 @@ export const useFontStack = () => {
             f.type === 'fallback' &&
             !f.isPrimaryOverride &&
             !f.hidden &&
+            !f.isClone &&
+            !f.isLangSpecific &&
             !globalOverriddenFontIds.has(f.id) &&
             f.id !== primaryFont?.id && // Sanity check for ID duplication
             !(

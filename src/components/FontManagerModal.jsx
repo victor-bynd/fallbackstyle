@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import {
     DndContext,
@@ -182,8 +183,8 @@ const FontManagerModal = ({ onClose }) => {
         setPickerSearchTerm('');
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+    const modalContent = (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -319,6 +320,8 @@ const FontManagerModal = ({ onClose }) => {
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 FontManagerModal.propTypes = {

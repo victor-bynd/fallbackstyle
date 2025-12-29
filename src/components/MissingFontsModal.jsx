@@ -116,14 +116,13 @@ const MissingFontsModal = ({ missingFonts, existingFiles = [], onResolve, onCanc
                     </button>
                     <button
                         onClick={handleConfirm}
-                        disabled={!allResolved}
                         className={`px-4 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-sm
                             ${allResolved
                                 ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
-                                : 'bg-slate-300 cursor-not-allowed'}
+                                : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'}
                         `}
                     >
-                        Finish Import
+                        {allResolved ? 'Finish Import' : 'Continue with Missing'}
                     </button>
                 </div>
             </div>

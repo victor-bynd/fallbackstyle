@@ -35,19 +35,36 @@ const SidebarLanguageList = ({
         return name;
     };
 
-    // 1. Get all configured languages (STATIC LIST)
+    // 1. Get all configured languages (sorted with Primary first)
     const languagesToList = useMemo(() => {
-        return (configuredLanguages || [])
+        const list = (configuredLanguages || [])
             .map(id => languagesData.find(l => l.id === id))
             .filter(Boolean);
-    }, [configuredLanguages]);
+
+        return list.sort((a, b) => {
+            const aIsPrimary = primaryLanguages.includes(a.id) || (primaryLanguages.length === 0 && a.id === 'en-US');
+            const bIsPrimary = primaryLanguages.includes(b.id) || (primaryLanguages.length === 0 && b.id === 'en-US');
+            if (aIsPrimary && !bIsPrimary) return -1;
+            if (!aIsPrimary && bIsPrimary) return 1;
+            return 0;
+        });
+    }, [configuredLanguages, primaryLanguages]);
 
     // 2. Filter logic is now Visual Only inside the render loop
     // But we need to update the filteredLanguages memo if we want to keep it or just remove it.
     // The render loop now uses languagesToList directly.
-    const filteredLanguages = languagesToList; // Kept for variable name compatibility if needed, or better just remove.
+    // 2. Filter logic: Now we filter BEFORE rendering to strictly show/hide items
+    const filteredList = useMemo(() => {
+        return (languagesToList || []).filter(lang => {
+            const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
+            const isTargeted = targetedLanguageIds?.includes(lang.id);
+            const group = getLanguageGroup(lang);
 
-
+            if (selectedGroup === 'ALL') return true;
+            if (selectedGroup === 'ALL_TARGETED') return isTargeted || isPrimary;
+            return group === selectedGroup;
+        });
+    }, [languagesToList, selectedGroup, targetedLanguageIds, primaryLanguages]);
 
     return (
         <div className="flex flex-col gap-1 w-full">
@@ -58,21 +75,14 @@ const SidebarLanguageList = ({
             </div>
 
             <div className="flex flex-col gap-1">
-                {filteredLanguages.length === 0 && (
+                {filteredList.length === 0 && (
                     <div className="text-[11px] text-slate-400 italic px-2 py-1">
                         No languages in this group
                     </div>
                 )}
                 {/* Always show all targeted languages */}
-                {(languagesToList || []).map(lang => {
-                    // Check if this language belongs to the currently selected group
-                    const isVisibleInCurrentView =
-                        selectedGroup === 'ALL' ||
-                        (selectedGroup === 'ALL_TARGETED' && targetedLanguageIds?.includes(lang.id)) ||
-                        getLanguageGroup(lang) === selectedGroup;
-
+                {filteredList.map(lang => {
                     const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
-                    const isSystemDefault = isPrimary;
                     const hasOverrides = primaryFontOverrides?.[lang.id] || fallbackFontOverrides?.[lang.id];
                     const isSelected = activeTab === lang.id || (activeTab === 'primary' && isPrimary);
                     const isHighlighted = highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && isPrimary);
@@ -106,11 +116,17 @@ const SidebarLanguageList = ({
                                         ? 'bg-indigo-50 border-indigo-200 text-indigo-600 ring-1 ring-indigo-500/10 shadow-sm'
                                         : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-600'
                                     }
-                                    ${!isVisibleInCurrentView ? 'opacity-40 grayscale' : ''}
                                 `}
                             >
-                                <span className={isSystemDefault && !isActive ? 'text-indigo-600' : ''}>
-                                    {formatLanguageName(lang.name)}
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                    <span className="truncate">
+                                        {formatLanguageName(lang.name)}
+                                    </span>
+                                    {isPrimary && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-amber-400 shrink-0">
+                                            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                        </svg>
+                                    )}
                                 </span>
                             </button>
 

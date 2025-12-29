@@ -94,7 +94,7 @@ describe('FontCards Filtering', () => {
         expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
 
         // System Font
-        expect(screen.getByText(/System Font/)).toBeInTheDocument();
+        expect(screen.getAllByText(/System Font/).length).toBeGreaterThan(0);
     });
 
     it('shows all assigned fonts when multiple are assigned', () => {

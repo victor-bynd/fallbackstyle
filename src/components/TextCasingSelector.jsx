@@ -17,7 +17,7 @@ const TextCasingSelector = ({ variant = 'default' }) => {
                     <button
                         key={opt.id}
                         onClick={() => setTextCase(opt.id)}
-                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all whitespace-nowrap min-w-[32px] uppercase ${textCase === opt.id
+                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all whitespace-nowrap min-w-[32px] ${textCase === opt.id
                             ? 'bg-indigo-600 text-white shadow-sm'
                             : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
                             }`}
@@ -31,7 +31,7 @@ const TextCasingSelector = ({ variant = 'default' }) => {
 
     return (
         <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center px-2 h-[42px] gap-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">CASING</span>
+            <span className="text-[10px] text-slate-400 font-bold tracking-wider mr-1">Casing</span>
             {options.map(opt => (
                 <button
                     key={opt.id}

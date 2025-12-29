@@ -47,7 +47,7 @@ const SidebarLanguages = ({
                 <div className="overflow-x-hidden">
                     <div className="flex items-center justify-between mb-4 mt-2">
                         <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                            LANGUAGES
+                            LANGUAGE - REGION
                         </div>
                         <button
                             onClick={onManageLanguages}
@@ -124,8 +124,7 @@ const SidebarLanguages = ({
                                     className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400">
-                                        <path d="M13.75 7a.75.75 0 00-1.5 0V4.56l-3.22 3.22a.75.75 0 101.06 1.06l2.45-2.45v9.26a.75.75 0 001.5 0V7z" />
-                                        <path d="M10 17a.75.75 0 000 1.5h-6.5a.75.75 0 000-1.5H10z" />
+                                        <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
                                     </svg>
                                     Export Configuration
                                 </button>
@@ -149,8 +148,8 @@ const SidebarLanguages = ({
                     <button
                         onClick={() => setShowSettings(!showSettings)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${showSettings
-                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                                : 'bg-white border-transparent hover:bg-slate-50 text-slate-600 hover:text-slate-900'
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                            : 'bg-white border-transparent hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                             }`}
                     >
                         <div className={`p-1 rounded-md transition-colors ${showSettings ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>

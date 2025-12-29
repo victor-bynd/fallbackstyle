@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TypoProvider } from './context/TypoContext';
 import { useTypo } from './context/useTypo';
 import FontUploader from './components/FontUploader';
@@ -16,7 +16,6 @@ import ConfigActionsModal from './components/ConfigActionsModal';
 import { parseFontFile, createFontUrl } from './services/FontLoader';
 import { useConfigImport } from './hooks/useConfigImport';
 import { TsExportService } from './services/TsExportService';
-import { TsImportService } from './services/TsImportService';
 import { useFontFaceStyles } from './hooks/useFontFaceStyles';
 import { getLanguageGroup } from './utils/languageUtils';
 import { PersistenceService } from './services/PersistenceService';
@@ -26,15 +25,16 @@ const MainContent = ({
   sidebarMode,
   setSidebarMode,
   selectedGroup,
-  setSelectedGroup,
-  onAddLanguage,
+  // setSelectedGroup - UNUSED
+  // onAddLanguage - UNUSED
   showLanguageModal,
   setShowLanguageModal,
   addLanguageGroupFilter,
-  setAddLanguageGroupFilter,
+  // setAddLanguageGroupFilter - UNUSED
   highlitLanguageId,
   setHighlitLanguageId,
-  setPreviewMode
+  activeConfigModal,
+  setActiveConfigModal
 }) => {
   const {
     fontObject,
@@ -46,7 +46,7 @@ const MainContent = ({
     fallbackFontOverrides,
     addConfiguredLanguage,
     addLanguageSpecificPrimaryFontFromId,
-    isLanguageTargeted,
+    // isLanguageTargeted - UNUSED
     supportedLanguages, // New export
     targetedLanguageIds,
     languages,
@@ -67,7 +67,11 @@ const MainContent = ({
 
   const visibleLanguagesList = (() => {
     if (selectedGroup === 'ALL_TARGETED') {
-      return languages.filter(l => targetedLanguageIds.includes(l.id));
+      return languages.filter(l =>
+        targetedLanguageIds.includes(l.id) ||
+        primaryLanguages.includes(l.id) ||
+        (primaryLanguages.length === 0 && l.id === 'en-US')
+      );
     }
     if (selectedGroup === 'ALL') {
       return supportedLanguages;
@@ -88,10 +92,6 @@ const MainContent = ({
   const [showListSettings, setShowListSettings] = useState(false);
   const [pendingFonts, setPendingFonts] = useState([]);
   const [pendingFileMap, setPendingFileMap] = useState(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [activeConfigModal, setActiveConfigModal] = useState(null); // 'import' | 'export' | null
-
-
 
   // Sync highlitLanguageId with activeConfigTab to prevent double selection
   useEffect(() => {
@@ -100,12 +100,13 @@ const MainContent = ({
         setHighlitLanguageId(null);
       }
     } else {
-      const targetId = activeConfigTab === 'primary' ? 'en-US' : activeConfigTab;
+      const primaryLangId = primaryLanguages[0] || 'en-US';
+      const targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
       if (highlitLanguageId !== targetId) {
         setHighlitLanguageId(targetId);
       }
     }
-  }, [activeConfigTab, highlitLanguageId, setHighlitLanguageId]);
+  }, [activeConfigTab, highlitLanguageId, setHighlitLanguageId, primaryLanguages]);
 
   const { getExportConfiguration, addLanguageSpecificFallbackFont, loadFont } = useTypo();
 
@@ -125,7 +126,7 @@ const MainContent = ({
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `config-${timestamp}.fall`;
+    a.download = `config-${timestamp}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -159,36 +160,7 @@ const MainContent = ({
   const handleImport = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.name.endsWith('.ts')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const config = TsImportService.parseTsContent(event.target.result);
-            // We fake a wrapper for the importConfig to consume?
-            // importConfig expects the raw structure (which supports normalization).
-            // TsImportService returns a structure compatible with 'normalizedConfig'.
-            // But useConfigImport.importConfig normally reads the file itself. 
-            // We should expose a method on useConfigImport to 'loadRawConfig(data)' or similar?
-            // Or we can just call the internal validator if we had access?
-            // useConfigImport returns 'importConfig(file)'.
-
-            // Let's modify useConfigImport to allow passing an object directly? 
-            // Or we create a Blob/File from the JSON string of our parsed config and pass that?
-            // Creating a config blob is safer integration-wise.
-
-            const blob = new Blob([JSON.stringify(config)], { type: 'application/json' });
-            const jsonFile = new File([blob], "imported-config.json", { type: "application/json" });
-            importConfig(jsonFile);
-
-          } catch (err) {
-            console.error(err);
-            alert(err.message);
-          }
-        };
-        reader.readAsText(file);
-      } else {
-        importConfig(file);
-      }
+      importConfig(file);
     }
     // Reset input
     e.target.value = '';
@@ -252,31 +224,16 @@ const MainContent = ({
     setPendingFileMap(null);
   };
 
-  const handleResetApp = async () => {
-    await PersistenceService.clear();
-    window.location.reload();
-  };
+
 
   const listSettingsRef = useRef(null);
   const toolbarRef = useRef(null);
-  const buttonRef = useRef(null);
-  const [buttonX, setButtonX] = useState(null);
+  // const [buttonX, setButtonX] = useState(null);
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
   const fontFaceStyles = useFontFaceStyles();
 
   // Measure button position for fixed overlay
-  useLayoutEffect(() => {
-    const updatePosition = () => {
-      if (buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        setButtonX(rect.left);
-      }
-    };
 
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    return () => window.removeEventListener('resize', updatePosition);
-  }, [sidebarMode, isToolbarVisible]);
 
   // Scroll detection for toolbar
   useEffect(() => {
@@ -382,7 +339,7 @@ const MainContent = ({
                     <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path>
                     <path d="m15 5 4 4"></path>
                   </svg>
-                  <span className="font-bold uppercase tracking-wider text-[10px]">Guides</span>
+                  <span className="font-bold tracking-wider text-[10px]">Guides</span>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 opacity-50">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                   </svg>
@@ -448,7 +405,7 @@ const MainContent = ({
                   <div className="p-4 space-y-5">
                     {/* Interface Section */}
                     <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
                         <span>Interface</span>
                         <div className="h-px flex-1 bg-slate-100 ml-3" />
                       </div>
@@ -459,7 +416,7 @@ const MainContent = ({
                             <select
                               value={gridColumns}
                               onChange={(e) => setGridColumns(parseInt(e.target.value))}
-                              className="w-full py-1.5 pl-3 pr-8 text-[10px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none font-bold text-slate-700 uppercase transition-all"
+                              className="w-full py-1.5 pl-3 pr-8 text-[10px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none font-bold text-slate-700 tracking-tight transition-all"
                             >
                               {[1, 2, 3, 4].map(num => (
                                 <option key={num} value={num}>{num} Col</option>
@@ -481,7 +438,7 @@ const MainContent = ({
 
                     {/* Typography Section */}
                     <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
                         <span>Typography</span>
                         <div className="h-px flex-1 bg-slate-100 ml-3" />
                       </div>
@@ -492,7 +449,7 @@ const MainContent = ({
 
                     {/* Tools Section */}
                     <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
                         <span>Tools</span>
                         <div className="h-px flex-1 bg-slate-100 ml-3" />
                       </div>
@@ -540,7 +497,7 @@ const MainContent = ({
                     {/* Guides Section (Only visible when main toolbar is not visible) */}
                     {!isToolbarVisible && (
                       <div>
-                        <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
                           <span>Guides</span>
                           <div className="h-px flex-1 bg-slate-100 ml-3" />
                         </div>
@@ -554,7 +511,7 @@ const MainContent = ({
                               key={guide.label}
                               onClick={guide.toggle}
                               className={`
-                                flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold uppercase transition-all
+                                flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold transition-all
                                 ${guide.active
                                   ? 'bg-white text-indigo-600 shadow-sm'
                                   : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
@@ -578,7 +535,7 @@ const MainContent = ({
               <LanguageCard
                 key={lang.id}
                 language={lang}
-                isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && lang.id === 'en-US')}
+                isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
               />
             ))}
           </div>
@@ -622,11 +579,7 @@ const MainContent = ({
         />
       )}
 
-      <ResetConfirmModal
-        isOpen={showResetConfirm}
-        onClose={() => setShowResetConfirm(false)}
-        onConfirm={handleResetApp}
-      />
+
     </div>
   );
 };
@@ -650,6 +603,11 @@ function App() {
   const handleAddLanguage = (group) => {
     setAddLanguageGroupFilter(group);
     setShowLanguageModal(true);
+  };
+
+  const handleResetApp = async () => {
+    await PersistenceService.clear();
+    window.location.reload();
   };
 
   return (
@@ -689,8 +647,7 @@ function App() {
             setPreviewMode={setPreviewMode}
             activeConfigModal={activeConfigModal}
             setActiveConfigModal={setActiveConfigModal}
-            showResetConfirm={showResetConfirm}
-            setShowResetConfirm={setShowResetConfirm}
+          // showResetConfirm and setShowResetConfirm are no longer needed here as App handles the modal
           />
 
           {/* RIGHT SIDEBAR: Show only when IN header mode */}
@@ -715,6 +672,12 @@ function App() {
         {showLanguageSelector && (
           <LanguageSelectorModal onClose={() => setShowLanguageSelector(false)} />
         )}
+
+        <ResetConfirmModal
+          isOpen={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+          onConfirm={handleResetApp}
+        />
       </TypoProvider>
     </ErrorBoundary>
   );

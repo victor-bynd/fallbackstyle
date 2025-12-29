@@ -5,6 +5,7 @@ import { useFontStack } from '../hooks/useFontStack';
 import { languageCharacters } from '../data/languageCharacters';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import FontSelectionModal from './FontSelectionModal';
+import InfoTooltip from './InfoTooltip';
 
 const LanguageCard = ({ language, isHighlighted }) => {
     const {
@@ -369,13 +370,21 @@ const LanguageCard = ({ language, isHighlighted }) => {
         return font?.label || font?.fileName?.replace(/\.[^/.]+$/, '') || font?.name || 'Unknown';
     }, [fallbackOverrideFontId, activeMetricsStyleId, getFontsForStyle]);
 
+    const supportHelpText = useMemo(() => {
+        const isCJK = ['zh-Hans', 'zh-Hant', 'ja-JP', 'ko-KR'].includes(language.id);
+        if (isCJK) {
+            return "Support for this language is determined by a representative sample of common characters due to its large character set. 100% means all common characters in our sample are present in the font.";
+        }
+        return "Support is calculated against the full character set required for this language.";
+    }, [language.id]);
+
     if (!fontObject) return null;
 
 
 
 
-    const isActive = isHighlighted || activeConfigTab === language.id || (activeConfigTab === 'primary' && language.id === 'en-US');
     const isPrimary = primaryLanguages?.includes(language.id);
+    const isActive = isHighlighted || activeConfigTab === language.id || (activeConfigTab === 'primary' && isPrimary);
 
     return (
         <div
@@ -386,7 +395,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                 if (isActive) {
                     setActiveConfigTab('ALL');
                 } else {
-                    setActiveConfigTab(language.id === 'en-US' ? 'primary' : language.id);
+                    setActiveConfigTab(isPrimary ? 'primary' : language.id);
                 }
             }}
             className={`
@@ -414,16 +423,22 @@ const LanguageCard = ({ language, isHighlighted }) => {
                         )}
                     </div>
 
-                    <div
-                        className={`text - [10px] font - mono border px - 2 py - 0.5 rounded - md whitespace - nowrap ${!hasVerifiableFont
-                            ? 'bg-slate-100 text-slate-500 border-slate-200'
-                            : isFullSupport
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : 'bg-rose-50 text-rose-600 border-rose-100'
-                            } `}
-                    >
-                        {!hasVerifiableFont ? 'Unknown Support' : `${supportedPercent}% Supported`}
-                    </div>
+                    {hasVerifiableFont ? (
+                        <InfoTooltip content={supportHelpText}>
+                            <div
+                                className={`text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap ${isFullSupport
+                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                    : 'bg-rose-50 text-rose-600 border-rose-100'
+                                    }`}
+                            >
+                                {supportedPercent}% Supported
+                            </div>
+                        </InfoTooltip>
+                    ) : (
+                        <div className="text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap bg-slate-100 text-slate-500 border-slate-200">
+                            Unknown Support
+                        </div>
+                    )}
 
                     {textOverrides[language.id] && (
                         <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Custom</span>
@@ -451,7 +466,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                         onStartEdit={handleStartEdit}
                         onResetText={() => {
                             setEditText(language.pangram);
-                            setTextOverride(language.id, language.pangram);
+                            resetTextOverride(language.id);
                         }}
                         isPrimary={isPrimary}
                         onTogglePrimary={() => togglePrimaryLanguage(language.id)}
@@ -480,7 +495,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                         <button
                             onClick={() => {
                                 setEditText(language.pangram);
-                                setTextOverride(language.id, language.pangram); // Effectively reset but viewing default
+                                resetTextOverride(language.id); // Clear override to remove "Custom" tag
                             }}
                             className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-rose-600 mr-auto"
                         >
@@ -907,43 +922,6 @@ const LanguageActionMenu = ({
                             </svg>
                             <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Edit Pangram</span>
                         </button>
-                        <button
-                            onClick={() => {
-                                onResetText();
-                                onClose();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-rose-600">
-                                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.451a.75.75 0 000-1.5H4.125a.75.75 0 00-.75.75v4.125a.75.75 0 001.5 0v-2.33l.311.311a7 7 0 0011.912-4.595.75.75 0 00-1.286-.566zM4.688 8.576a5.5 5.5 0 019.201-2.466l.312.311h-2.451a.75.75 0 000-1.5h4.125a.75.75 0 00.75-.75V3.046a.75.75 0 00-1.5 0v2.33l-.311-.311a7 7 0 00-11.912 4.595.75.75 0 001.286.566z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-rose-700">Reset to Default</span>
-                        </button>
-
-                        <div className="my-1 border-t border-slate-100" />
-
-                        {/* Visibility Section */}
-                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Status
-                        </div>
-                        <button
-                            onClick={() => {
-                                onTogglePrimary();
-                                onClose();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center justify-between group transition-colors hover:bg-slate-50"
-                        >
-                            <div className="flex items-center gap-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill={isPrimary ? "currentColor" : "none"} stroke="currentColor" className={`w-4 h-4 ${isPrimary ? 'text-amber-400' : 'text-slate-400 group-hover:text-amber-500'}`}>
-                                    <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clipRule="evenodd" />
-                                </svg>
-                                <span className="text-sm font-medium text-slate-700 group-hover:text-amber-700">Primary Language</span>
-                            </div>
-                            <div className={`w-8 h-4 rounded-full transition-colors relative ${isPrimary ? 'bg-indigo-600' : 'bg-slate-200'}`}>
-                                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${isPrimary ? 'left-4' : 'left-0.5'}`} />
-                            </div>
-                        </button>
-
                         <div className="my-1 border-t border-slate-100" />
 
                         {/* Font Settings Section */}

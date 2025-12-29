@@ -433,10 +433,11 @@ export const TypoProvider = ({ children }) => {
             'en-US', // Always include default
             ...visibleLanguageIds,
             ...(activeStyle.configuredLanguages || []),
+            ...(activeStyle.primaryLanguages || []), // Include Primary Languages
             ...Object.keys(activeStyle.primaryFontOverrides || {}),
             ...Object.keys(activeStyle.fallbackFontOverrides || {})
         ]));
-    }, [visibleLanguageIds, activeStyle.configuredLanguages, activeStyle.primaryFontOverrides, activeStyle.fallbackFontOverrides]);
+    }, [visibleLanguageIds, activeStyle.configuredLanguages, activeStyle.primaryLanguages, activeStyle.primaryFontOverrides, activeStyle.fallbackFontOverrides]);
 
     // NEW: Strict targeting (Only explicit overrides, ignoring "Auto"/Inherit)
     const strictlyTargetedLanguageIds = useMemo(() => {
@@ -706,6 +707,51 @@ export const TypoProvider = ({ children }) => {
                 color: DEFAULT_PALETTE[(currentLen + i) % DEFAULT_PALETTE.length]
             }));
             return [...prev, ...newFonts];
+        });
+    };
+
+    // New function to add fonts directly as language-specific overrides (skipping global fallback list)
+    const addStrictlyTargetedFonts = (fontsDataArray, langId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const nextFonts = [...(prev.fonts || [])];
+
+            // Prepare new fonts
+            const newFonts = fontsDataArray.map((f, i) => {
+                // Ensure unique ID if not already provided
+                const id = f.id || `fallback-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`;
+                return {
+                    ...f,
+                    id,
+                    type: 'fallback',
+                    isClone: true, // Hides from "Global" list in FontCards
+                    isLangSpecific: true,
+                    // Use a color from the palette
+                    color: DEFAULT_PALETTE[(nextFonts.length + i) % DEFAULT_PALETTE.length]
+                };
+            });
+
+            // Add to fonts array
+            nextFonts.push(...newFonts);
+
+            // Update overrides
+            const startOverrides = prev.fallbackFontOverrides || {};
+            const langOverrides = typeof startOverrides[langId] === 'object' ? { ...startOverrides[langId] } : {};
+
+            // Map each font to itself in the overrides map
+            // This ensures they are picked up by the "Targeted" list logic
+            newFonts.forEach(f => {
+                langOverrides[f.id] = f.id;
+            });
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                fallbackFontOverrides: {
+                    ...startOverrides,
+                    [langId]: langOverrides
+                }
+            };
         });
     };
 
@@ -1083,6 +1129,112 @@ export const TypoProvider = ({ children }) => {
                 ...prev,
                 fonts: nextFonts,
                 fallbackFontOverrides: nextOverrides
+            };
+        });
+    };
+
+    const untargetFont = (fontId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const nextFonts = [...(prev.fonts || [])];
+            let isRootTargeted = false;
+
+            // Check Fallback Overrides
+            const nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+
+            Object.keys(nextFallbackOverrides).forEach(langId => {
+                const val = nextFallbackOverrides[langId];
+                if (val && typeof val === 'object') {
+                    Object.keys(val).forEach(origId => {
+                        if (val[origId] === fontId) {
+                            // Valid override entry found
+                            if (origId === fontId) {
+                                // Maps to itself -> Root Targeted (Direct Upload)
+                                isRootTargeted = true;
+                            }
+                            delete val[origId];
+                        }
+                    });
+                } else if (val === fontId) {
+                    // Legacy string format: Assume direct target
+                    isRootTargeted = true;
+                    delete nextFallbackOverrides[langId];
+                }
+            });
+
+            // Check Primary Overrides
+            const nextPrimaryOverrides = { ...(prev.primaryFontOverrides || {}) };
+            let wasPrimaryOverride = false;
+            Object.keys(nextPrimaryOverrides).forEach(langId => {
+                if (nextPrimaryOverrides[langId] === fontId) {
+                    wasPrimaryOverride = true;
+                    delete nextPrimaryOverrides[langId];
+                }
+            });
+
+            if (isRootTargeted) {
+                // Promote to global fallback
+                const fontIndex = nextFonts.findIndex(f => f.id === fontId);
+                if (fontIndex !== -1) {
+                    nextFonts[fontIndex] = {
+                        ...nextFonts[fontIndex],
+                        isClone: false,
+                        isLangSpecific: false,
+                        // Reset overrides/metrics to defaults (so it's clean in pool)
+                        // But keep file info
+                        baseFontSize: undefined,
+                        scale: undefined,
+                        weightOverride: undefined,
+                        lineHeight: undefined,
+                        letterSpacing: undefined,
+                        fontSizeAdjust: undefined,
+                        lineGapOverride: undefined,
+                        ascentOverride: undefined,
+                        descentOverride: undefined
+                    };
+                }
+            } else {
+                // True Clone or Primary Override (that isn't self-mapped explicitly?)
+                // For Primary Overrides created via `addPrimaryLanguageOverrideWithFont`, they are unique IDs, so they act like root targeted?
+                // But we didn't set `primaryFontOverrides` as a map of original->new. It's just lang->new.
+                // So we can't easily tell.
+                // However, user usually wants to keep uploaded fonts.
+                // If it was a primary override (wasPrimaryOverride), should we promote it?
+                // If we promote it, it becomes a fallback font in the global pool.
+                // That seems safer than deleting it.
+                if (wasPrimaryOverride) {
+                    const fontIndex = nextFonts.findIndex(f => f.id === fontId);
+                    if (fontIndex !== -1 && nextFonts[fontIndex].fontObject) { // Only promote if it has a file
+                        nextFonts[fontIndex] = {
+                            ...nextFonts[fontIndex],
+                            type: 'fallback', // Ensure fallback type
+                            isClone: false,
+                            isLangSpecific: false,
+                            isPrimaryOverride: false,
+                            // Reset metrics
+                            weightOverride: undefined,
+                            scale: undefined,
+                            lineHeight: undefined,
+                            letterSpacing: undefined
+                        };
+                    } else if (fontIndex !== -1) {
+                        // System font or derived? Delete.
+                        nextFonts.splice(fontIndex, 1);
+                    }
+                } else if (!isRootTargeted) {
+                    // Determine if we should delete (Clone of existing global)
+                    const fontIndex = nextFonts.findIndex(f => f.id === fontId);
+                    if (fontIndex !== -1) {
+                        nextFonts.splice(fontIndex, 1);
+                    }
+                }
+            }
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                fallbackFontOverrides: nextFallbackOverrides,
+                primaryFontOverrides: nextPrimaryOverrides
             };
         });
     };
@@ -1730,6 +1882,10 @@ export const TypoProvider = ({ children }) => {
             activeFontStyleId,
             activeConfigTab,
             fontStyles,
+            headerStyles,
+            headerOverrides,
+            textOverrides,
+            visibleLanguageIds,
             headerFontStyleMap,
             textCase,
             viewMode,
@@ -2081,6 +2237,7 @@ export const TypoProvider = ({ children }) => {
             getEffectiveFontSettings,
             updateFontWeight,
             addLanguageSpecificFont,
+            addStrictlyTargetedFonts,
             addLanguageSpecificPrimaryFont,
             addLanguageSpecificPrimaryFontFromId,
             addPrimaryLanguageOverrides,
@@ -2097,6 +2254,7 @@ export const TypoProvider = ({ children }) => {
             getPrimaryFontOverrideForStyle,
             clearPrimaryFontOverride,
             removeLanguageSpecificFont,
+            untargetFont,
 
 
             // Helper to check if a font is a system font

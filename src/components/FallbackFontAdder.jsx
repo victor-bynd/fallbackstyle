@@ -5,7 +5,7 @@ import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import clsx from 'clsx';
 
 const FallbackFontAdder = ({ onClose, onAdd }) => {
-    const { addFallbackFont, addFallbackFonts } = useTypo();
+    const { addFallbackFont, addFallbackFonts, fonts } = useTypo();
     const [mode, setMode] = useState('upload'); // 'name' or 'upload'
     const [fontName, setFontName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -13,11 +13,34 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
     const handleFiles = async (fileList) => {
         if (!fileList || fileList.length === 0) return;
 
+        // Check for duplicates
+        const existingFontNames = new Set(
+            (fonts || []).map(f => (f.fileName || f.name || "").toLowerCase())
+        );
+
+        const uniqueFiles = [];
+        let duplicateCount = 0;
+
+        Array.from(fileList).forEach(file => {
+            if (existingFontNames.has(file.name.toLowerCase())) {
+                duplicateCount++;
+                console.warn(`Skipping duplicate file: ${file.name}`);
+            } else {
+                uniqueFiles.push(file);
+            }
+        });
+
+        if (duplicateCount > 0) {
+            alert(`Skipped ${duplicateCount} duplicate font(s).`);
+        }
+
+        if (uniqueFiles.length === 0) return;
+
         setIsProcessing(true);
         let errorCount = 0;
 
         try {
-            const promises = Array.from(fileList).map(async (file) => {
+            const promises = uniqueFiles.map(async (file) => {
                 try {
                     const { font, metadata } = await parseFontFile(file);
                     const url = createFontUrl(file);
