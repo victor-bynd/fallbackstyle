@@ -37,7 +37,8 @@ const LanguageCard = ({ language, isHighlighted }) => {
         headerFontStyleMap,
         activeFontStyleId,
         resetTextOverride,
-        systemFallbackOverrides
+        systemFallbackOverrides,
+        showFallbackOrder
     } = useTypo();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
@@ -320,7 +321,9 @@ const LanguageCard = ({ language, isHighlighted }) => {
     const activeMetricsStyleId = resolveStyleIdForHeader(viewMode === 'all' ? 'h1' : viewMode);
     const metricsPrimaryFont = getPrimaryFontFromStyle(activeMetricsStyleId);
     const metricsPrimaryFontObject = metricsPrimaryFont?.fontObject;
-    const metricsFallbackFontStack = buildFallbackFontStackForStyle(activeMetricsStyleId, language.id);
+    const metricsFallbackFontStack = useMemo(() =>
+        buildFallbackFontStackForStyle(activeMetricsStyleId, language.id),
+        [buildFallbackFontStackForStyle, activeMetricsStyleId, language.id]);
 
     let fallbackOverrideFontId = getFallbackFontOverrideForStyle(activeMetricsStyleId, language.id) || '';
 
@@ -393,12 +396,42 @@ const LanguageCard = ({ language, isHighlighted }) => {
 
     const currentFallbackLabel = useMemo(() => {
         if (fallbackOverrideFontId === 'legacy') return 'System';
-        if (!fallbackOverrideFontId) return 'Auto';
+
+        const fonts = getFontsForStyle(activeMetricsStyleId) || [];
+
+        // Helper to determine label from stack (Auto behavior)
+        const getAutoLabel = () => {
+            const realFallbacks = metricsFallbackFontStack.filter(f => f.fontId !== 'legacy');
+            if (realFallbacks.length === 0) return null; // No fallbacks -> Hide badge
+
+            const firstFontId = realFallbacks[0].fontId;
+            const firstFont = fonts.find(f => f.id === firstFontId);
+            const name = firstFont?.label || firstFont?.fileName?.replace(/\.[^/.]+$/, '') || firstFont?.name || 'Unknown';
+
+            if (realFallbacks.length > 1) {
+                return `${name} (+${realFallbacks.length - 1})`;
+            }
+            return name;
+        };
+
+        if (!fallbackOverrideFontId) {
+            return getAutoLabel() || 'Auto'; // Default to Auto string if we want to show it, but wait...
+            // If getAutoLabel returns null (no fallbacks), we previously returned 'Auto'. 
+            // The original code returned 'Auto' if length 0.
+            // Let's decide: If no fallbacks, do we want "Auto" or Nothing?
+            // "I'd also like to plan for no fonts in the general fallback list, it should just disappear"
+            // So if !fallbackOverrideFontId (Auto mode) AND no fallbacks -> Disappear.
+            // Original code: if (realFallbacks.length === 0) return 'Auto';
+            // We should change this to null.
+        }
 
         if (typeof fallbackOverrideFontId === 'string') {
+            if (!currentFallbackFont) {
+                // Broken mapping -> Fallback to Auto behavior
+                return getAutoLabel();
+            }
             return currentFallbackFont?.label || currentFallbackFont?.fileName?.replace(/\.[^/.]+$/, '') || currentFallbackFont?.name || 'Unknown';
         } else if (typeof fallbackOverrideFontId === 'object') {
-            const fonts = getFontsForStyle(activeMetricsStyleId) || [];
             const mappedNames = Object.values(fallbackOverrideFontId)
                 .map(id => {
                     const f = fonts.find(font => font.id === id);
@@ -406,12 +439,12 @@ const LanguageCard = ({ language, isHighlighted }) => {
                 })
                 .filter(Boolean);
 
-            if (mappedNames.length === 0) return 'Auto';
+            if (mappedNames.length === 0) return getAutoLabel();
             if (mappedNames.length === 1) return mappedNames[0];
             return `${mappedNames[0]} (+${mappedNames.length - 1})`;
         }
-        return 'Auto';
-    }, [fallbackOverrideFontId, currentFallbackFont, activeMetricsStyleId, getFontsForStyle]);
+        return getAutoLabel();
+    }, [fallbackOverrideFontId, currentFallbackFont, activeMetricsStyleId, getFontsForStyle, metricsFallbackFontStack]);
 
     const supportHelpText = useMemo(() => {
         const isCJK = ['zh-Hans', 'zh-Hant', 'ja-JP', 'ko-KR'].includes(language.id);
@@ -489,24 +522,52 @@ const LanguageCard = ({ language, isHighlighted }) => {
                         )}
                     </div>
 
-                    {fallbackOverrideFontId && (
-                        <div>
+                    {/* Font Indicators - Controlled by showFallbackOrder */}
+                    {showFallbackOrder && (
+                        <div className="flex items-center gap-1.5 overflow-hidden pt-1">
+                            {/* Primary Font (Background) */}
                             <span
-                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide max-w-[300px] truncate inline-block ${fallbackOverrideFontId === 'legacy' ? 'bg-slate-100 text-slate-500 border border-slate-200' : ''
-                                    }`}
-                                style={currentFallbackFont?.color ? {
-                                    backgroundColor: currentFallbackFont.color + '1A', // ~10% opacity
-                                    color: currentFallbackFont.color,
-                                    borderColor: currentFallbackFont.color + '40', // ~25% opacity
-                                } : (!currentFallbackFont && fallbackOverrideFontId !== 'legacy' ? {
-                                    // Default blue fallback if font has no color but isn't legacy (should be rare)
-                                    backgroundColor: '#EFF6FF', // blue-50
-                                    color: '#2563EB', // blue-600
-                                    borderColor: '#DBEAFE' // blue-100
-                                } : {})}
-                                title={`Mapped to: ${currentFallbackLabel}`}
+                                className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap"
+                                title="Primary Font"
                             >
-                                {currentFallbackLabel}
+                                {metricsPrimaryFont?.label || metricsPrimaryFont?.fileName?.replace(/\.[^/.]+$/, '') || metricsPrimaryFont?.name || 'Primary'}
+                            </span>
+
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-slate-300 flex-shrink-0">
+                                <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                            </svg>
+
+                            {/* Mapped Font */}
+                            {fallbackOverrideFontId !== 'legacy' && currentFallbackLabel && (
+                                <>
+                                    <span
+                                        className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide max-w-[200px] truncate inline-block border"
+                                        style={currentFallbackFont?.color ? {
+                                            backgroundColor: currentFallbackFont.color + '1A', // ~10% opacity
+                                            color: currentFallbackFont.color,
+                                            borderColor: currentFallbackFont.color + '40', // ~25% opacity
+                                        } : {
+                                            backgroundColor: '#EFF6FF', // blue-50
+                                            color: '#2563EB', // blue-600
+                                            borderColor: '#DBEAFE' // blue-100
+                                        }}
+                                        title={`Mapped to: ${currentFallbackLabel}`}
+                                    >
+                                        {currentFallbackLabel}
+                                    </span>
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-slate-300 flex-shrink-0">
+                                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                    </svg>
+                                </>
+                            )}
+
+                            {/* System Fallback */}
+                            <span
+                                className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide bg-slate-50 text-slate-400 border border-slate-200 whitespace-nowrap opacity-75"
+                                title="System Fallback"
+                            >
+                                System
                             </span>
                         </div>
                     )}

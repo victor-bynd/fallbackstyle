@@ -31,7 +31,7 @@ const normalizeFontData = (item) => {
     };
 };
 
-const SortableFontRow = ({ item, isPrimary, mappings = {}, onOpenLanguagePicker, onSetPrimary, languages, onRemove, onToggleGlobal }) => {
+const SortableFontRow = ({ item, isPrimary, mappings = {}, onOpenLanguagePicker, onSetPrimary, languages, onRemove, onToggleGlobal, onReplace }) => {
     const {
         attributes,
         listeners,
@@ -111,6 +111,19 @@ const SortableFontRow = ({ item, isPrimary, mappings = {}, onOpenLanguagePicker,
                                     Primary
                                 </span>
                             )}
+                            {isPrimary && onReplace && (
+                                <button
+                                    onClick={onReplace}
+                                    className="opacity-100 bg-white hover:bg-slate-50 text-slate-400 hover:text-indigo-600 border border-slate-200 text-[9px] font-bold px-2 py-0.5 rounded transition-all whitespace-nowrap shrink-0 flex items-center gap-1"
+                                    title="Replace primary font"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                        <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                                        <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+                                    </svg>
+                                    Replace
+                                </button>
+                            )}
                             {!isPrimary && onSetPrimary && (
                                 <button
                                     onClick={() => onSetPrimary(item.id)}
@@ -166,16 +179,16 @@ const SortableFontRow = ({ item, isPrimary, mappings = {}, onOpenLanguagePicker,
                                 ) : hasMapping && (
                                     <button
                                         onClick={() => onToggleGlobal(item.id)}
-                                        className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 text-[9px] font-bold uppercase tracking-wide transition-colors whitespace-nowrap flex items-center gap-1 group/global"
+                                        className="grid grid-cols-1 items-center px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 text-[9px] font-bold uppercase tracking-wide transition-colors whitespace-nowrap group/global"
                                         title="Click to remove from global fallback list"
                                     >
-                                        <span className="group-hover/global:hidden flex items-center gap-1">
+                                        <span className="col-start-1 row-start-1 flex items-center gap-1 opacity-100 group-hover/global:opacity-0 transition-opacity">
                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                                 <path d="M20 6L9 17l-5-5" />
                                             </svg>
                                             Global Fallback Active
                                         </span>
-                                        <span className="hidden group-hover/global:inline text-emerald-700">
+                                        <span className="col-start-1 row-start-1 text-emerald-700 opacity-0 group-hover/global:opacity-100 transition-opacity">
                                             Remove from global
                                         </span>
                                     </button>

@@ -168,35 +168,7 @@ export const FontCard = ({
             )}
             {isPrimary && !isInherited && (
                 <>
-                    <input
-                        ref={replacePrimaryInputRef}
-                        type="file"
-                        className="hidden"
-                        accept=".ttf,.otf,.woff,.woff2"
-                        onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            try {
-                                const { font, metadata } = await parseFontFile(file);
-                                const url = createFontUrl(file);
-                                loadFont(font, url, file.name, metadata);
-                            } catch (err) {
-                                console.error('Error loading font:', err);
-                            } finally {
-                                e.target.value = '';
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={(e) => { e.stopPropagation(); replacePrimaryInputRef.current?.click(); }}
-                        className="absolute top-4 right-4 text-slate-400 hover:text-indigo-600 transition-colors p-1"
-                        title="Replace main font"
-                        type="button"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a1.875 1.875 0 112.652 2.652L8.25 17.403a4.5 4.5 0 01-1.897 1.13l-2.685.895.895-2.685a4.5 4.5 0 011.13-1.897L16.862 3.487z" />
-                        </svg>
-                    </button>
+                    {/* Primary controls moved to Manage Fonts */}
                 </>
             )}
 
@@ -908,7 +880,9 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
             }
 
             // Show as unmapped/general ONLY if not mapped
-            let unmapped = validFallbacks.filter(f => !mappedFontIds.has(f.id));
+            // FIX: Allow fonts that are GLOBAL (!isLangSpecific) to appear here even if they are mapped elsewhere
+            // This ensures "Set as global fallback" works for fonts that are also mapped to specific languages
+            let unmapped = validFallbacks.filter(f => !mappedFontIds.has(f.id) || !f.isLangSpecific);
 
             // NEW: Filter targeted fonts by selectedGroup if not ALL
             if (selectedGroup !== 'ALL' && selectedGroup !== 'MAPPED') {

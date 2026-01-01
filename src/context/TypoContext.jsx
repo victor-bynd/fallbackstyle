@@ -404,6 +404,7 @@ export const TypoProvider = ({ children }) => {
     });
     const [showAlignmentGuides, setShowAlignmentGuides] = useState(false);
     const [showBrowserGuides, setShowBrowserGuides] = useState(false);
+    const [showFallbackOrder, setShowFallbackOrder] = useState(false);
 
     const fonts = activeStyle.fonts;
     const setFonts = (valueOrUpdater) => {
@@ -2930,7 +2931,9 @@ export const TypoProvider = ({ children }) => {
             },
             isAppResetting,
             isSessionLoading,
-            normalizeFontName // Export for consistent UI checks
+            normalizeFontName, // Export for consistent UI checks
+            showFallbackOrder,
+            setShowFallbackOrder,
         }}>
             {children}
         </TypoContext.Provider>

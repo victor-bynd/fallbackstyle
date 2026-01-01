@@ -64,6 +64,8 @@ const MainContent = ({
     toggleAlignmentGuides,
     showBrowserGuides,
     toggleBrowserGuides,
+    showFallbackOrder,
+    setShowFallbackOrder,
 
     setActiveConfigTab,
     activeConfigTab,
@@ -391,10 +393,11 @@ const MainContent = ({
               {/* Inline Guide Toggles - Standard Controls Style */}
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-black text-slate-400 select-none uppercase tracking-widest mr-1.5 pt-0.5">
-                  GUIDES
+                  TOOLS
                 </span>
 
                 <button
+                  /* UI: TYPE GRID */
                   onClick={() => toggleAlignmentGuides()}
                   className={`
                   px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border
@@ -408,6 +411,7 @@ const MainContent = ({
                 </button>
 
                 <button
+                  /* UI: LINEBOX VIEW */
                   onClick={() => toggleBrowserGuides()}
                   className={`
                   px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border
@@ -421,6 +425,7 @@ const MainContent = ({
                 </button>
 
                 <button
+                  /* UI: FALLBACK COLORS */
                   onClick={() => setShowFallbackColors(!showFallbackColors)}
                   className={`
                   px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border
@@ -430,7 +435,21 @@ const MainContent = ({
                     }
                 `}
                 >
-                  FALLBACK COLORS
+                  COLOR GUIDE
+                </button>
+
+                <button
+                  /* UI: FALLBACK ORDER */
+                  onClick={() => setShowFallbackOrder(!showFallbackOrder)}
+                  className={`
+                  px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border relative z-50
+                  ${showFallbackOrder
+                      ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
+                      : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
+                    }
+                `}
+                >
+                  FALLBACK ORDER
                 </button>
               </div>
               <div className="w-[34px] h-[34px] hidden sm:block shrink-0" aria-hidden="true" />
@@ -441,6 +460,7 @@ const MainContent = ({
           {sidebarMode !== 'headers' && (
             <div className="fixed top-4 right-8 md:top-4 md:right-10 z-40" ref={listSettingsRef} onClick={(e) => e.stopPropagation()}>
               <button
+                /* UI: Settings / Config Button */
                 onClick={() => setShowListSettings(!showListSettings)}
                 className={`
                     p-2 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 w-[34px] h-[34px]
@@ -583,14 +603,15 @@ const MainContent = ({
                     {!isToolbarVisible && (
                       <div>
                         <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
-                          <span>Guides</span>
+                          <span>Tools</span>
                           <div className="h-px flex-1 bg-slate-100 ml-3" />
                         </div>
                         <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 grid grid-cols-1 gap-1">
                           {[
                             { label: 'Type Grid', active: showAlignmentGuides, toggle: toggleAlignmentGuides },
                             { label: 'Linebox View', active: showBrowserGuides, toggle: toggleBrowserGuides },
-                            { label: 'Fallback Colors', active: showFallbackColors, toggle: () => setShowFallbackColors(!showFallbackColors) }
+                            { label: 'Color Guide', active: showFallbackColors, toggle: () => setShowFallbackColors(!showFallbackColors) },
+                            { label: 'Fallback Order', active: showFallbackOrder, toggle: () => setShowFallbackOrder(!showFallbackOrder) }
                           ].map((guide) => (
                             <button
                               key={guide.label}

@@ -20,6 +20,7 @@ import { useTypo } from '../context/useTypo';
 import FallbackFontAdder from './FallbackFontAdder';
 import SortableFontRow from './SortableFontRow';
 import LanguageList from './LanguageList';
+import { parseFontFile, createFontUrl } from '../services/FontLoader';
 
 const FontManagerModal = ({ onClose }) => {
     const {
@@ -33,7 +34,8 @@ const FontManagerModal = ({ onClose }) => {
         addLanguageSpecificPrimaryFont,
         toggleFontGlobalStatus,
         normalizeFontName,
-        assignFontToMultipleLanguages
+        assignFontToMultipleLanguages,
+        loadFont
     } = useTypo();
 
     const [activeId, setActiveId] = useState(null);
@@ -41,6 +43,7 @@ const FontManagerModal = ({ onClose }) => {
     const [pickingForFontId, setPickingForFontId] = useState(null);
     const [pickerSearchTerm, setPickerSearchTerm] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const primaryFileInputRef = useRef(null);
 
     const scrollContainerRef = useRef(null);
     const scrollPositionRef = useRef(0);
@@ -242,6 +245,21 @@ const FontManagerModal = ({ onClose }) => {
         setView('picker');
     };
 
+    const handleReplacePrimary = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const { font, metadata } = await parseFontFile(file);
+            const url = createFontUrl(file);
+            loadFont(font, url, file.name, metadata);
+        } catch (err) {
+            console.error('Error replacing primary font:', err);
+            alert('Error replacing primary font: ' + err.message);
+        } finally {
+            e.target.value = '';
+        }
+    };
+
     const handleLanguageSelect = (langId) => {
         if (!pickingForFontId) return;
 
@@ -313,6 +331,13 @@ const FontManagerModal = ({ onClose }) => {
                             {/* Search Input */}
                             <div className="mb-2 relative">
                                 <input
+                                    ref={primaryFileInputRef}
+                                    type="file"
+                                    className="hidden"
+                                    accept=".ttf,.otf,.woff,.woff2"
+                                    onChange={handleReplacePrimary}
+                                />
+                                <input
                                     type="text"
                                     placeholder="Search fonts..."
                                     value={searchTerm}
@@ -358,6 +383,7 @@ const FontManagerModal = ({ onClose }) => {
                                                                         onToggleGlobal={toggleFontGlobalStatus}
                                                                         mappings={Mappings}
                                                                         languages={languages || []}
+                                                                        onReplace={() => primaryFileInputRef.current?.click()}
                                                                     />
                                                                 ))}
                                                         </>
