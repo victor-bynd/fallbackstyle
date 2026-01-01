@@ -415,7 +415,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
         };
 
         if (!fallbackOverrideFontId) {
-            return getAutoLabel() || 'Auto'; // Default to Auto string if we want to show it, but wait...
+            return getAutoLabel(); // Default to Auto string if we want to show it, but wait...
             // If getAutoLabel returns null (no fallbacks), we previously returned 'Auto'. 
             // The original code returned 'Auto' if length 0.
             // Let's decide: If no fallbacks, do we want "Auto" or Nothing?

@@ -136,4 +136,21 @@ describe('LanguageCard Font Indicators', () => {
         expect(screen.getByTitle('Primary Font')).toBeInTheDocument();
         expect(screen.getByTitle('System Fallback')).toBeInTheDocument();
     });
+    it('Scenario: Auto Mode (No Override) AND No General Fallbacks -> Indicator Disappears', () => {
+        // Setup: No Override, No Fallbacks
+        mockTypoContext.getPrimaryFontFromStyle.mockReturnValue(mockPrimaryFont);
+        mockTypoContext.getFontsForStyle.mockReturnValue([mockPrimaryFont]); // NO fallbacks
+        mockTypoContext.getFallbackFontOverrideForStyle.mockReturnValue(null); // AUTO MODE
+
+        // Mock useFontStack returning EMPTY array (no fallbacks)
+        buildFallbackFontStackForStyleMock.mockReturnValue([]);
+
+        render(<LanguageCard language={mockLanguage} isHighlighted={false} />);
+
+        // Expectation: Middle badge gone (should NOT see "Auto")
+        // Note: The current implementation falls back to "Auto", so this might fail until fixed.
+        // We use queryByText to check if it exists or not.
+        const mappedBadge = screen.queryByText('Auto');
+        expect(mappedBadge).not.toBeInTheDocument();
+    });
 });
