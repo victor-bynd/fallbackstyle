@@ -1,5 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import { safeParseFontFile } from '../services/SafeFontLoader';
 import {
     DndContext,
     closestCenter,
@@ -80,7 +81,7 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
                 continue;
             }
             try {
-                const { font, metadata } = await parseFontFile(file);
+                const { font, metadata } = await safeParseFontFile(file);
                 const url = createFontUrl(file);
                 // Create a pending font object structure matching FontUploader
                 newFonts.push({

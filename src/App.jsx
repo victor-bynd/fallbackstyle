@@ -14,6 +14,7 @@ import AddLanguageModal from './components/AddLanguageModal';
 import FontLanguageModal from './components/FontLanguageModal';
 import ConfigActionsModal from './components/ConfigActionsModal';
 import { parseFontFile, createFontUrl } from './services/FontLoader';
+import { safeParseFontFile } from './services/SafeFontLoader';
 import { useConfigImport } from './hooks/useConfigImport';
 import { useFontFaceStyles } from './hooks/useFontFaceStyles';
 
@@ -278,9 +279,11 @@ const MainContent = ({
 
     for (const file of files) {
       try {
-        const { font, metadata } = await parseFontFile(file);
+        console.log(`[App] Parsing resolved file: ${file.name}`);
+        const { font, metadata } = await safeParseFontFile(file);
         const url = createFontUrl(file);
         processed.push({ font, metadata, url, file });
+        console.log(`[App] Successfully parsed: ${file.name}`);
       } catch (err) {
         console.error("Error parsing during import resolution:", err);
       }
@@ -399,7 +402,7 @@ const MainContent = ({
 
       {isSessionLoading ? (
         <LoadingScreen />
-      ) : (!fontObject && (configuredLanguages.length === 0 || (fontStyles?.primary?.fonts?.[0]?.name))) ? (
+      ) : (!fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name) ? (
         <LandingPage importConfig={importConfig} />
       ) : (
         <div
@@ -709,7 +712,7 @@ const MainContent = ({
         />
       )}
 
-      {missingFonts && (
+      {missingFonts && pendingFonts.length === 0 && (
         <MissingFontsModal missingFonts={missingFonts} existingFiles={existingFiles} onResolve={handleResolve} onCancel={cancelImport} />
       )}
 

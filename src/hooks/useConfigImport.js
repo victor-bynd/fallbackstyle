@@ -171,11 +171,20 @@ export const useConfigImport = () => {
         reader.readAsText(file);
     };
 
-    const handleResolveMissingFonts = (fileMap) => {
+    const handleResolveMissingFonts = async (fileMap) => {
         if (pendingConfig) {
-            restoreConfiguration(pendingConfig, fileMap);
+            try {
+                await restoreConfiguration(pendingConfig, fileMap);
+            } catch (error) {
+                console.error("Error restoring configuration with missing fonts:", error);
+                alert("There was a problem restoring the configuration. Some settings may be missing.");
+            } finally {
+                setMissingFonts(null);
+                setPendingConfig(null);
+            }
+        } else {
+            console.warn("No pending config found when resolving missing fonts.");
             setMissingFonts(null);
-            setPendingConfig(null);
         }
     };
 

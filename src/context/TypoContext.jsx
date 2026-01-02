@@ -12,6 +12,7 @@ import { resolveWeightForFont } from '../utils/weightUtils';
 import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import { ConfigService } from '../services/ConfigService';
 import { PersistenceService } from '../services/PersistenceService';
+import { safeParseFontFile } from '../services/SafeFontLoader';
 
 import { TypoContext } from './TypoContextDefinition';
 
@@ -2471,19 +2472,16 @@ export const TypoProvider = ({ children }) => {
                 if (font.fileName && fontFilesMap[font.fileName]) {
                     const file = fontFilesMap[font.fileName];
                     try {
-                        const { font: parsedFont, metadata: parsedMeta } = await parseFontFile(file);
+                        // Use SafeFontLoader which uses a Worker + Timeout
+                        const { font: parsedFont, metadata: parsedMeta } = await safeParseFontFile(file);
+
                         fontObject = parsedFont;
                         fontUrl = createFontUrl(file);
                         metadata = parsedMeta;
                     } catch (e) {
-                        console.error("Failed to parse font file during restore", file.name, e);
+                        console.error("Failed to parse font file during restore (Worker/Safety check failed)", file.name, e);
+                        // We proceed without the font object (Ghost Font state)
                     }
-                } else if (font.fontUrl && !font.fileName) {
-                    // Case: System fonts or remote fonts that don't need upload? 
-                    // Currently the app only supports local uploads or system fonts (no URL).
-                    // If fontUrl exists but no fileName, it might be a blob URL which is invalid now.
-                    // We should clear it.
-                    // Ideally system fonts have name but no fontObject/Url.
                 }
 
                 return {
