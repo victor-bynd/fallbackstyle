@@ -4,7 +4,7 @@ import SidebarHeaderConfig from './SidebarHeaderConfig';
 import SidebarLanguages from './SidebarLanguages';
 import SidebarFonts from './SidebarFonts';
 
-const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, onAddLanguage, highlitLanguageId, setHighlitLanguageId, onManageLanguages, searchQuery, setSearchQuery, ...props }) => {
+const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, onAddLanguage, highlitLanguageId, setHighlitLanguageId, onManageLanguages, searchQuery, setSearchQuery, fontFilter, ...props }) => {
     const { fontObject } = useTypo();
 
     if (!fontObject) return null;
@@ -32,6 +32,7 @@ const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, on
                         setSearchQuery={setSearchQuery}
                         expandedGroups={props.expandedGroups}
                         setExpandedGroups={props.setExpandedGroups}
+                        fontFilter={fontFilter}
                     />
                     <SidebarFonts
                         selectedGroup={selectedGroup}
