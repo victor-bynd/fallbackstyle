@@ -100,4 +100,86 @@ describe('Fallback Scale Propagation', () => {
         expect(screen.getByTestId('global-scale')).toHaveTextContent('150');
         expect(screen.getByTestId('effective-scale-ru')).toHaveTextContent('150');
     });
+
+    test('Cloned fallback should inherit Original Font Scale if set', () => {
+        const TestComponentWithFontUpdate = () => {
+            const {
+                addLanguageSpecificFont,
+                fontStyles,
+                getEffectiveFontSettingsForStyle,
+                addFallbackFont,
+                updateFallbackFontOverride
+            } = useContext(TypoContext);
+
+            const styleId = 'primary';
+            const style = fontStyles[styleId];
+            const testLang = 'fr-FR';
+
+            const getEffectiveScale = (langId) => {
+                const overrideMap = style.fallbackFontOverrides[langId];
+                if (!overrideMap) return null;
+                const overrideFontId = overrideMap['base-font-2'];
+                if (!overrideFontId) return null;
+
+                const settings = getEffectiveFontSettingsForStyle(styleId, overrideFontId);
+                return settings.scale;
+            };
+
+            return (
+                <div>
+                    <div data-testid="effective-scale-fr">{getEffectiveScale(testLang) ?? 'none'}</div>
+
+                    <button
+                        onClick={() => {
+                            addFallbackFont({
+                                id: 'base-font-2',
+                                name: 'Base Font 2',
+                                fileName: 'BaseFont2.ttf',
+                                type: 'fallback',
+                                scale: undefined
+                            });
+                        }}
+                        data-testid="add-base-font-2"
+                    >
+                        Add Base Font 2
+                    </button>
+
+                    <button
+                        onClick={() => addLanguageSpecificFont('base-font-2', testLang)}
+                        data-testid="add-lang-font-2"
+                    >
+                        Add Lang Font 2
+                    </button>
+
+                    <button
+                        onClick={() => updateFallbackFontOverride('base-font-2', 'scale', 125)}
+                        data-testid="set-font-scale-125"
+                    >
+                        Set Font Scale 125
+                    </button>
+                </div>
+            );
+        };
+
+        render(
+            <TypoProvider>
+                <TestComponentWithFontUpdate />
+            </TypoProvider>
+        );
+
+        // 1. Add Base Font 2
+        fireEvent.click(screen.getByTestId('add-base-font-2'));
+
+        // 2. Clone it for FR
+        fireEvent.click(screen.getByTestId('add-lang-font-2'));
+
+        // Should default to 100
+        expect(screen.getByTestId('effective-scale-fr')).toHaveTextContent('100');
+
+        // 3. Update ORIGINAL Font Scale to 125
+        fireEvent.click(screen.getByTestId('set-font-scale-125'));
+
+        // 4. Verify Clone inherits 125
+        expect(screen.getByTestId('effective-scale-fr')).toHaveTextContent('125');
+    });
 });

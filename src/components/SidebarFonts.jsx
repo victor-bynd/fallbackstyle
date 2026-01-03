@@ -31,7 +31,7 @@ const SidebarFonts = ({ selectedGroup, setHighlitLanguageId }) => {
                 activeTab={activeTab}
                 selectedGroup={selectedGroup}
                 setHighlitLanguageId={setHighlitLanguageId}
-                readOnly={activeTab !== 'ALL' && activeTab !== 'primary'}
+                readOnly={false}
             />
 
             {/* Overrides Manager */}

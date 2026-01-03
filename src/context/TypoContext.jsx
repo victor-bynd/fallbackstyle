@@ -650,9 +650,25 @@ export const TypoProvider = ({ children }) => {
 
         // Defaults if no override
         if (finalScale === undefined) {
-            // UPDATED: Always default to fallback scale (even for primary overrides) 
-            // so Global Scale Adjust controls them.
-            finalScale = style.fontScales?.fallback ?? 100;
+            // Check if this is a cloned font and if the original global font has a scale set
+            if (font.isClone) {
+                // Find original global font by matching fileName/name
+                const original = style.fonts.find(f =>
+                    f.type === 'fallback' &&
+                    !f.isClone &&
+                    f.fileName === font.fileName &&
+                    f.name === font.name
+                );
+
+                if (original && original.scale !== undefined) {
+                    finalScale = original.scale;
+                }
+            }
+
+            // If still undefined, use global fallback scale
+            if (finalScale === undefined) {
+                finalScale = style.fontScales?.fallback ?? 100;
+            }
         }
 
         // Resolve Line Height
@@ -1323,6 +1339,120 @@ export const TypoProvider = ({ children }) => {
         setLanguageVisibility(langId, true);
     };
 
+
+    // Link a font to a language (Soft mapping / Inheritance)
+    const linkFontToLanguage = (originalFontId, langId) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const startOverrides = prev.fallbackFontOverrides || {};
+            const currentLangOverrides = startOverrides[langId];
+            let nextLangOverrides = {};
+
+            if (typeof currentLangOverrides === 'object' && currentLangOverrides !== null) {
+                nextLangOverrides = { ...currentLangOverrides };
+            }
+
+            // Map the language to the ORIGINAL font ID (Self-reference indicates inheriting)
+            nextLangOverrides[originalFontId] = originalFontId;
+
+            const nextOverrides = {
+                ...startOverrides,
+                [langId]: nextLangOverrides
+            };
+
+            return {
+                ...prev,
+                fallbackFontOverrides: nextOverrides
+            };
+        });
+        setLanguageVisibility(langId, true);
+    };
+
+    // Granular update for a specific language (Auto-Clone if needed)
+    const updateLanguageSpecificSetting = (originalFontId, langId, property, value) => {
+        const styleId = activeFontStyleId;
+        updateStyleState(styleId, prev => {
+            const fonts = prev.fonts || [];
+            const originalFont = fonts.find(f => f.id === originalFontId);
+            if (!originalFont) return prev;
+
+            // 1. Determine if we need to clone (is it currently Linked or Cloned?)
+            const currentOverrides = prev.fallbackFontOverrides?.[langId];
+            let currentOverrideId = null;
+
+            if (typeof currentOverrides === 'object' && currentOverrides !== null) {
+                currentOverrideId = currentOverrides[originalFontId];
+            } else if (typeof currentOverrides === 'string') {
+                currentOverrideId = currentOverrides;
+            }
+
+            let targetFontId = currentOverrideId;
+            let nextFonts = [...fonts];
+            let nextOverrides = { ...(prev.fallbackFontOverrides || {}) };
+
+            // Check if currentOverrideId is the original font (Linked) or a clone
+            // If it is Linked (targetFontId === originalFontId), or doesn't exist yet, we must clone.
+            // If it is already a distinct clone (targetFontId !== originalFontId), we update it directly.
+
+            if (!targetFontId || targetFontId === originalFontId) {
+                // CLONE ACTION
+                const newFontId = `lang-${langId}-${Date.now()}`;
+                const newFont = {
+                    ...originalFont,
+                    id: newFontId,
+                    type: 'fallback',
+                    isLangSpecific: true,
+                    isClone: true,
+                    isPrimaryMap: originalFont.type === 'primary',
+                    color: originalFont.color,
+                    hidden: false,
+                    // Reset metrics only if they are not the ones we are setting?
+                    // Actually, if we clone, we probably want to inherit the CURRENT global values as a starting point?
+                    // User expectation: "I select RU, change Weight. Everything else stays same as Global."
+                    // So we should copy current settings.
+                    // BUT `originalFont` object *might* have global settings if they are stored on it.
+                    // If global settings are stored elsewhere (e.g. state.weight), we need to capture them into the clone as static overrides.
+                    weightOverride: prev.weight, // Capture global weight
+                    scale: prev.fontScales?.fallback || 100, // Capture global scale
+                    // Copy existing overrides from original if any
+                    ...originalFont
+                };
+
+                // Specific update
+                newFont[property] = value;
+                // Ensure ID is correct
+                newFont.id = newFontId;
+
+                nextFonts.push(newFont);
+
+                // Update overrides map
+                const langOverrides = { ...(nextOverrides[langId] || {}) };
+                // Ensure it's an object
+                if (typeof nextOverrides[langId] === 'string') {
+                    // Legacy string conversion?
+                    // Not handled here for simplicity, assuming object structure for mapped fonts
+                }
+                langOverrides[originalFontId] = newFontId;
+                nextOverrides[langId] = langOverrides;
+
+                targetFontId = newFontId;
+            } else {
+                // UPDATE EXISTING CLONE
+                nextFonts = nextFonts.map(f => {
+                    if (f.id === targetFontId) {
+                        return { ...f, [property]: value };
+                    }
+                    return f;
+                });
+            }
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                fallbackFontOverrides: nextOverrides
+            };
+        });
+    };
 
     const clearPrimaryFontOverride = (langId) => {
         const styleId = activeFontStyleId;
@@ -2766,6 +2896,9 @@ export const TypoProvider = ({ children }) => {
             addStrictlyMappedFonts,
             addLanguageSpecificPrimaryFont,
             addLanguageSpecificPrimaryFontFromId,
+            linkFontToLanguage,
+            updateLanguageSpecificSetting,
+            assignFontToLanguage,
             addPrimaryLanguageOverrides,
             addPrimaryLanguageOverrideWithFont,
             addLanguageSpecificFallbackFont,
