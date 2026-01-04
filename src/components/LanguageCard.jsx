@@ -327,9 +327,27 @@ const LanguageCard = ({ language, isHighlighted }) => {
 
     let fallbackOverrideFontId = getFallbackFontOverrideForStyle(activeMetricsStyleId, language.id) || '';
 
+    // Fallback to global primary overrides for FALLBACK overrides as well
+    if (!fallbackOverrideFontId && activeMetricsStyleId !== 'primary') {
+        const globalFallback = getFallbackFontOverrideForStyle('primary', language.id);
+        if (globalFallback) fallbackOverrideFontId = globalFallback;
+    }
+
+    let primaryOverrideId = getPrimaryFontOverrideForStyle(activeMetricsStyleId, language.id);
+
+    // Fallback to global primary overrides if not found in active style (e.g. detached header style)
+    if (!primaryOverrideId && activeMetricsStyleId !== 'primary') {
+        const globalOverride = getPrimaryFontOverrideForStyle('primary', language.id);
+        if (globalOverride) primaryOverrideId = globalOverride;
+    }
+
     // If primary language and no explicit override, default to mapping to primary font
-    if (!fallbackOverrideFontId && primaryLanguages?.includes(language.id) && metricsPrimaryFont) {
-        fallbackOverrideFontId = metricsPrimaryFont.id;
+    if (!fallbackOverrideFontId) {
+        if (primaryOverrideId) {
+            fallbackOverrideFontId = primaryOverrideId;
+        } else if (primaryLanguages?.includes(language.id) && metricsPrimaryFont) {
+            fallbackOverrideFontId = metricsPrimaryFont.id;
+        }
     }
 
     const fallbackOverrideOptions = useMemo(() => {
@@ -530,16 +548,20 @@ const LanguageCard = ({ language, isHighlighted }) => {
                     {showFallbackOrder && (
                         <div className="flex items-center gap-1.5 overflow-hidden pt-1">
                             {/* Primary Font (Background) */}
-                            <span
-                                className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap"
-                                title="Primary Font"
-                            >
-                                {metricsPrimaryFont?.label || metricsPrimaryFont?.fileName?.replace(/\.[^/.]+$/, '') || metricsPrimaryFont?.name || 'Primary'}
-                            </span>
+                            {(!currentFallbackFont || (metricsPrimaryFont && currentFallbackFont && metricsPrimaryFont.id !== currentFallbackFont.id && !currentFallbackFont.isPrimaryOverride)) && (
+                                <>
+                                    <span
+                                        className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap"
+                                        title="Primary Font"
+                                    >
+                                        {metricsPrimaryFont?.label || metricsPrimaryFont?.fileName?.replace(/\.[^/.]+$/, '') || metricsPrimaryFont?.name || 'Primary'}
+                                    </span>
 
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-slate-300 flex-shrink-0">
-                                <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                            </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-slate-300 flex-shrink-0">
+                                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                    </svg>
+                                </>
+                            )}
 
                             {/* Mapped / Auto Font */}
                             {fallbackOverrideFontId !== 'legacy' && currentFallbackLabel && (() => {
@@ -684,22 +706,18 @@ const LanguageCard = ({ language, isHighlighted }) => {
             {/* Set Base Font Size on Container */}
             <div className="p-4">
                 {/* DEBUG: Check viewMode */}
-                {console.error('[DEBUG] Current viewMode:', viewMode)}
+
                 {viewMode === 'all' && (
                     <div className="space-y-2">
                         {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((tag) => {
                             const headerStyle = headerStyles?.[tag];
                             // Safety check: ensure headerStyle exists
                             if (!headerStyle) {
-                                console.warn(`[LanguageCard] Missing headerStyle for ${tag}`);
+
                                 return null;
                             }
 
-                            // DEBUG: Very visible logging
-                            if (tag === 'h1') {
-                                console.error('[DEBUG] Headers rendering - checking h1 headerStyle:', headerStyle);
-                                console.error('[DEBUG] All headerStyles:', headerStyles);
-                            }
+
 
                             const styleIdForTag = resolveStyleIdForHeader(tag);
                             const currentFallbackFontId = getCurrentFallbackFontIdForStyle(styleIdForTag);
@@ -727,21 +745,10 @@ const LanguageCard = ({ language, isHighlighted }) => {
                             const globalPrimary = fonts.find(f => f.type === 'primary');
                             const isGlobalPrimary = primaryFont && globalPrimary && primaryFont.id === globalPrimary.id;
 
-                            if (language.id === 'mt-MT' && tag === 'h1') {
-                                console.log('[LanguageCard][Malti] Debug:', {
-                                    primaryFont,
-                                    isGlobalPrimary,
-                                    fontFamily: !isGlobalPrimary && primaryFont
-                                        ? `'FallbackFont-${styleIdForTag}-${primaryFont.id}'`
-                                        : `UploadedFont-${styleIdForTag}`,
-                                    hasUrl: !!primaryFont?.fontUrl,
-                                    fontName: primaryFont?.name,
-                                    fontId: primaryFont?.id
-                                });
-                            }
+
 
                             const style = fontStyles?.[styleIdForTag];
-                            const styleBaseRem = style?.baseRem || 16; // Get baseRem from this specific style
+                            const styleBaseRem = (primaryFont?.isPrimaryOverride && primaryFont?.baseRem) || style?.baseRem || 16;
                             const baseFontSize = style?.baseFontSize ?? 60;
                             const fontScales = style?.fontScales || { active: 100, fallback: 100 };
                             const lineHeight = style?.lineHeight ?? 1.2;
@@ -755,14 +762,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                                 finalSizePx = primarySettings.h1Rem * styleBaseRem;
                             }
 
-                            // DEBUG: Log the calculation for each header
-                            console.log(`[LanguageCard] ${tag}:`, {
-                                scale: headerStyle.scale,
-                                styleBaseRem,
-                                primaryScale: primarySettings.scale,
-                                finalSizePx,
-                                styleIdForTag
-                            });
+
 
                             const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
                                 (primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== '' && primaryFont?.lineHeight !== 'normal')
@@ -830,7 +830,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                                                 (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
                                             ) ? 'normal'
                                                 : effectiveLineHeight,
-                                            letterSpacing: `${headerStyle.letterSpacing || 0} em`,
+                                            letterSpacing: `${primarySettings.letterSpacing ?? headerStyle.letterSpacing ?? 0}em`,
                                             textTransform: textCase,
                                             position: 'relative',
                                             ...browserGuideStyle
@@ -863,7 +863,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
 
                         // Safety check: ensure headerStyle exists
                         if (!headerStyle) {
-                            console.warn(`[LanguageCard] Missing headerStyle for ${viewMode}`);
+
                             return null;
                         }
 
@@ -881,7 +881,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                         }
 
                         const style = fontStyles?.[styleIdForTag];
-                        const styleBaseRem = style?.baseRem || 16; // Get baseRem from this specific style
+                        const styleBaseRem = (primaryFont?.isPrimaryOverride && primaryFont?.baseRem) || style?.baseRem || 16;
                         const baseFontSize = style?.baseFontSize ?? 60;
                         const fontScales = style?.fontScales || { active: 100, fallback: 100 };
                         const lineHeight = style?.lineHeight ?? 1.2;
@@ -897,14 +897,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                             finalSizePx = primarySettings.h1Rem * styleBaseRem;
                         }
 
-                        // DEBUG: Log the calculation for single header view
-                        console.log(`[LanguageCard Single] ${viewMode}:`, {
-                            scale: headerStyle.scale,
-                            styleBaseRem,
-                            primaryScale: primarySettings.scale,
-                            finalSizePx,
-                            styleIdForTag
-                        });
+
 
                         const forcedLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
                             ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
@@ -971,7 +964,7 @@ const LanguageCard = ({ language, isHighlighted }) => {
                                             (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
                                         ) ? 'normal'
                                             : effectiveLineHeight,
-                                        letterSpacing: `${headerStyle.letterSpacing || 0} em`,
+                                        letterSpacing: `${primarySettings.letterSpacing ?? headerStyle.letterSpacing ?? 0}em`,
                                         textTransform: textCase,
                                         position: 'relative',
                                         ...browserGuideStyle

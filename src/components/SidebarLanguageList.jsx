@@ -16,7 +16,11 @@ const SidebarLanguageList = ({
     primaryLanguages = [],
     searchQuery,
     expandedGroups,
-    setExpandedGroups
+    setExpandedGroups,
+    fontFilter, // New prop
+    fonts, // New prop
+    primaryFontOverrides, // New prop
+    fallbackFontOverrides // New prop
 }) => {
     // const [expandedGroups, setExpandedGroups] = useState({}); // Lifted to App
 
@@ -52,6 +56,27 @@ const SidebarLanguageList = ({
                 return lang.name.toLowerCase().includes(searchQuery.toLowerCase());
             }
 
+            // 1. Font Filter (New)
+            if (fontFilter && fontFilter.length > 0) {
+                const langPrimary = primaryFontOverrides?.[lang.id];
+                const langFallback = fallbackFontOverrides?.[lang.id];
+
+                const getIds = (val) => {
+                    if (!val) return [];
+                    if (typeof val === 'string') return [val];
+                    if (typeof val === 'object') return Object.values(val); // fallback overrides can be object
+                    return [];
+                };
+
+                const allIds = [...getIds(langPrimary), ...getIds(langFallback)];
+                const hasMatch = allIds.some(fid => {
+                    const f = fonts.find(font => font.id === fid);
+                    return f && (f.fileName || f.name) && fontFilter.includes(f.fileName || f.name);
+                });
+
+                if (!hasMatch) return false;
+            }
+
             const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
             const isTargeted = mappedLanguageIds?.includes(lang.id);
             const group = getLanguageGroup(lang);
@@ -71,7 +96,7 @@ const SidebarLanguageList = ({
         });
 
         return groups;
-    }, [languagesToList, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery]);
+    }, [languagesToList, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, fontFilter, primaryFontOverrides, fallbackFontOverrides, fonts]);
 
     // Update expanded groups when selectedGroup changes or search is active
     useEffect(() => {

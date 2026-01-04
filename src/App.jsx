@@ -13,6 +13,7 @@ import LanguageGroupFilter from './components/LanguageGroupFilter';
 import AddLanguageModal from './components/AddLanguageModal';
 import FontLanguageModal from './components/FontLanguageModal';
 import ConfigActionsModal from './components/ConfigActionsModal';
+import FontFilter from './components/FontFilter'; // New Import
 import { parseFontFile, createFontUrl } from './services/FontLoader';
 import { safeParseFontFile } from './services/SafeFontLoader';
 import { useConfigImport } from './hooks/useConfigImport';
@@ -39,7 +40,9 @@ const MainContent = ({
   activeConfigModal,
   setActiveConfigModal,
   searchQuery,
-  expandedGroups // New Prop
+  expandedGroups, // New Prop
+  fontFilter, // Lifted Prop
+  setFontFilter // Lifted Prop
 }) => {
   const {
     fontObject,
@@ -71,8 +74,11 @@ const MainContent = ({
     setActiveConfigTab,
     activeConfigTab,
     resetApp,
-    isSessionLoading
+    isSessionLoading,
+    fonts // Added for filtering
   } = useTypo();
+
+  // const [fontFilter, setFontFilter] = useState([]); // Lifted to App
 
   const visibleLanguagesList = (() => {
     // 1. Base List: strict Configured Order
@@ -106,44 +112,108 @@ const MainContent = ({
     const sidebarOrderedList = groupOrder.flatMap(g => groups[g]);
 
     // 4. Filtering
+    let visible = sidebarOrderedList;
+
     if (searchQuery) {
       const lowerQuery = searchQuery.toLowerCase();
-      return sidebarOrderedList.filter(l => l.name.toLowerCase().includes(lowerQuery));
-    }
-    if (selectedGroup === 'MAPPED') {
-      return sidebarOrderedList.filter(l =>
-        mappedLanguageIds.includes(l.id) ||
-        primaryLanguages.includes(l.id) ||
-        (primaryLanguages.length === 0 && l.id === 'en-US')
-      );
-    }
-    // Specific Group (Sidebar Order is preserved naturally within the group)
-    const visible = sidebarOrderedList.filter(lang => {
-      // Check if group is collapsed - default to expanded (true) if undefined
-      const group = getLanguageGroup(lang);
-      const isGroupExpanded = expandedGroups[group] ?? true;
-
-      // If search is active, we ignore collapse state (optional, but usually better UX)
-      // If specific group selected, we ignore collapse state as user explicitly navigated there
-      // IF 'ALL', 'MAPPED', 'UNMAPPED' -> we respect collapse state
-      const shouldCheckCollapse = !searchQuery && ['ALL', 'MAPPED', 'UNMAPPED'].includes(selectedGroup);
-      if (shouldCheckCollapse && !isGroupExpanded) return false;
-
-      if (selectedGroup === 'ALL') return true;
+      visible = visible.filter(l => l.name.toLowerCase().includes(lowerQuery));
+    } else {
+      // Standard Group Logic
       if (selectedGroup === 'MAPPED') {
-        const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
-        const isMapped = mappedLanguageIds.includes(lang.id);
-        return isMapped || isPrimary;
+        visible = visible.filter(l =>
+          mappedLanguageIds.includes(l.id) ||
+          primaryLanguages.includes(l.id) ||
+          (primaryLanguages.length === 0 && l.id === 'en-US')
+        );
+      } else if (selectedGroup === 'UNMAPPED') {
+        visible = visible.filter(l => {
+          const isPrimary = primaryLanguages.includes(l.id) || (primaryLanguages.length === 0 && l.id === 'en-US');
+          const isMapped = mappedLanguageIds.includes(l.id);
+          return !isPrimary && !isMapped;
+        });
+      } else if (selectedGroup !== 'ALL') {
+        visible = visible.filter(lang => {
+          const group = getLanguageGroup(lang);
+          const isGroupExpanded = expandedGroups[group] ?? true;
+          // Check collapse state for specific group selection if not 'ALL'/'MAPPED'/'UNMAPPED' (implied by falling through here)
+          // Actually, earlier logic says:
+          // if selectedGroup is specific group, we return group === selectedGroup.
+
+          return group === selectedGroup;
+        });
       }
 
-      if (selectedGroup === 'UNMAPPED') {
-        const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
-        const isMapped = mappedLanguageIds.includes(lang.id);
-        return !isPrimary && !isMapped;
+      // Respect Collapse State for ALL/MAPPED/UNMAPPED
+      if (['ALL', 'MAPPED', 'UNMAPPED'].includes(selectedGroup)) {
+        visible = visible.filter(lang => {
+          const group = getLanguageGroup(lang);
+          return expandedGroups[group] ?? true;
+        });
       }
+    }
 
-      return group === selectedGroup;
-    });
+    // 5. Font Filter (New) - Corrected to include Inherited Fonts
+    if (fontFilter.length > 0) {
+      // Pre-calculate global fonts to avoid doing it per-language
+      const globalPrimaryFont = fonts.find(f => f.type === 'primary' && !f.isPrimaryOverride);
+      const globalFallbackFonts = fonts.filter(f => f.type === 'fallback' && f.fontObject && !f.isClone && !f.isLangSpecific);
+
+      visible = visible.filter(lang => {
+        const langPrimaryOverride = primaryFontOverrides?.[lang.id];
+        const langFallbackOverrides = fallbackFontOverrides?.[lang.id]; // Can be string or object
+
+        const effectiveFontIds = new Set();
+
+        // 1. Resolve Primary
+        if (langPrimaryOverride) {
+          effectiveFontIds.add(langPrimaryOverride);
+        } else if (primaryLanguages.includes(lang.id) && globalPrimaryFont) {
+          effectiveFontIds.add(globalPrimaryFont.id);
+        }
+
+        // 2. Resolve Fallbacks (Inherited + Overrides)
+        // Iterate over GLOBAL fallbacks to check inheritance/overrides
+        globalFallbackFonts.forEach(gf => {
+          let effectiveId = gf.id;
+
+          // Check for override
+          if (langFallbackOverrides) {
+            if (typeof langFallbackOverrides === 'string') {
+              // String override usually implies replacing the whole stack or specific logic? 
+              // Based on legacy, might be single mapping. Let's include it.
+              // But here we are checking specific global font.
+              if (langFallbackOverrides === gf.id) effectiveId = gf.id; // Same
+              // If string is different, does it replace THIS font? Unclear. 
+              // Safest: Add the string value to effectiveIds separately.
+            } else if (typeof langFallbackOverrides === 'object') {
+              if (langFallbackOverrides[gf.id]) {
+                effectiveId = langFallbackOverrides[gf.id];
+              }
+            }
+          }
+          effectiveFontIds.add(effectiveId);
+        });
+
+        // 3. Add any other strictly mapped fonts (that might not be global fallbacks)
+        if (langFallbackOverrides) {
+          if (typeof langFallbackOverrides === 'string') {
+            effectiveFontIds.add(langFallbackOverrides);
+          } else if (typeof langFallbackOverrides === 'object') {
+            Object.values(langFallbackOverrides).forEach(id => effectiveFontIds.add(id));
+          }
+        }
+
+        // Check if ANY of the effective fonts matches the filter
+        return Array.from(effectiveFontIds).some(fontId => {
+          const f = fonts.find(font => font.id === fontId);
+          if (f) {
+            const name = f.fileName || f.name;
+            return fontFilter.includes(name);
+          }
+          return false;
+        });
+      });
+    }
 
     return visible;
   })();
@@ -159,12 +229,11 @@ const MainContent = ({
   const [pendingFileMap, setPendingFileMap] = useState(null);
 
   // Sync highlitLanguageId with activeConfigTab to prevent double selection
+  // Sync highlitLanguageId with activeConfigTab to prevent double selection
   useEffect(() => {
-    if (activeConfigTab === 'ALL') {
-      if (highlitLanguageId !== null) {
-        setHighlitLanguageId(null);
-      }
-    } else {
+    // If activeConfigTab is NOT ALL, we still want to ensure coherence.
+    // If activeConfigTab IS ALL, we now ALLOW highlitLanguageId to be set (for manual highlighting).
+    if (activeConfigTab !== 'ALL') {
       const primaryLangId = primaryLanguages[0] || 'en-US';
       const targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
       if (highlitLanguageId !== targetId) {
@@ -177,22 +246,30 @@ const MainContent = ({
   const lastMainScrolledId = useRef(null);
 
   useEffect(() => {
-    // If we switched to ALL, maybe scroll to top or just do nothing?
-    // User expectation: clicking 'ALL' usually resets view.
-    // However, if we just stay put, that's also fine. 
-    // Let's scroll to top if ALL is selected to reset context.
-    // if (activeConfigTab === 'ALL') {
-    //   window.scrollTo({ top: 0, behavior: 'smooth' });
-    //   return;
-    // }
+    // Scroll Logic
+    // Priorities:
+    // 1. If activeConfigTab is specific -> Scroll to it.
+    // 2. If activeConfigTab is ALL -> Check highlitLanguageId -> Scroll to it.
 
-    if (activeConfigTab === 'ALL') return;
+    let targetId = null;
 
     const primaryLangId = primaryLanguages[0] || 'en-US';
-    const targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
 
-    if (targetId === lastMainScrolledId.current) return;
-    lastMainScrolledId.current = targetId;
+    if (activeConfigTab !== 'ALL') {
+      targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
+    } else if (highlitLanguageId) {
+      targetId = highlitLanguageId === 'primary' ? primaryLangId : highlitLanguageId;
+    }
+
+    if (!targetId) return;
+
+    // Optional: Avoid scrolling if we just scrolled to this ID?
+    // if (targetId === lastMainScrolledId.current) return;
+    // Actually, if user clicks again, maybe they want to scroll back? 
+    // But typically React effect won't fire if dependencies haven't changed.
+    // However, highlitLanguageId changing from A -> null -> A might trigger it.
+
+    // lastMainScrolledId.current = targetId; // Keeping this reference check might be useful
 
     // Use a retry mechanism to ensure the element exists before scrolling
     let attempts = 0;
@@ -231,7 +308,7 @@ const MainContent = ({
         window._mainScrollInterval = null;
       }
     };
-  }, [activeConfigTab, primaryLanguages]);
+  }, [activeConfigTab, highlitLanguageId, primaryLanguages]);
 
   const { getExportConfiguration, addLanguageSpecificFallbackFont, loadFont } = useTypo();
 
@@ -426,17 +503,13 @@ const MainContent = ({
 
             {/* RIGHT: Controls */}
             <div className={`flex items-center gap-2 transition-all duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              {/* Inline Guide Toggles - Standard Controls Style */}
+              {/* Inline Guide Toggles - Compact Individual Buttons */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-black text-slate-400 select-none uppercase tracking-widest mr-1.5 pt-0.5">
-                  TOOLS
-                </span>
-
                 <button
                   /* UI: TYPE GRID */
                   onClick={() => toggleAlignmentGuides()}
                   className={`
-                  px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border
+                  px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showAlignmentGuides
                       ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
                       : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
@@ -450,7 +523,7 @@ const MainContent = ({
                   /* UI: LINEBOX VIEW */
                   onClick={() => toggleBrowserGuides()}
                   className={`
-                  px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border
+                  px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showBrowserGuides
                       ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
                       : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
@@ -464,7 +537,7 @@ const MainContent = ({
                   /* UI: FALLBACK COLORS */
                   onClick={() => setShowFallbackColors(!showFallbackColors)}
                   className={`
-                  px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border
+                  px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showFallbackColors
                       ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
                       : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
@@ -478,7 +551,7 @@ const MainContent = ({
                   /* UI: FALLBACK ORDER */
                   onClick={() => setShowFallbackOrder(!showFallbackOrder)}
                   className={`
-                  px-3 h-[34px] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border relative z-50
+                  px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border relative z-50
                   ${showFallbackOrder
                       ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
                       : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
@@ -487,6 +560,17 @@ const MainContent = ({
                 >
                   FALLBACK ORDER
                 </button>
+
+
+                {/* Font Filter Component */}
+                <FontFilter
+                  fonts={fonts}
+                  primaryFontOverrides={primaryFontOverrides}
+                  fallbackFontOverrides={fallbackFontOverrides}
+                  selectedFilter={fontFilter}
+                  onSelectFilter={setFontFilter}
+                  compact={true}
+                />
               </div>
               <div className="w-[34px] h-[34px] hidden sm:block shrink-0" aria-hidden="true" />
             </div>
@@ -751,6 +835,8 @@ function App() {
   const [activeConfigModal, setActiveConfigModal] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [fontFilter, setFontFilter] = useState([]); // Lifted State (Multi-select)
+  // Force HMR Update
 
   const { resetApp, isAppResetting } = useTypo();
 
@@ -790,6 +876,8 @@ function App() {
             setSearchQuery={setSearchQuery}
             expandedGroups={expandedGroups}
             setExpandedGroups={setExpandedGroups}
+            fontFilter={fontFilter}
+            setFontFilter={setFontFilter}
           />
         )}
 
@@ -810,6 +898,8 @@ function App() {
           setActiveConfigModal={setActiveConfigModal}
           searchQuery={searchQuery}
           expandedGroups={expandedGroups}
+          fontFilter={fontFilter} // New Sync Prop
+          setFontFilter={setFontFilter} // Lifted Prop
         // showResetConfirm and setShowResetConfirm are no longer needed here as App handles the modal
         />
 
@@ -832,6 +922,7 @@ function App() {
             setSearchQuery={setSearchQuery}
             expandedGroups={expandedGroups}
             setExpandedGroups={setExpandedGroups}
+            fontFilter={fontFilter}
           />
         )}
       </div>

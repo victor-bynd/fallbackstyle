@@ -17,7 +17,8 @@ const SidebarLanguages = ({
     searchQuery,
     setSearchQuery,
     expandedGroups,
-    setExpandedGroups
+    setExpandedGroups,
+    fontFilter // New prop
 }) => {
     const {
         activeConfigTab,
@@ -26,11 +27,12 @@ const SidebarLanguages = ({
         primaryFontOverrides,
         fallbackFontOverrides,
         removeConfiguredLanguage,
-        supportedLanguageIds,
+        supportedLanguageIds, // Adding this if it was missing or just keeping context clean
         mappedLanguageIds,
         supportedLanguages,
         languages,
-        primaryLanguages // New
+        primaryLanguages, // New
+        fonts // Needed for font filter check
     } = useTypo();
 
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -74,6 +76,27 @@ const SidebarLanguages = ({
             const isTargeted = mappedLanguageIds?.includes(lang.id);
             const group = getLanguageGroup(lang);
             const isGroupExpanded = expandedGroups[group] ?? true;
+
+            // Check Font Filter
+            if (fontFilter && fontFilter.length > 0) {
+                const langPrimary = primaryFontOverrides?.[lang.id];
+                const langFallback = fallbackFontOverrides?.[lang.id];
+
+                const getIds = (val) => {
+                    if (!val) return [];
+                    if (typeof val === 'string') return [val];
+                    if (typeof val === 'object') return Object.values(val);
+                    return [];
+                };
+
+                const allIds = [...getIds(langPrimary), ...getIds(langFallback)];
+                const hasMatch = allIds.some(fid => {
+                    const f = fonts.find(font => font.id === fid);
+                    return f && (f.fileName || f.name) && fontFilter.includes(f.fileName || f.name);
+                });
+
+                if (!hasMatch) return false;
+            }
 
             // Respect collapse state for count, unless searching
             const shouldCheckCollapse = !searchQuery && ['ALL', 'MAPPED', 'UNMAPPED'].includes(selectedGroup);
@@ -210,6 +233,8 @@ const SidebarLanguages = ({
                     searchQuery={searchQuery}
                     expandedGroups={expandedGroups}
                     setExpandedGroups={setExpandedGroups}
+                    fontFilter={fontFilter} // Pass down
+                    fonts={fonts} // Pass fonts for resolution
                 />
             </div>
 

@@ -2,320 +2,383 @@
   {
     "id": "en-US",
     "name": "English - US",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "The quick brown fox jumps over 12 lazy dogs for $90 while wearing Nike shoes."
   },
   {
     "id": "en-GB",
     "name": "English - UK",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "The quick brown fox jumps over 12 lazy dogs for £90 while wearing Nike shoes."
   },
   {
     "id": "es",
     "name": "Spanish (Español)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "El veloz zorro marrón salta sobre 12 perros perezosos por $90 mientras usa tenis Nike."
   },
   {
     "id": "es-ES",
     "name": "Spanish - Spain (Español - España)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "El veloz zorro marrón salta sobre 12 perros perezosos por 90 € mientras lleva zapatillas Nike."
   },
   {
     "id": "es-MX",
     "name": "Spanish - Mexico (Español - México)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "El veloz zorro marrón salta sobre 12 perros perezosos por $90 mientras usa tenis Nike."
   },
   {
     "id": "es-AR",
     "name": "Spanish - Argentina (Español - Argentina)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "El veloz zorro marrón salta sobre 12 perros perezosos por $90 mientras usa zapatillas Nike."
   },
   {
     "id": "fr-FR",
     "name": "French - France (Français - France)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Le renard brun rapide saute par-dessus 12 chiens paresseux pour 90 € tout en portant des baskets Nike."
   },
   {
     "id": "fr-CA",
     "name": "French - Canada (Français - Canada)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Le renard brun rapide saute par-dessus 12 chiens paresseux pour 90 $ tout en portant des espadrilles Nike."
   },
   {
     "id": "pt-BR",
     "name": "Portuguese - Brazil (Português - Brasil)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "A rápida raposa marrom pula sobre 12 cães preguiçosos por R$ 90 enquanto usa tênis Nike."
   },
   {
     "id": "pt-PT",
     "name": "Portuguese - Portugal (Português - Portugal)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "A rápida raposa castanha salta sobre 12 cães preguiçosos por 90 € enquanto usa sapatilhas Nike."
   },
   {
     "id": "de-DE",
     "name": "German - Germany (Deutsch - Deutschland)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Der schnelle braune Fuchs springt über 12 faule Hunde für 90 €, während er Nike-Schuhe trägt."
   },
   {
     "id": "it-IT",
     "name": "Italian (Italiano)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "La rapida volpe marrone salta sopra 12 cani pigri per 90 € indossando scarpe Nike."
   },
   {
     "id": "nl-NL",
     "name": "Dutch - Netherlands (Nederlands - Nederland)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "De snelle bruine vos springt over 12 luie honden voor € 90 terwijl hij Nike-schoenen draagt."
   },
   {
     "id": "zh-Hans",
     "name": "Chinese Simplified (中文简体)",
-    "script": "Hans"
+    "script": "Hans",
+    "sampleSentence": "那只敏捷的棕色狐狸穿着 Nike 鞋跃过 12 只懒狗，售价 90 元。"
   },
   {
     "id": "zh-Hant",
     "name": "Chinese Traditional (中文繁體)",
-    "script": "Hant"
+    "script": "Hant",
+    "sampleSentence": "那隻敏捷的棕色狐狸穿著 Nike 鞋躍過 12 隻懶狗，售價 90 元。"
   },
   {
     "id": "ja-JP",
     "name": "Japanese (日本語)",
-    "script": "Jpan"
+    "script": "Jpan",
+    "sampleSentence": "素早い茶色のキツネはNikeの靴を履いて12匹の怠け者の犬を飛び越え、価格は90円です。"
   },
   {
     "id": "ko-KR",
     "name": "Korean (한국어)",
-    "script": "Kore"
+    "script": "Kore",
+    "sampleSentence": "재빠른 갈색 여우가 Nike 신발을 신고 12마리의 게으른 개를 뛰어넘고, 가격은 90원입니다."
   },
   {
     "id": "ar",
     "name": "Arabic (العربية)",
     "script": "Arab",
-    "dir": "rtl"
+    "dir": "rtl",
+    "sampleSentence": "الثعلب البني السريع يقفز فوق ١٢ كلبًا كسولًا مقابل ٩٠ دولارًا وهو يرتدي أحذية Nike."
   },
   {
     "id": "he-IL",
     "name": "Hebrew (עברית)",
     "script": "Hebr",
-    "dir": "rtl"
+    "dir": "rtl",
+    "sampleSentence": "השועל החום הזריז קופץ מעל 12 כלבים עצלנים תמורת 90 ₪ כשהוא נעול נעלי Nike."
   },
   {
     "id": "fa-IR",
     "name": "Persian (فارسی)",
     "script": "Arab",
-    "dir": "rtl"
+    "dir": "rtl",
+    "sampleSentence": "روباه قهوه‌ای چابک در حالی که کفش‌های Nike پوشیده است از روی ۱۲ سگ تنبل با قیمت ۹۰ ریال می‌پرد."
   },
   {
     "id": "ur-PK",
     "name": "Urdu (اردو)",
     "script": "Arab",
-    "dir": "rtl"
+    "dir": "rtl",
+    "sampleSentence": "تیز بھورا لومڑی Nike جوتے پہن کر ۱۲ سست کتوں کے اوپر سے ۹۰ روپے میں چھلانگ لگاتا ہے۔"
   },
   {
     "id": "ru-RU",
     "name": "Russian (Русский)",
-    "script": "Cyrl"
+    "script": "Cyrl",
+    "sampleSentence": "Быстрая коричневая лиса перепрыгивает через 12 ленивых собак за 90 ₽ в кроссовках Nike."
   },
   {
     "id": "uk-UA",
     "name": "Ukrainian (Українська)",
-    "script": "Cyrl"
+    "script": "Cyrl",
+    "sampleSentence": "Швидка коричнева лисиця перестрибує через 12 ленивих собак за 90 ₴ у кросівках Nike."
   },
   {
     "id": "pl-PL",
     "name": "Polish (Polski)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Szybki brązowy lis przeskakuje nad 12 leniwymi psami za 90 zł w butach Nike."
   },
   {
     "id": "tr-TR",
     "name": "Turkish (Türkçe)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Hızlı kahverengi tilki, Nike ayakkabılarıyla 90 ₺ karşılığında 12 tembel köpeğin üzerinden atlar."
   },
   {
     "id": "cs-CZ",
     "name": "Czech (Čeština)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Rychlá hnědá liška skáče přes 12 líných psů za 90 Kč v botách Nike."
   },
   {
     "id": "hu-HU",
     "name": "Hungarian (Magyar)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "A gyors barna róka Nike cipőben ugrik át 12 lusta kutyán 90 Ft-ért."
   },
   {
     "id": "ro-RO",
     "name": "Romanian (Română)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Vulpea maro rapidă sare peste 12 câini leneși pentru 90 lei purtând pantofi Nike."
   },
   {
     "id": "bg-BG",
     "name": "Bulgarian (Български)",
-    "script": "Cyrl"
+    "script": "Cyrl",
+    "sampleSentence": "Бързата кафява лисица прескача 12 мързеливи кучета за 90 лв., носейки обувки Nike."
   },
   {
     "id": "kk-KZ",
     "name": "Kazakh (Қазақша)",
-    "script": "Cyrl"
+    "script": "Cyrl",
+    "sampleSentence": "Жылдам қоңыр түлкі Nike аяқ киімін киіп, 12 жалқау итті 90 ₸ бағасымен секіріп өтеді."
   },
   {
     "id": "th-TH",
     "name": "Thai - Thailand (ภาษาไทย - ประเทศไทย)",
-    "script": "Thai"
+    "script": "Thai",
+    "sampleSentence": "สุนัขจิ้งจอกสีน้ำตาลผู้รวดเร็วกระโดดข้ามสุนัขขี้เกียจ ๑๒ ตัว ในราคา ๙๐ บาท ขณะสวมรองเท้า Nike"
   },
   {
     "id": "vi-VN",
     "name": "Vietnamese (Tiếng Việt)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Con cáo nâu nhanh nhẹn nhảy qua 12 con chó lười biếng với giá 90 ₫ trong khi mang giày Nike."
   },
   {
     "id": "id-ID",
     "name": "Indonesian (Bahasa Indonesia)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Rubah cokelat yang cepat melompat di atas 12 ekor anjing pemalas seharga Rp 90 sambil mengenakan sepatu Nike."
   },
   {
     "id": "hi-IN",
     "name": "Hindi (हिन्दी)",
-    "script": "Deva"
+    "script": "Deva",
+    "sampleSentence": "तेज भूरी लोमड़ी Nike जूते पहनकर १२ आलसी कुत्तों के ऊपर से ₹९० में कूदती है।"
   },
   {
     "id": "bn-BD",
     "name": "Bengali - Bangladesh (বাংলা - বাংলাদেশ)",
-    "script": "Beng"
+    "script": "Beng",
+    "sampleSentence": "দ্রুত বাদামী শেয়াল Nike জুতো পরে ১২টি অলস কুকুরের উপর দিয়ে ৳৯০ টাকায় লাফ দেয়।"
   },
   {
     "id": "bn-IN",
     "name": "Bengali - India (বাংলা - ভারত)",
-    "script": "Beng"
+    "script": "Beng",
+    "sampleSentence": "দ্রুত বাদামী শেয়াল Nike জুতো পরে ১২টি অলস কুকুরের উপর দিয়ে ₹৯০ টাকায় লাফ দেয়।"
   },
   {
     "id": "ta-IN",
     "name": "Tamil (தமிழ்)",
-    "script": "Taml"
+    "script": "Taml",
+    "sampleSentence": "வேகமான பழுப்பு நரி Nike காலணிகளை அணிந்துகொண்டு 12 சோம்பேறி நாய்களை ₹90க்கு தாண்டுகிறது."
   },
   {
     "id": "te-IN",
     "name": "Telugu (తెలుగు)",
-    "script": "Telu"
+    "script": "Telu",
+    "sampleSentence": "వేగవంతమైన గోధుమ రంగు నక్క Nike బూట్లు ధರಿಸಿ 12 సోమరి కుక్కలపై ₹90కి దూకుతుంది."
   },
   {
     "id": "pa-IN",
     "name": "Punjabi - Gurmukhi (ਪੰਜਾਬੀ)",
-    "script": "Guru"
+    "script": "Guru",
+    "sampleSentence": "ਤੇਜ਼ ਭੂਰੀ ਲੂੰਬੜੀ Nike ਜੁੱਤੇ ਪਾ ਕੇ 12 ਆਲਸੀ ਕੁੱਤਿਆਂ ਦੇ ਉੱਪਰੋਂ ₹90 ਵਿੱਚ ਛਾਲ ਮਾਰਦੀ ਹੈ।"
   },
   {
     "id": "ms-MY",
     "name": "Malay (Bahasa Melayu)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Musang coklat yang pantas melompat ke atas 12 ekor anjing yang malas dengan harga RM 90 sambil memakai kasut Nike."
   },
   {
     "id": "tl-PH",
     "name": "Filipino (Tagalog)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Ang mabilis na kayumangging soro ay tumalon sa ibabaw ng 12 tamad na aso sa halagang ₱90 habang nakasuot ng sapatos na Nike."
   },
   {
     "id": "sw-KE",
     "name": "Swahili (Kiswahili)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Mbweha wa hudhurungi mwenye kasi anaruka juu ya mbwa 12 wavivu kwa KSh 90 akiwa amevaa viatu vya Nike."
   },
   {
     "id": "am-ET",
     "name": "Amharic (አማርኛ)",
-    "script": "Ethi"
+    "script": "Ethi",
+    "sampleSentence": "ፈጣኑ ቡናማ ቀበሮ ናይክ ጫማ አድርጎ በ፲፪ ሰነፍ ውሾች ላይ በ፺ ብር ይዘላል።"
   },
   {
     "id": "zu-ZA",
     "name": "Zulu (isiZulu)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Impungushe ensundu esheshayo yeqa izinja ezivilaphayo ezingu-12 ngo-R90 igqoke izicathulo zakwa-Nike."
   },
   {
     "id": "yo-NG",
     "name": "Yoruba (Yorùbá)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Kọlọkọlọ pupa yiyara fo lori awọn aja ọlẹ 12 fun ₦90 lakoko ti o wọ bata Nike."
   },
   {
     "id": "af-ZA",
     "name": "Afrikaans",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Die vinnige bruin vos spring oor 12 lui honde vir R90 terwyl hy Nike-skoene dra."
   },
   {
     "id": "sv-SE",
     "name": "Swedish (Svenska)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Den snabba bruna räven hoppar över 12 lata hundar för 90 kr medan den bär Nike-skor."
   },
   {
     "id": "da-DK",
     "name": "Danish (Dansk)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Den hurtige brune ræv springer over 12 dovne hunde for 90 kr., mens den har Nike-sko på."
   },
   {
     "id": "nb-NO",
     "name": "Norwegian - Bokmål (Norsk - Bokmål)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Den raske brune reven hopper over 12 late hunder for 90 kr mens den har på seg Nike-sko."
   },
   {
     "id": "fi-FI",
     "name": "Finnish (Suomi)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Nopea ruskea kettu hyppää 12 laiskan koiran yli 90 €:lla Nike-kengät jalassa."
   },
   {
     "id": "et-EE",
     "name": "Estonian (Eesti)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Kiire pruun rebane hüppab üle 12 laisa koera 90 € eest, kandes Nike jalatseid."
   },
   {
     "id": "lv-LV",
     "name": "Latvian (Latviešu)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Ātrā brūnā lapsa pārlec pāri 12 slinkiem suņiem par 90 €, valkājot Nike apavus."
   },
   {
     "id": "lt-LT",
     "name": "Lithuanian (Lietuvių)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Greita ruda lapė peršoka per 12 tingių šunų už 90 € avėdama Nike batus."
   },
   {
     "id": "el-GR",
     "name": "Greek (Ελληνικά)",
-    "script": "Grek"
+    "script": "Grek",
+    "sampleSentence": "Η γρήγορη καφέ αλεπού πηδά πάνω από 12 τεμπέλικα σκυλιά για 90 €, φορώντας παπούτσια Nike."
   },
   {
     "id": "gu-IN",
     "name": "Gujarati (ગુજરાતી)",
-    "script": "Gujr"
+    "script": "Gujr",
+    "sampleSentence": "ઝડપી કથ્થઈ શિયાળ Nike શૂઝ પહેરીને ૧૨ આળસુ કુતરાઓ પર ₹૯૦ માં કૂદી જાય છે."
   },
   {
     "id": "kn-IN",
     "name": "Kannada - India (ಕನ್ನಡ - India)",
-    "script": "Knda"
+    "script": "Knda",
+    "sampleSentence": "ವೇಗದ ಕಂದು ನರಿ Nike ಶೂಗಳನ್ನು ಧರಿಸಿ ೧೨ ಸೋಮಾರಿ ನಾಯಿಗಳ ಮೇಲೆ ₹೯೦ ಕ್ಕೆ ಜಿಗಿಯುತ್ತದೆ."
   },
   {
     "id": "ml-IN",
     "name": "Malayalam (മലയാളം)",
-    "script": "Mlym"
+    "script": "Mlym",
+    "sampleSentence": "വേഗത്തിലുള്ള തവിട്ട് കുറുക്കൻ Nike ഷൂസ് ധരിച്ച് 12 മടിയൻ നായ്ക്കൾക്ക് മുകളിലൂടെ ₹90-ന് ചാടുന്നു."
   },
   {
     "id": "ga-IE",
     "name": "Irish (Éireannach)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Léimeann an sionnach donn tapa thar 12 madra leisciúla ar €90 agus bróga Nike á gcaitheamh aige."
   },
   {
     "id": "mt-MT",
     "name": "Maltese (Malti)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Il-volpi kannella mgħaġġla taqbeż fuq 12-il kelb għażżien għal €90 waqt li tkun liebsa żarbun Nike."
   },
   {
     "id": "sk-SK",
     "name": "Slovak (Slovenčina)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Rýchla hnedá líška skáče cez 12 lenivých psov za 90 € v topánkach Nike."
   },
   {
     "id": "hr-HR",
     "name": "Croatian (Hrvatski)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Brza smeđa lisica preskače 12 lijenih pasa za 90 € noseći Nike tenisice."
   },
   {
     "id": "sl-SI",
     "name": "Slovenian (Slovenščina)",
-    "script": "Latn"
+    "script": "Latn",
+    "sampleSentence": "Hitra rjava lisica skoči čez 12 lenih psov za 90 € v Nike čevljih."
   },
   {
     "id": "mr-IN",
     "name": "Marathi (मराठी)",
-    "script": "Deva"
+    "script": "Deva",
+    "sampleSentence": "वेगवान तपकिरी कोल्हा Nike शूज घालून १२ आळशी कुत्र्यांवरून ₹९० मध्ये उडी मारतो."
   }
 ]
