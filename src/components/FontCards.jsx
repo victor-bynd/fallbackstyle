@@ -32,7 +32,7 @@ export const FontCard = ({
     readOnly = false,
     setActiveFont
 }) => {
-    const { primaryFontOverrides, fallbackFontOverrides, letterSpacing, setLetterSpacing, primaryLanguages, updateLanguageSpecificSetting, linkFontToLanguage, fonts } = useTypo();
+    const { primaryFontOverrides, fallbackFontOverrides, letterSpacing, setLetterSpacing, primaryLanguages, updateLanguageSpecificSetting, linkFontToLanguage, fonts, baseRem, setBaseRem } = useTypo();
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
     const [tagsLimit, setTagsLimit] = useState(11);
@@ -381,6 +381,100 @@ export const FontCard = ({
                         </div>
                     )}
 
+                    {isPrimary && !font.isPrimaryOverride && (
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <span>Size (Base REM)</span>
+                                <div className="flex gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            value={baseRem}
+                                            onChange={(e) => setBaseRem?.(parseInt(e.target.value))}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">px</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="0.125"
+                                            value={baseRem / 16}
+                                            onChange={(e) => setBaseRem?.(Math.round(parseFloat(e.target.value) * 16))}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">rem</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input
+                                type="range"
+                                min="8"
+                                max="32"
+                                step="1"
+                                value={baseRem}
+                                onChange={(e) => setBaseRem?.(parseInt(e.target.value))}
+                                disabled={readOnly}
+                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
+                            />
+                        </div>
+                    )}
+
+                    {(isPrimary || font.isPrimaryOverride) && (
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <span>Letter Spacing</span>
+                                <div className="flex gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={(() => {
+                                                const ls = scopeFont.isPrimaryOverride
+                                                    ? (scopeFont.letterSpacing !== undefined && scopeFont.letterSpacing !== null ? scopeFont.letterSpacing : letterSpacing)
+                                                    : letterSpacing;
+                                                return Math.round((ls || 0) * baseRem * 10) / 10;
+                                            })()}
+                                            onChange={(e) => handleScopedUpdate('letterSpacing', parseFloat(e.target.value) / baseRem)}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">px</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={(() => {
+                                                const ls = scopeFont.isPrimaryOverride
+                                                    ? (scopeFont.letterSpacing !== undefined && scopeFont.letterSpacing !== null ? scopeFont.letterSpacing : letterSpacing)
+                                                    : letterSpacing;
+                                                return ls || 0;
+                                            })()}
+                                            onChange={(e) => handleScopedUpdate('letterSpacing', parseFloat(e.target.value))}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">em</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input
+                                type="range"
+                                min="-0.1"
+                                max="0.5"
+                                step="0.01"
+                                value={(() => {
+                                    const ls = scopeFont.isPrimaryOverride
+                                        ? (scopeFont.letterSpacing !== undefined && scopeFont.letterSpacing !== null ? scopeFont.letterSpacing : letterSpacing)
+                                        : letterSpacing;
+                                    return ls || 0;
+                                })()}
+                                onChange={(e) => handleScopedUpdate('letterSpacing', parseFloat(e.target.value))}
+                                disabled={isInherited && editScope !== 'ALL' || readOnly}
+                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' || readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
+                            />
+                        </div>
+                    )}
+
                     {(!isPrimary && !font.isPrimaryOverride) && (
                         <div className="space-y-1">
                             <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -404,25 +498,61 @@ export const FontCard = ({
 
                     {(isPrimary || font.isPrimaryOverride) && (
                         <div className="space-y-1">
-                            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                 <span>Line Height</span>
-                                <input
-                                    type="range"
-                                    min="50"
-                                    max="300"
-                                    step="5"
-                                    value={(() => {
-                                        // Use active scopeFont for calculating Line Height value
-                                        const lh = scopeFont.isPrimaryOverride
-                                            ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
-                                            : globalLineHeight;
-                                        return lh === 'normal' ? 120 : lh * 100;
-                                    })()}
-                                    onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
-                                    disabled={isInherited && editScope !== 'ALL'}
-                                    className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
-                                />
+                                <div className="flex gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="1"
+                                            value={(() => {
+                                                const lh = scopeFont.isPrimaryOverride
+                                                    ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                                    : globalLineHeight;
+                                                // Convert multiplier to px (based on baseRem)
+                                                const val = lh === 'normal' ? 1.2 : lh;
+                                                return Math.round(val * baseRem);
+                                            })()}
+                                            onChange={(e) => {
+                                                const px = parseFloat(e.target.value);
+                                                handleScopedUpdate('lineHeight', px / baseRem);
+                                            }}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">px</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="5"
+                                            value={(() => {
+                                                const lh = scopeFont.isPrimaryOverride
+                                                    ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                                    : globalLineHeight;
+                                                return lh === 'normal' ? 120 : Math.round(lh * 100);
+                                            })()}
+                                            onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">%</span>
+                                    </div>
+                                </div>
                             </div>
+                            <input
+                                type="range"
+                                min="50"
+                                max="300"
+                                step="5"
+                                value={(() => {
+                                    const lh = scopeFont.isPrimaryOverride
+                                        ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                        : globalLineHeight;
+                                    return lh === 'normal' ? 120 : lh * 100;
+                                })()}
+                                onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
+                                disabled={isInherited && editScope !== 'ALL'}
+                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
+                            />
                         </div>
                     )}
                 </div>
@@ -721,8 +851,8 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
         isInheritedPrimary,
         overriddenOriginalIds
     } = useMemo(() => {
-        const p = fonts.find(f => f.type === 'primary' && !f.isPrimaryOverride);
-        const sFonts = fonts.filter(f => !f.fontObject);
+        const p = fonts.find(f => f && f.type === 'primary' && !f.isPrimaryOverride);
+        const sFonts = fonts.filter(f => f && !f.fontObject && !f.isLangSpecific && !f.isClone);
 
         // Calculate Global Fallbacks (Unassigned/Inheritable)
         const validFallbacks = fonts.filter(f =>
@@ -770,11 +900,6 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
                 });
             }
 
-            // Show as unmapped/general ONLY if not mapped
-            // FIX: Allow fonts that are GLOBAL (!isLangSpecific) to appear here even if they are mapped elsewhere
-            // This ensures "Set as global fallback" works for fonts that are also mapped to specific languages
-            let unmapped = validFallbacks.filter(f => !mappedFontIds.has(f.id) || !f.isLangSpecific);
-
             // NEW: Filter targeted fonts by selectedGroup if not ALL
             if (selectedGroup !== 'ALL' && selectedGroup !== 'MAPPED') {
                 targeted = targeted.filter(f => {
@@ -798,14 +923,51 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
                 });
             }
 
-            // Deduplicate Unmapped Fonts:
+            // Show as unmapped/general ONLY if not mapped
+            // FIX: Allow fonts that are GLOBAL (!isLangSpecific) to appear here even if they are mapped to specific languages
+            let unmapped = validFallbacks.filter(f => !mappedFontIds.has(f.id) || !f.isLangSpecific);
+
+            // NEW: Deduplicate Mapped Fonts Grouping (Visual Only)
+            // Group 'targeted' fonts by filename, and consolidate their IDs.
+            // This prevents duplicate cards for the "same" font (clones/strict mappings)
+            // while allowing the single card to show tags for ALL its IDs.
+            const uniqueTargeted = [];
+            const targetedNames = new Map(); // Name -> Representative Font
+            const consolidatedIdsMap = {}; // RepFontID -> [ID, ID...]
+
+            targeted.forEach(f => {
+                const name = (f.fileName || f.name || "").toLowerCase();
+                if (targetedNames.has(name)) {
+                    // Duplicate found -> add ID to existing Rep
+                    const rep = targetedNames.get(name);
+
+                    if (!consolidatedIdsMap[rep.id]) {
+                        consolidatedIdsMap[rep.id] = [rep.id];
+                    }
+                    // Ensure no duplicates in array
+                    if (!consolidatedIdsMap[rep.id].includes(f.id)) {
+                        consolidatedIdsMap[rep.id].push(f.id);
+                    }
+
+                } else {
+                    // New Unique Font
+                    uniqueTargeted.push(f);
+                    targetedNames.set(name, f);
+                    // Initialize map
+                    consolidatedIdsMap[f.id] = [f.id];
+                }
+            });
+
+
+            // Restoration: Deduplicate Unmapped Fonts
             // 1. Remove if filename matches any MAPPED font (prevent "Ghost" duplicates) unless it's Global
             // 2. Remove duplicates within unmapped list (keep first)
-            // 3. NEW: Remove if filename matches Primary Font (prevent Primary duplicate)
-            const targetedNames = new Set(targeted.map(f => (f.fileName || f.name || "").toLowerCase()));
-            const seenUnmappedNames = new Set();
+            // 3. Remove if filename matches Primary Font
 
-            // Get Primary Font Name (normalized)
+            // Re-calculate targeted names set for checking unmapped collisions
+            // We can use targetedNames Map keys from above
+
+            const seenUnmappedNames = new Set();
             const primaryName = p ? (p.fileName || p.name || "").toLowerCase() : null;
 
             unmapped = unmapped.filter(f => {
@@ -815,6 +977,7 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
                 if (primaryName && name === primaryName) return false;
 
                 // If it is Global, we ALLOW it to appear even if it's in the Mapped list
+                // But we check if it is in the Mapped list using targetedNames
                 if (targetedNames.has(name) && f.isLangSpecific) return false;
 
                 if (seenUnmappedNames.has(name)) return false;
@@ -825,41 +988,101 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
             return {
                 primary: p,
                 globalPrimary: p,
-                fontListToRender: targeted, // "Mapped" list
-                unmappedFonts: unmapped, // "Unmapped" list
+                fontListToRender: uniqueTargeted, // Use deduplicated list
+                unmappedFonts: unmapped,
                 systemFonts: sFonts,
                 isInheritedPrimary: false,
-                isLanguageSpecificList: false
+                isLanguageSpecificList: false,
+                consolidatedIdsMap // Pass map to be used in render
             };
         }
 
+        // --- NEW DEDUPLICATION LOGIC ---
+        // Moved inside the useMemo result calculation? No, the return was above.
+        // We need to modify the 'targeted' list BEFORE returning in the if(isAllTab) block above.
+        // Let's rewrite the return block of isAllTab to include deduplication.
+
+
         // Language specific view (includes 'primary'/English)
-        const overrideFontId = primaryFontOverrides[activeTab];
+        let overrideFontId = primaryFontOverrides[activeTab];
+
+        // Fix: Mapped Languages store Primary Font overrides in `fallbackFontOverrides` (keyed by original Primary ID)
+        if (!overrideFontId && p && fallbackFontOverrides[activeTab] && typeof fallbackFontOverrides[activeTab] === 'object') {
+            overrideFontId = fallbackFontOverrides[activeTab][p.id];
+        }
+
         const overrideFont = fonts.find(f => f.id === overrideFontId);
 
-        // Get fonts strictly mapped to this language
+        // UNIFIED LIST GENERATION
+        // We want to render the "Global Stack" order, but swapping in overrides where they exist.
+        // This ensures the list doesn't jump around or separate into "Mapped" vs "Inherited",
+        // keeping the UI stable (and Slider working).
+
+        // 1. Identification of Base Global Fonts (The "Slots")
+        // These are effectively all valid global fallbacks + defaults.
+        const baseGlobalFonts = validFallbacks; // validFallbacks excludes clones and has fontObject
+        // System fonts are also "Base" but they are usually separated.
+        // Wait, validFallbacks excludes system fonts (f.fontObject check).
+        // System fonts are separate in sFonts.
+
+        // So we focus on the "Uploaded Fallbacks" stack first.
+
+        // 2. Map Base Fonts to Effective Fonts (Global or Override)
         const rawOverrides = fallbackFontOverrides[activeTab] || {};
+        const overriddenOriginalIds = new Set(); // Re-introduced definition
 
-        const languageSpecificFonts = [];
-        const overriddenOriginalIds = new Set();
-
-        if (typeof rawOverrides === 'string') {
-            // Handle single font override (Legacy or Direct Assignment)
-            const f = fonts.find(font => font.id === rawOverrides);
-            if (f) {
-                languageSpecificFonts.push(f);
+        const unifiedUploadedFonts = baseGlobalFonts.map(baseFont => {
+            // Check for override
+            let overrideId = null;
+            if (typeof rawOverrides === 'string') {
+                if (rawOverrides === baseFont.id) overrideId = rawOverrides; // Legacy/Direct
+            } else {
+                overrideId = rawOverrides[baseFont.id] || null;
             }
-        } else {
-            // Handle object map (Cloning/Granular Assignment)
-            const languageOverrides = rawOverrides;
-            Object.entries(languageOverrides).forEach(([origId, overrideId]) => {
-                const f = fonts.find(font => font.id === overrideId);
-                if (f) {
-                    languageSpecificFonts.push(f);
-                    overriddenOriginalIds.add(origId);
+
+            if (overrideId) {
+                const override = fonts.find(f => f.id === overrideId);
+                if (override) {
+                    overriddenOriginalIds.add(baseFont.id); // Track it
+                    return override;
+                }
+            }
+            return baseFont;
+        });
+
+        // 3a. Explicitly add overridden system fonts to overriddenOriginalIds
+        // AND collect the override fonts themselves if they weren't part of the baseGlobalFonts loop
+        const extraMappedFonts = [];
+
+        if (typeof rawOverrides === 'object') {
+            Object.entries(rawOverrides).forEach(([originalId, overrideId]) => {
+                const originalFont = fonts.find(f => f.id === originalId);
+
+                // If it's a System Font (not in baseGlobalFonts) that is overridden
+                if (originalFont && !originalFont.fontObject) {
+                    overriddenOriginalIds.add(originalId);
+
+                    // We need to show the OVERRIDE font in the list
+                    const overrideFont = fonts.find(f => f.id === overrideId);
+                    if (overrideFont) {
+                        extraMappedFonts.push(overrideFont);
+                    }
                 }
             });
+        } else if (typeof rawOverrides === 'string') {
+            // Handle single legacy mapping if it happens to be a system font override?
+            // Usually legacy mapping is 'lang' -> 'fontID'.
+            // If the fontID is a system font, it's just a mapping, not an override of a base.
+            // But if it's a strictly mapped font that isn't in baseGlobalFonts (e.g. system font mapped to lang),
+            // we should likely include it.
+            const f = fonts.find(font => font.id === rawOverrides);
+            if (f && !f.fontObject) {
+                // It's a system font mapped directly.
+                extraMappedFonts.push(f);
+            }
         }
+
+        const fullUnifiedList = [...unifiedUploadedFonts, ...extraMappedFonts];
 
         // Inherited Global Fallbacks: Valid globals that are NOT overridden in this language AND (NOT mapped elsewhere OR are Global)
         // Also apply deduplication to inherited fallbacks to be safe
@@ -869,9 +1092,9 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
         );
 
         // Exclude fonts that are already in the "Targeted" list for this language
-        // This handles cases where a font is manually mapped (thus in languageSpecificFonts)
+        // This handles cases where a font is manually mapped (thus in fullUnifiedList)
         // AND it exists in the global fallback list. We don't want to show it again as "Auto".
-        const targetedNames = new Set(languageSpecificFonts.map(f => (f.fileName || f.name || "").toLowerCase()));
+        const targetedNames = new Set(fullUnifiedList.map(f => (f.fileName || f.name || "").toLowerCase()));
 
         // Get Primary Font Name (normalized)
         const primaryName = p ? (p.fileName || p.name || "").toLowerCase() : null;
@@ -895,7 +1118,7 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
         const effectivePrimary = overrideFont || p;
         const effectivePrimaryName = effectivePrimary ? (effectivePrimary.fileName || effectivePrimary.name) : null;
 
-        const filteredLanguageSpecificFonts = languageSpecificFonts.filter(f => {
+        const filteredLanguageSpecificFonts = fullUnifiedList.filter(f => {
             // If explicit legacy "Primary Map" flag
             if (f.isPrimaryMap) return false;
 

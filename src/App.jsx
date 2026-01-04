@@ -152,26 +152,59 @@ const MainContent = ({
       }
     }
 
-    // 5. Font Filter (New)
+    // 5. Font Filter (New) - Corrected to include Inherited Fonts
     if (fontFilter.length > 0) {
+      // Pre-calculate global fonts to avoid doing it per-language
+      const globalPrimaryFont = fonts.find(f => f.type === 'primary' && !f.isPrimaryOverride);
+      const globalFallbackFonts = fonts.filter(f => f.type === 'fallback' && f.fontObject && !f.isClone && !f.isLangSpecific);
+
       visible = visible.filter(lang => {
-        const langPrimary = primaryFontOverrides?.[lang.id];
-        const langFallback = fallbackFontOverrides?.[lang.id];
+        const langPrimaryOverride = primaryFontOverrides?.[lang.id];
+        const langFallbackOverrides = fallbackFontOverrides?.[lang.id]; // Can be string or object
 
-        // Helper to extract all font IDs from a potentially nested override value
-        const getIds = (val) => {
-          if (!val) return [];
-          if (typeof val === 'string') return [val];
-          if (typeof val === 'object') return Object.values(val);
-          return [];
-        };
+        const effectiveFontIds = new Set();
 
-        const allIds = [
-          ...getIds(langPrimary),
-          ...getIds(langFallback)
-        ];
+        // 1. Resolve Primary
+        if (langPrimaryOverride) {
+          effectiveFontIds.add(langPrimaryOverride);
+        } else if (primaryLanguages.includes(lang.id) && globalPrimaryFont) {
+          effectiveFontIds.add(globalPrimaryFont.id);
+        }
 
-        return allIds.some(fontId => {
+        // 2. Resolve Fallbacks (Inherited + Overrides)
+        // Iterate over GLOBAL fallbacks to check inheritance/overrides
+        globalFallbackFonts.forEach(gf => {
+          let effectiveId = gf.id;
+
+          // Check for override
+          if (langFallbackOverrides) {
+            if (typeof langFallbackOverrides === 'string') {
+              // String override usually implies replacing the whole stack or specific logic? 
+              // Based on legacy, might be single mapping. Let's include it.
+              // But here we are checking specific global font.
+              if (langFallbackOverrides === gf.id) effectiveId = gf.id; // Same
+              // If string is different, does it replace THIS font? Unclear. 
+              // Safest: Add the string value to effectiveIds separately.
+            } else if (typeof langFallbackOverrides === 'object') {
+              if (langFallbackOverrides[gf.id]) {
+                effectiveId = langFallbackOverrides[gf.id];
+              }
+            }
+          }
+          effectiveFontIds.add(effectiveId);
+        });
+
+        // 3. Add any other strictly mapped fonts (that might not be global fallbacks)
+        if (langFallbackOverrides) {
+          if (typeof langFallbackOverrides === 'string') {
+            effectiveFontIds.add(langFallbackOverrides);
+          } else if (typeof langFallbackOverrides === 'object') {
+            Object.values(langFallbackOverrides).forEach(id => effectiveFontIds.add(id));
+          }
+        }
+
+        // Check if ANY of the effective fonts matches the filter
+        return Array.from(effectiveFontIds).some(fontId => {
           const f = fonts.find(font => font.id === fontId);
           if (f) {
             const name = f.fileName || f.name;
@@ -196,12 +229,11 @@ const MainContent = ({
   const [pendingFileMap, setPendingFileMap] = useState(null);
 
   // Sync highlitLanguageId with activeConfigTab to prevent double selection
+  // Sync highlitLanguageId with activeConfigTab to prevent double selection
   useEffect(() => {
-    if (activeConfigTab === 'ALL') {
-      if (highlitLanguageId !== null) {
-        setHighlitLanguageId(null);
-      }
-    } else {
+    // If activeConfigTab is NOT ALL, we still want to ensure coherence.
+    // If activeConfigTab IS ALL, we now ALLOW highlitLanguageId to be set (for manual highlighting).
+    if (activeConfigTab !== 'ALL') {
       const primaryLangId = primaryLanguages[0] || 'en-US';
       const targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
       if (highlitLanguageId !== targetId) {
@@ -214,22 +246,30 @@ const MainContent = ({
   const lastMainScrolledId = useRef(null);
 
   useEffect(() => {
-    // If we switched to ALL, maybe scroll to top or just do nothing?
-    // User expectation: clicking 'ALL' usually resets view.
-    // However, if we just stay put, that's also fine. 
-    // Let's scroll to top if ALL is selected to reset context.
-    // if (activeConfigTab === 'ALL') {
-    //   window.scrollTo({ top: 0, behavior: 'smooth' });
-    //   return;
-    // }
+    // Scroll Logic
+    // Priorities:
+    // 1. If activeConfigTab is specific -> Scroll to it.
+    // 2. If activeConfigTab is ALL -> Check highlitLanguageId -> Scroll to it.
 
-    if (activeConfigTab === 'ALL') return;
+    let targetId = null;
 
     const primaryLangId = primaryLanguages[0] || 'en-US';
-    const targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
 
-    if (targetId === lastMainScrolledId.current) return;
-    lastMainScrolledId.current = targetId;
+    if (activeConfigTab !== 'ALL') {
+      targetId = activeConfigTab === 'primary' ? primaryLangId : activeConfigTab;
+    } else if (highlitLanguageId) {
+      targetId = highlitLanguageId === 'primary' ? primaryLangId : highlitLanguageId;
+    }
+
+    if (!targetId) return;
+
+    // Optional: Avoid scrolling if we just scrolled to this ID?
+    // if (targetId === lastMainScrolledId.current) return;
+    // Actually, if user clicks again, maybe they want to scroll back? 
+    // But typically React effect won't fire if dependencies haven't changed.
+    // However, highlitLanguageId changing from A -> null -> A might trigger it.
+
+    // lastMainScrolledId.current = targetId; // Keeping this reference check might be useful
 
     // Use a retry mechanism to ensure the element exists before scrolling
     let attempts = 0;
@@ -268,7 +308,7 @@ const MainContent = ({
         window._mainScrollInterval = null;
       }
     };
-  }, [activeConfigTab, primaryLanguages]);
+  }, [activeConfigTab, highlitLanguageId, primaryLanguages]);
 
   const { getExportConfiguration, addLanguageSpecificFallbackFont, loadFont } = useTypo();
 

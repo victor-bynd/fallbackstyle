@@ -199,24 +199,21 @@ const SortableFontRow = ({ item, isPrimary, mappings = {}, onOpenLanguagePicker,
                         {/* Language Badge */}
                         {onOpenLanguagePicker && (
                             <button
-                                onClick={() => !isPrimary && onOpenLanguagePicker(font.id)}
-                                disabled={isPrimary}
+                                onClick={() => onOpenLanguagePicker(font.id)}
                                 className={`
                                     min-w-[120px] w-full justify-between items-center
                                     px-2 py-0.5 rounded-md text-[9px] font-bold transition-all border flex gap-1.5 group/map
-                                    ${isPrimary
-                                        ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed invisible'
-                                        : hasMapping
-                                            ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100 shadow-sm'
-                                            : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                    ${hasMapping
+                                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100 shadow-sm'
+                                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                     }
                                 `}
-                                title={isPrimary ? "Primary font is used by default" : hasMapping ? mappedIdArray.join(', ') : "Map to a specific language"}
+                                title={hasMapping ? mappedIdArray.join(', ') : "Map to a specific language"}
                             >
                                 <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="uppercase tracking-wider opacity-70 hidden sm:inline-block shrink-0">Map:</span>
                                     <span className="truncate max-w-[140px]">
-                                        {isPrimary ? 'Default' : displayLabel}
+                                        {displayLabel}
                                     </span>
                                 </div>
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${hasMapping ? "text-indigo-400" : "text-slate-300"}`}>
