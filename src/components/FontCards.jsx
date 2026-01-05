@@ -1,8 +1,9 @@
-import { useRef, useState, useMemo, useLayoutEffect } from 'react';
+import { useRef, useState, useMemo, useLayoutEffect, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 
 import LanguageSingleSelectModal from './LanguageSingleSelectModal';
+import LanguageMultiSelectModal from './LanguageMultiSelectModal';
 import FontSelectionModal from './FontSelectionModal';
 import { buildWeightSelectOptions, resolveWeightToAvailableOption } from '../utils/weightUtils';
 import { createFontUrl, parseFontFile } from '../services/FontLoader';
@@ -41,6 +42,20 @@ export const FontCard = ({
     // 'ALL' = Global updates (inherited by linked).
     // 'langId' = Specific update (overrides/clones).
     const [editScope, setEditScope] = useState('ALL');
+
+    // Sync editScope with activeTab (Global Selection)
+    useEffect(() => {
+        if (activeTab === 'ALL') {
+            setEditScope('ALL');
+        } else if (activeTab === 'primary') {
+            // If primary tab is active, we generally defaulted to ALL or 'primary' depending on context
+            // but here we keep it as ALL for general fonts unless they have specific logic
+            setEditScope('ALL');
+        } else {
+            // For specific language tabs, set scope to that language
+            setEditScope(activeTab);
+        }
+    }, [activeTab]);
 
     const languageTags = useMemo(() => {
         const tags = [];
@@ -251,7 +266,11 @@ export const FontCard = ({
                         {/* ALL Tag - Only show if NOT Primary AND has > 1 language mapping */}
                         {(activeTab === 'ALL' || activeTab === 'primary') && languageTags.length > 1 && !isPrimary && (
                             <button
-                                onClick={(e) => { e.stopPropagation(); setEditScope('ALL'); }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditScope('ALL');
+                                    if (onSelectLanguage) onSelectLanguage('ALL');
+                                }}
                                 className={`
                                     flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer border text-[10px] font-bold uppercase tracking-wide
                                     ${editScope === 'ALL'
@@ -264,9 +283,8 @@ export const FontCard = ({
                             </button>
                         )}
                         {(() => {
-                            const availableTags = (activeTab && activeTab !== 'ALL' && activeTab !== 'primary')
-                                ? languageTags.filter(t => t === activeTab)
-                                : languageTags;
+                            // Show ALL tags regardless of activeTab to keep visibility persistent
+                            const availableTags = languageTags;
                             const totalTags = availableTags.length;
                             const shouldCollapse = totalTags > tagsLimit;
                             const visibleTags = (shouldCollapse && !showAllTags)
@@ -298,6 +316,7 @@ export const FontCard = ({
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setEditScope(isSelected ? 'ALL' : langId);
+                                            if (onSelectLanguage) onSelectLanguage(langId);
                                         }}
                                         style={isSelected ? {
                                             backgroundColor: fontColor,
@@ -391,25 +410,6 @@ export const FontCard = ({
 
             <div className={`mt-2 pt-2 border-t border-slate-100 space-y-3 ${isInherited && editScope !== 'ALL' ? 'opacity-40 grayscale-[0.8] pointer-events-none' : ''}`} onClick={e => e.stopPropagation()}>
                 <div className="space-y-2">
-                    {(isPrimary || font.isPrimaryOverride) && (
-                        <div className="space-y-1">
-                            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                <span>Weight</span>
-                                <span className="text-indigo-600 font-mono">{effectiveWeight}</span>
-                            </div>
-                            <select
-                                value={resolvedWeight}
-                                onChange={(e) => handleScopedUpdate('weight', parseInt(e.target.value))}
-                                disabled={isInherited && editScope !== 'ALL' || readOnly}
-                                className={`w-full bg-slate-50 border border-slate-200 rounded-md py-1 px-2 text-[11px] text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium ${isInherited && editScope !== 'ALL' || readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                                {weightOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
                     {isPrimary && !font.isPrimaryOverride && (
                         <div className="space-y-1">
                             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -445,6 +445,91 @@ export const FontCard = ({
                                 onChange={(e) => setBaseRem?.(parseInt(e.target.value))}
                                 disabled={readOnly}
                                 className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
+                            />
+                        </div>
+                    )}
+
+                    {(isPrimary || font.isPrimaryOverride) && (
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <span>Line Height</span>
+                                <div className="flex gap-2 items-center">
+                                    {(() => {
+                                        const lh = scopeFont.isPrimaryOverride
+                                            ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                            : globalLineHeight;
+                                        const isNormal = lh === 'normal';
+
+                                        if (!isNormal) {
+                                            return (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleScopedUpdate('lineHeight', 'normal');
+                                                    }}
+                                                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors mr-1"
+                                                    title="Reset to Normal"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                                        <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.433l-.31-.31a7 7 0 00-11.712 3.138.75.75 0 001.449.39 5.5 5.5 0 019.201-2.466l.312.311H12.42a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="1"
+                                            value={(() => {
+                                                const lh = scopeFont.isPrimaryOverride
+                                                    ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                                    : globalLineHeight;
+                                                // Convert multiplier to px (based on baseRem)
+                                                // If 'normal', use 1.2 as valid numeric fallback for calculation
+                                                const val = lh === 'normal' ? 1.2 : lh;
+                                                return Math.round(val * baseRem);
+                                            })()}
+                                            onChange={(e) => {
+                                                const px = parseFloat(e.target.value);
+                                                handleScopedUpdate('lineHeight', px / baseRem);
+                                            }}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">px</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="5"
+                                            value={(() => {
+                                                const lh = scopeFont.isPrimaryOverride
+                                                    ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                                    : globalLineHeight;
+                                                return lh === 'normal' ? 120 : Math.round(lh * 100);
+                                            })()}
+                                            onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
+                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                        />
+                                        <span className="text-[9px]">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input
+                                type="range"
+                                min="50"
+                                max="300"
+                                step="5"
+                                value={(() => {
+                                    const lh = scopeFont.isPrimaryOverride
+                                        ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
+                                        : globalLineHeight;
+                                    return lh === 'normal' ? 120 : lh * 100;
+                                })()}
+                                onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
+                                disabled={isInherited && editScope !== 'ALL'}
+                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
                             />
                         </div>
                     )}
@@ -504,13 +589,58 @@ export const FontCard = ({
                         </div>
                     )}
 
+                    {(isPrimary || font.isPrimaryOverride) && (
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider h-6">
+                                <span>Weight</span>
+                                <div className="relative">
+                                    <select
+                                        value={resolvedWeight}
+                                        onChange={(e) => handleScopedUpdate('weight', parseInt(e.target.value))}
+                                        disabled={isInherited && editScope !== 'ALL' || readOnly}
+                                        className={`bg-transparent text-right outline-none text-indigo-600 font-mono text-[11px] appearance-none pr-3 cursor-pointer ${isInherited && editScope !== 'ALL' || readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        style={{ backgroundImage: 'none' }}
+                                    >
+                                        {weightOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                    {!readOnly && (!isInherited || editScope === 'ALL') && (
+                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {(!isPrimary && !font.isPrimaryOverride) && (
                         <div className="space-y-1">
-                            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                 <span>Size-Adjust</span>
-                                <span className="text-indigo-600 font-mono">
-                                    {(getEffectiveFontSettings(scopeFontId).scale || 100) + '%'}
-                                </span>
+                                <div className="flex items-center">
+                                    {/* Reset Button for Size-Adjust */}
+                                    {Math.abs((getEffectiveFontSettings(scopeFontId).scale || 100) - 100) > 0.01 && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleScopedUpdate('scale', 100);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors mr-1"
+                                            title="Reset to 100%"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.433l-.31-.31a7 7 0 00-11.712 3.138.75.75 0 001.449.39 5.5 5.5 0 019.201-2.466l.312.311H12.42a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                    <span className="text-indigo-600 font-mono">
+                                        {(getEffectiveFontSettings(scopeFontId).scale || 100) + '%'}
+                                    </span>
+                                </div>
                             </div>
                             <input
                                 type="range"
@@ -525,65 +655,6 @@ export const FontCard = ({
                         </div>
                     )}
 
-                    {(isPrimary || font.isPrimaryOverride) && (
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                <span>Line Height</span>
-                                <div className="flex gap-2">
-                                    <div className="flex items-center gap-1">
-                                        <input
-                                            type="number"
-                                            step="1"
-                                            value={(() => {
-                                                const lh = scopeFont.isPrimaryOverride
-                                                    ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
-                                                    : globalLineHeight;
-                                                // Convert multiplier to px (based on baseRem)
-                                                const val = lh === 'normal' ? 1.2 : lh;
-                                                return Math.round(val * baseRem);
-                                            })()}
-                                            onChange={(e) => {
-                                                const px = parseFloat(e.target.value);
-                                                handleScopedUpdate('lineHeight', px / baseRem);
-                                            }}
-                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
-                                        />
-                                        <span className="text-[9px]">px</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <input
-                                            type="number"
-                                            step="5"
-                                            value={(() => {
-                                                const lh = scopeFont.isPrimaryOverride
-                                                    ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
-                                                    : globalLineHeight;
-                                                return lh === 'normal' ? 120 : Math.round(lh * 100);
-                                            })()}
-                                            onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
-                                            className="w-8 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
-                                        />
-                                        <span className="text-[9px]">%</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <input
-                                type="range"
-                                min="50"
-                                max="300"
-                                step="5"
-                                value={(() => {
-                                    const lh = scopeFont.isPrimaryOverride
-                                        ? (scopeFont.lineHeight !== undefined && scopeFont.lineHeight !== null ? scopeFont.lineHeight : globalLineHeight)
-                                        : globalLineHeight;
-                                    return lh === 'normal' ? 120 : lh * 100;
-                                })()}
-                                onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
-                                disabled={isInherited && editScope !== 'ALL'}
-                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
-                            />
-                        </div>
-                    )}
                     {/* Toggle Visibility Button */}
                     {!isPrimary && !font.isPrimaryOverride && (
                         <button
@@ -628,9 +699,26 @@ export const FontCard = ({
                     <div className="mt-2 grid grid-cols-1 gap-2 pt-2 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-200">
                         {['ascentOverride', 'descentOverride', 'lineGapOverride'].map((field) => (
                             <div key={field} className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase">
                                     <span>{field.replace('Override', '').replace(/([A-Z])/g, ' $1')}</span>
-                                    <span className="font-mono text-slate-600">{Math.round((scopeFont[field] || 0) * 100)}%</span>
+                                    <div className="flex items-center">
+                                        {/* Reset Button for Advanced Settings */}
+                                        {Math.abs((scopeFont[field] || 0)) > 0.001 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleScopedUpdate(field, 0);
+                                                }}
+                                                className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors mr-1"
+                                                title="Reset to 0%"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                                    <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.433l-.31-.31a7 7 0 00-11.712 3.138.75.75 0 001.449.39 5.5 5.5 0 019.201-2.466l.312.311H12.42a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                        <span className="font-mono text-slate-600">{Math.round((scopeFont[field] || 0) * 100)}%</span>
+                                    </div>
                                 </div>
                                 <input
                                     type="range"
@@ -890,7 +978,7 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
                 addLanguageSpecificFont(mappingFontId, langId);
             }
         }
-        setMappingFontId(null);
+        // setMappingFontId(null); // Managed by caller now for multi-select
     };
 
 
@@ -1615,14 +1703,18 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
 
             {
                 mappingFontId && (
-                    <LanguageSingleSelectModal
+                    <LanguageMultiSelectModal
                         onClose={() => setMappingFontId(null)}
-                        onSelect={handleLanguageSelected}
+                        onConfirm={(selectedLangIds) => {
+                            selectedLangIds.forEach(langId => handleLanguageSelected(langId));
+                            setMappingFontId(null);
+                        }}
                         title={(() => {
                             const font = fonts.find(f => f.id === mappingFontId);
                             const name = font ? (font.name || font.fileName || 'Font') : 'Font';
-                            return `Map ${name} to Language`;
+                            return `Map ${name} to Languages`;
                         })()}
+                        confirmLabel="Map"
                     />
                 )
             }

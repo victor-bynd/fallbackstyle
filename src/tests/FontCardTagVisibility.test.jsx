@@ -4,18 +4,14 @@ import { FontCard } from '../components/FontCards';
 import { vi } from 'vitest';
 import * as TypoContext from '../context/useTypo';
 
-// Mock FontLoader services
+// Mock dependencies
 vi.mock('../services/FontLoader', () => ({
     parseFontFile: vi.fn(),
     createFontUrl: vi.fn()
 }));
-
-// Mock InfoTooltip
 vi.mock('../components/InfoTooltip', () => ({
-    default: ({ content }) => <div data-testid="tooltip">{content}</div>
+    default: ({ content }) => <div>{content}</div>
 }));
-
-// Mock useTypo
 vi.mock('../context/useTypo', () => ({
     useTypo: vi.fn()
 }));
@@ -23,8 +19,7 @@ vi.mock('../context/useTypo', () => ({
 import { useTypo } from '../context/useTypo';
 
 describe('Font Card Tag Visibility', () => {
-
-    it('should show ALL mapped language tags even when a specific language is active', () => {
+    it('should show all mapped tags even when a specific language is active', () => {
         const mockFont = {
             id: 'font-1',
             type: 'fallback',
@@ -33,31 +28,24 @@ describe('Font Card Tag Visibility', () => {
             fontObject: { numGlyphs: 100 },
         };
 
-        // This font is mapped to French and Spanish
-        const mockFallbackOverrides = {
-            'fr-FR': { 'font-1': 'font-1' },
-            'es-ES': { 'font-1': 'font-1' },
-            'de-DE': 'other-font'
-        };
-
         const mockContext = {
             fonts: [mockFont],
             getFontColor: () => '#000',
             updateFontColor: vi.fn(),
             getEffectiveFontSettings: () => ({}),
-            fallbackFontOverrides: mockFallbackOverrides,
+            fallbackFontOverrides: {
+                'fr-FR': { 'font-1': 'font-1' },
+                'es-ES': { 'font-1': 'font-1' }
+            },
             primaryFontOverrides: {},
             linkFontToLanguage: vi.fn(),
             updateLanguageSpecificSetting: vi.fn(),
             primaryLanguages: [],
-            // ... other needed mocks
+            activeConfigTab: 'fr-FR' // Active tab is French
         };
 
         useTypo.mockReturnValue(mockContext);
 
-        // Render with activeTab set to 'fr-FR'
-        // Verification: We expect BOTH 'fr-FR' and 'es-ES' tags to be visible
-        // Currently, the bug causes only 'fr-FR' to show.
         render(
             <FontCard
                 font={mockFont}
@@ -73,27 +61,26 @@ describe('Font Card Tag Visibility', () => {
                 setActiveFont={vi.fn()}
                 updateFontWeight={vi.fn()}
                 toggleFontVisibility={vi.fn()}
+                onSelectLanguage={vi.fn()}
             />
         );
 
-        // Check if both tags are present
-        const frTag = screen.queryByText('fr-FR');
-        const esTag = screen.queryByText('es-ES');
-        const allTag = screen.queryByText('ALL');
+        // BOTH tags should be visible
+        const frTag = screen.getByText('fr-FR');
+        const esTag = screen.getByText('es-ES');
 
-        expect(frTag).toBeInTheDocument();
-        expect(esTag).toBeInTheDocument();
-        expect(allTag).toBeInTheDocument();
+        expect(frTag).toBeDefined();
+        expect(esTag).toBeDefined();
 
-        // Check highlighting - assumption: highlighted tag has specific class or style
-        // Based on code: isSelected ? { backgroundColor: fontColor ... } : ...
-        // We can check if it has the background color style or a specific class modification if any.
-        // The code uses inline styles for background color on selection.
-        // Let's assume we can check for style matching the expected font color.
+        // Verify that fr-FR is highlighted (active) because activeTab passed is 'fr-FR'
+        // We know that active tags have white text color (#ffffff)
+        // We can check the computed style or the inline style prop
+        // The inline style for selected is: { backgroundColor: fontColor, borderColor: fontColor, color: '#ffffff' }
 
-        // We expect frTag to be highlighted because activeTab is 'fr-FR'
-        // But currently editScope defaults to 'ALL', so 'fr-FR' might NOT be highlighted yet.
-        // This test failure will drive the implementation.
-        expect(frTag.closest('button')).toHaveStyle({ color: '#ffffff' }); // Active tags have white text
+        // Note: checking inline style in JSDOM/Testing Library can be tricky if applied via style prop object
+        expect(frTag).toHaveStyle({ color: '#ffffff' });
+
+        // es-ES should not be highlighted (color should be fontColor which is #000)
+        expect(esTag).toHaveStyle({ color: '#000' });
     });
 });

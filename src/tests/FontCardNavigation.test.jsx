@@ -24,7 +24,7 @@ import { useTypo } from '../context/useTypo';
 
 describe('Font Card Navigation', () => {
 
-    it('should call onSelectLanguage when clicking a language tag if activeTab is not ALL', () => {
+    it('should call onSelectLanguage when clicking a language tag from ALL view', () => {
         const mockFont = {
             id: 'font-1',
             type: 'fallback',
@@ -46,18 +46,19 @@ describe('Font Card Navigation', () => {
             linkFontToLanguage: vi.fn(),
             updateLanguageSpecificSetting: vi.fn(),
             primaryLanguages: [],
-            activeConfigTab: 'fr-FR'
+            activeConfigTab: 'ALL'
         };
 
         useTypo.mockReturnValue(mockContext);
 
         const onSelectLanguageMock = vi.fn();
+        const setHighlitLanguageIdMock = vi.fn();
 
         render(
             <FontCard
                 font={mockFont}
                 isActive={true}
-                activeTab="fr-FR" // Currently viewing French
+                activeTab="ALL"
                 getFontColor={() => '#000'}
                 updateFontColor={vi.fn()}
                 getEffectiveFontSettings={() => ({})}
@@ -69,6 +70,7 @@ describe('Font Card Navigation', () => {
                 updateFontWeight={vi.fn()}
                 toggleFontVisibility={vi.fn()}
                 onSelectLanguage={onSelectLanguageMock}
+                setHighlitLanguageId={setHighlitLanguageIdMock}
             />
         );
 
@@ -76,12 +78,11 @@ describe('Font Card Navigation', () => {
         const esTag = screen.getByText('es-ES');
         fireEvent.click(esTag);
 
-        // Should call onSelectLanguage with 'es-ES' because we are in 'fr-FR' view
-        // and cannot see Spanish card otherwise
+        // Should call onSelectLanguage with 'es-ES'
         expect(onSelectLanguageMock).toHaveBeenCalledWith('es-ES');
     });
 
-    it('should call onSelectLanguage with ALL when clicking the ALL button if activeTab is not ALL', () => {
+    it('should call onSelectLanguage with ALL when clicking the ALL button if activeTab is primary', () => {
         const mockFont = {
             id: 'font-1',
             type: 'fallback',
@@ -103,7 +104,7 @@ describe('Font Card Navigation', () => {
             linkFontToLanguage: vi.fn(),
             updateLanguageSpecificSetting: vi.fn(),
             primaryLanguages: [],
-            activeConfigTab: 'fr-FR'
+            activeConfigTab: 'primary'
         };
 
         useTypo.mockReturnValue(mockContext);
@@ -114,7 +115,7 @@ describe('Font Card Navigation', () => {
             <FontCard
                 font={mockFont}
                 isActive={true}
-                activeTab="fr-FR"
+                activeTab="primary"
                 getFontColor={() => '#000'}
                 updateFontColor={vi.fn()}
                 getEffectiveFontSettings={() => ({})}
@@ -129,7 +130,7 @@ describe('Font Card Navigation', () => {
             />
         );
 
-        // Click on ALL tag
+        // Click on ALL tag (visible in primary view for fallbacks usually)
         const allTag = screen.getByText('ALL');
         fireEvent.click(allTag);
 

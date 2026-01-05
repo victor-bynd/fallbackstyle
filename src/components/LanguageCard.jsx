@@ -299,12 +299,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                                 fontFamily: fallbackFontStackString,
                                 color: fontColor,
                                 fontSize: `${fontSizeEm}em`,
-                                lineHeight: (
-                                    (fallbackSettings.lineGapOverride !== undefined && fallbackSettings.lineGapOverride !== '') ||
-                                    (fallbackSettings.ascentOverride !== undefined && fallbackSettings.ascentOverride !== '') ||
-                                    (fallbackSettings.descentOverride !== undefined && fallbackSettings.descentOverride !== '')
-                                ) ? 'normal'
-                                    : undefined,
+                                // lineHeight removed to allow inheritance of fixed pixel value from parent container
                                 letterSpacing: `${fallbackSettings.letterSpacing}em`,
 
                                 fontWeight: weight,
