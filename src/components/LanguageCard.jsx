@@ -7,7 +7,7 @@ import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import FontSelectionModal from './FontSelectionModal';
 import InfoTooltip from './InfoTooltip';
 
-const LanguageCard = ({ language, isHighlighted }) => {
+const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => {
     const {
         primaryLanguages,
 
@@ -127,7 +127,27 @@ const LanguageCard = ({ language, isHighlighted }) => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
-    const [configDropdownOpen, setConfigDropdownOpen] = useState(false);
+
+    // Controlled vs Uncontrolled Logic for Menu
+    const [internalConfigDropdownOpen, setInternalConfigDropdownOpen] = useState(false);
+    const isControlled = isMenuOpen !== undefined;
+    const configDropdownOpen = isControlled ? isMenuOpen : internalConfigDropdownOpen;
+
+    const handleToggleMenu = () => {
+        if (isControlled) {
+            onToggleMenu?.(!configDropdownOpen);
+        } else {
+            setInternalConfigDropdownOpen(!internalConfigDropdownOpen);
+        }
+    };
+
+    const handleCloseMenu = () => {
+        if (isControlled) {
+            onToggleMenu?.(false);
+        } else {
+            setInternalConfigDropdownOpen(false);
+        }
+    };
     const cardRef = useRef(null);
 
 
@@ -652,8 +672,8 @@ const LanguageCard = ({ language, isHighlighted }) => {
                             }
                         }}
                         isOpen={configDropdownOpen}
-                        onToggle={() => setConfigDropdownOpen(!configDropdownOpen)}
-                        onClose={() => setConfigDropdownOpen(false)}
+                        onToggle={handleToggleMenu}
+                        onClose={handleCloseMenu}
                         addLanguageSpecificFallbackFont={addLanguageSpecificFallbackFont}
                         onStartEdit={handleStartEdit}
 
@@ -1194,7 +1214,9 @@ LanguageCard.propTypes = {
         name: PropTypes.string.isRequired,
         sampleSentence: PropTypes.string.isRequired
     }).isRequired,
-    isHighlighted: PropTypes.bool
+    isHighlighted: PropTypes.bool,
+    isMenuOpen: PropTypes.bool,
+    onToggleMenu: PropTypes.func
 };
 
 export default LanguageCard; // Re-export

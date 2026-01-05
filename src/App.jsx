@@ -228,6 +228,9 @@ const MainContent = ({
   const [pendingFonts, setPendingFonts] = useState([]);
   const [pendingFileMap, setPendingFileMap] = useState(null);
 
+  // Z-Index Management (Single Active Menu)
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
   // Sync highlitLanguageId with activeConfigTab to prevent double selection
   // Sync highlitLanguageId with activeConfigTab to prevent double selection
   useEffect(() => {
@@ -762,7 +765,7 @@ const MainContent = ({
                 <motion.div
                   key={lang.id}
                   className="h-full"
-                  style={{ zIndex: 1 }}
+                  style={{ zIndex: activeMenuId === lang.id ? 50 : 1 }}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{
@@ -774,6 +777,8 @@ const MainContent = ({
                   <LanguageCard
                     language={lang}
                     isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
+                    isMenuOpen={activeMenuId === lang.id}
+                    onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
                   />
                 </motion.div>
               ))}
