@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import LanguageList from './LanguageList';
 
+import { createPortal } from 'react-dom';
+
 const LanguageMultiSelectModal = ({ onClose, onConfirm, title = "Select Languages", confirmLabel = "Add", initialSelectedIds = [] }) => {
     const [selectedIds, setSelectedIds] = useState(new Set(initialSelectedIds));
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,8 +32,8 @@ const LanguageMultiSelectModal = ({ onClose, onConfirm, title = "Select Language
         onConfirm(Array.from(selectedIds));
     };
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4" onClick={onClose}>
+    return createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[9999] p-4 font-sans" onClick={onClose}>
             <div
                 className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mt-12 overflow-hidden flex flex-col max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
@@ -82,7 +84,8 @@ const LanguageMultiSelectModal = ({ onClose, onConfirm, title = "Select Language
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

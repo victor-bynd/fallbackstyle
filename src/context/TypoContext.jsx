@@ -672,7 +672,7 @@ export const TypoProvider = ({ children }) => {
         }
 
         // Resolve Line Height
-        const defaultLineHeight = (font.isPrimaryOverride)
+        const defaultLineHeight = (font.isPrimaryOverride || style.isFallbackLinked)
             ? style.lineHeight
             : (style.fallbackLineHeight !== undefined ? style.fallbackLineHeight : style.lineHeight);
 
