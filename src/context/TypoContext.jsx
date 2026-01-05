@@ -1364,6 +1364,8 @@ export const TypoProvider = ({ children }) => {
         setLanguageVisibility(langId, true);
     };
 
+
+
     // Granular update for a specific language (Auto-Clone if needed)
     const updateLanguageSpecificSetting = (originalFontId, langId, property, value) => {
         const styleId = activeFontStyleId;
@@ -3214,6 +3216,7 @@ export const TypoProvider = ({ children }) => {
             mappedLanguageIds: strictlyMappedLanguageIds, // STRICTLY OVERRIDES
             isLanguageMapped: (langId) => strictlyMappedLanguageIds.includes(langId),
 
+            toggleFontVisibility,
             toggleFontGlobalStatus,
             resetApp: async () => {
                 isResetting.current = true;
