@@ -30,9 +30,11 @@ export const FontCard = ({
     onMap,
     setHighlitLanguageId,
     readOnly = false,
-    setActiveFont
+
+    setActiveFont,
+    consolidatedIds = null
 }) => {
-    const { primaryFontOverrides, fallbackFontOverrides, letterSpacing, setLetterSpacing, primaryLanguages, updateLanguageSpecificSetting, linkFontToLanguage, fonts, baseRem, setBaseRem, toggleFontVisibility } = useTypo();
+    const { primaryFontOverrides, fallbackFontOverrides, letterSpacing, setLetterSpacing, primaryLanguages, updateLanguageSpecificSetting, linkFontToLanguage, fonts, baseRem, setBaseRem, toggleFontVisibility, clearPrimaryFontOverride, clearFallbackFontOverride } = useTypo();
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
     const [tagsLimit, setTagsLimit] = useState(11);
@@ -59,30 +61,35 @@ export const FontCard = ({
 
     const languageTags = useMemo(() => {
         const tags = [];
-        // Show primary language tags on the main primary font card (if not overridden)
-        if (font.type === 'primary' && !font.isPrimaryOverride && primaryLanguages) {
-            primaryLanguages.forEach(langId => {
-                if (!primaryFontOverrides?.[langId]) {
-                    tags.push(langId);
+        const idsToCheck = consolidatedIds || [font.id];
+
+        idsToCheck.forEach(checkId => {
+            // Show primary language tags on the main primary font card (if not overridden)
+            if (font.type === 'primary' && !font.isPrimaryOverride && primaryLanguages) {
+                primaryLanguages.forEach(langId => {
+                    if (!primaryFontOverrides?.[langId]) {
+                        tags.push(langId);
+                    }
+                });
+            }
+            // Primary overrides
+            Object.entries(primaryFontOverrides || {}).forEach(([langId, fontId]) => {
+                if (fontId === checkId) tags.push(langId);
+            });
+            // Fallback overrides
+            Object.entries(fallbackFontOverrides || {}).forEach(([langId, val]) => {
+                if (typeof val === 'string') {
+                    if (val === checkId) tags.push(langId);
+                } else if (val && typeof val === 'object') {
+                    if (val[checkId] || Object.values(val).includes(checkId)) {
+                        tags.push(langId);
+                    }
                 }
             });
-        }
-        // Primary overrides
-        Object.entries(primaryFontOverrides || {}).forEach(([langId, fontId]) => {
-            if (fontId === font.id) tags.push(langId);
         });
-        // Fallback overrides
-        Object.entries(fallbackFontOverrides || {}).forEach(([langId, val]) => {
-            if (typeof val === 'string') {
-                if (val === font.id) tags.push(langId);
-            } else if (val && typeof val === 'object') {
-                if (val[font.id] || Object.values(val).includes(font.id)) {
-                    tags.push(langId);
-                }
-            }
-        });
+
         return [...new Set(tags)];
-    }, [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages]);
+    }, [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages, consolidatedIds]);
 
     useLayoutEffect(() => {
         const calculateLimit = () => {
@@ -295,20 +302,29 @@ export const FontCard = ({
                                 const isSelected = editScope === langId;
                                 const fontColor = getFontColor(font.id) || '#4f46e5';
 
-                                let isOverridden = false;
-                                if (font.type === 'primary') {
-                                    // Primary logic if needed
-                                } else {
+                                const isMappedPrimary = primaryFontOverrides && primaryFontOverrides[langId] === font.id;
+                                const isMappedFallback = (() => {
                                     const val = fallbackFontOverrides && fallbackFontOverrides[langId];
-                                    let overrideId = val;
-                                    if (val && typeof val === 'object') {
-                                        overrideId = val[font.id];
-                                    }
+                                    if (!val) return false;
+                                    if (typeof val === 'string') return val === font.id;
+                                    // Object: Check for Clone (Only show reset if Clone != Original)
+                                    if (typeof val === 'object') {
+                                        const keys = Object.keys(val);
+                                        if (keys.length === 0) return false;
 
-                                    if (overrideId && overrideId !== font.id) {
-                                        isOverridden = true;
+                                        // Standard format { originalId: currentId }
+                                        // We need to check if this font card is relevant (is Original or Clone)
+                                        const relevant = Object.values(val).includes(font.id) || Object.keys(val).includes(font.id);
+                                        if (!relevant) return false;
+
+                                        const originalId = keys[0];
+                                        const currentId = val[originalId];
+                                        return originalId !== currentId;
                                     }
-                                }
+                                    return false;
+                                })();
+
+                                const isOverridden = isMappedPrimary || isMappedFallback;
 
                                 return (
                                     <button
@@ -338,7 +354,24 @@ export const FontCard = ({
                                             <div
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    linkFontToLanguage(font.id, langId);
+                                                    // Primary: Un-map to revert to global primary
+                                                    if (isMappedPrimary) {
+                                                        clearPrimaryFontOverride(langId);
+                                                    }
+                                                    // Fallback: Re-map to original (Inherit) to keep tag but reset clone
+                                                    else if (isMappedFallback) {
+                                                        // Find the Original Font ID
+                                                        const overrides = fallbackFontOverrides && fallbackFontOverrides[langId];
+                                                        let originalId = font.id;
+
+                                                        // If we are on a clone, finding the key that points to us
+                                                        if (typeof overrides === 'object') {
+                                                            const foundKey = Object.keys(overrides).find(key => overrides[key] === font.id);
+                                                            if (foundKey) originalId = foundKey;
+                                                        }
+
+                                                        linkFontToLanguage(originalId, langId);
+                                                    }
                                                 }}
                                                 className="p-0.5 rounded-full hover:bg-white/20 text-current opacity-60 hover:opacity-100 transition-opacity"
                                                 title="Reset to Global (All)"
@@ -804,6 +837,8 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
         addFallbackFonts,
         addStrictlyMappedFonts,
         unmapFont,
+        clearPrimaryFontOverride,
+        clearFallbackFontOverride,
 
         weight,
         fontScales,
@@ -831,7 +866,9 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
         primaryLanguages,
         setFallbackFontOverride,
         linkFontToLanguage,
-        updateLanguageSpecificSetting
+        updateLanguageSpecificSetting,
+        gridColumns,
+        setViewMode
     } = useTypo();
 
 
@@ -992,7 +1029,8 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
         unmappedFonts,
         systemFonts,
         isInheritedPrimary,
-        overriddenOriginalIds
+        overriddenOriginalIds,
+        consolidatedIdsMap
     } = useMemo(() => {
         const p = fonts.find(f => f && f.type === 'primary' && !f.isPrimaryOverride);
         const sFonts = fonts.filter(f => f && !f.fontObject && !f.isLangSpecific && !f.isClone);
@@ -1121,7 +1159,8 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
 
                 // If it is Global, we ALLOW it to appear even if it's in the Mapped list
                 // But we check if it is in the Mapped list using targetedNames
-                if (targetedNames.has(name) && f.isLangSpecific) return false;
+                // FIX: If it is inherently the same font as one in the Mapped list, HIDE IT to prevent duplicates.
+                if (targetedNames.has(name)) return false;
 
                 if (seenUnmappedNames.has(name)) return false;
                 seenUnmappedNames.add(name);
@@ -1584,6 +1623,7 @@ const FontCards = ({ activeTab, selectedGroup, setHighlitLanguageId, readOnly = 
                                     setHighlitLanguageId={setHighlitLanguageId}
                                     activeTab={activeTab}
                                     readOnly={readOnly}
+                                    consolidatedIds={consolidatedIdsMap ? consolidatedIdsMap[font.id] : null}
                                 />
                             );
                         })}

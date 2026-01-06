@@ -3122,6 +3122,9 @@ export const TypoProvider = ({ children }) => {
 
             configuredLanguages: allConfiguredLanguageIds, // Show everything that has config in Sidebar/Tabs
 
+            configuredLanguages: allConfiguredLanguageIds, // Show everything that has config in Sidebar/Tabs
+
+            clearPrimaryFontOverride,
             getPrimaryFontOverrideForStyle,
             removeLanguageSpecificFont,
             unmapFont,

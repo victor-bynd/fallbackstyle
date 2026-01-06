@@ -300,7 +300,7 @@ const LandingPage = ({ importConfig }) => {
                         Fallback Styles
                     </h1>
                     <p className="text-lg text-slate-500 max-w-xl mx-auto">
-                        Stress-test your typography across languages and fallbackGlyphIndex fonts.
+                        Stress-test your typography across languages and fallback fonts.
                     </p>
                 </div>
 

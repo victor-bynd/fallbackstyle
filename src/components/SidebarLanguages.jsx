@@ -115,7 +115,7 @@ const SidebarLanguages = ({
         <div className="w-64 flex flex-col h-full border-r border-gray-100 bg-white overflow-hidden">
             {/* Fixed Header Section */}
             <div className="p-4 pb-2 border-b border-gray-50 bg-white shrink-0">
-                <div className="flex items-center justify-between mb-4 mt-2">
+                <div className="flex items-start justify-between mb-4">
                     <div className="flex flex-col">
                         <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
                             LANGUAGES

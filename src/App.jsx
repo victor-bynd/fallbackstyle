@@ -494,11 +494,11 @@ const MainContent = ({
         >
           <div
             ref={toolbarRef}
-            className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4 min-h-[34px]"
+            className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-4 min-h-[34px]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* LEFT: Live Demo Title */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
               <span className="text-xs font-black text-slate-800 uppercase tracking-widest whitespace-nowrap">
                 TYPE DEMO
               </span>

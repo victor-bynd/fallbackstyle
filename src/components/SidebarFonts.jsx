@@ -12,7 +12,7 @@ const SidebarFonts = ({ selectedGroup, setHighlitLanguageId, fontFilter, setFont
 
     return (
         <div className="w-80 flex flex-col gap-4 p-4 overflow-y-auto bg-slate-50/50">
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-start justify-between">
                 <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
                     FONT STACK
                 </div>
