@@ -201,6 +201,7 @@ const SidebarLanguages = ({
                         onSelectGroup={(group) => {
                             onSelectGroup(group);
                             setActiveConfigTab('ALL');
+                            if (setHighlitLanguageId) setHighlitLanguageId(null);
                         }}
                         supportedLanguages={supportedLanguages}
                         mappedLanguages={languages?.filter(l => mappedLanguageIds?.includes(l.id))}

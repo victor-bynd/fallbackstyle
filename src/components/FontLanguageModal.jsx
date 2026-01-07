@@ -209,10 +209,29 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
         }
     };
 
+
+
+    // Primary Language Management
+    const [primaryLanguages, setPrimaryLanguages] = useState([]);
+
+    const handleTogglePrimary = (langId) => {
+        setPrimaryLanguages(prev => {
+            // Enforce single primary language for this flow
+            if (prev.includes(langId)) {
+                // If clicking functionality to remove vs strictly replace?
+                // Usually if single select, clicking active one might do nothing or remove.
+                // Let's implement toggle.
+                return [];
+            }
+            return [langId];
+        });
+    };
+
     const handleConfirm = () => {
         onConfirm({
             orderedFonts: fonts,
-            mappings
+            mappings,
+            primaryLanguages // Pass selected primary languages to parent
         });
     };
 
@@ -282,6 +301,8 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
                                 onSearchChange={setPickerSearchTerm}
                                 mode="multi"
                                 showAuto={false}
+                                primaryLanguages={primaryLanguages}
+                                onTogglePrimary={handleTogglePrimary}
                             />
                         </div>
                     )}

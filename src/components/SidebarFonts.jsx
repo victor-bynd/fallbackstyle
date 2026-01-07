@@ -5,7 +5,7 @@ import FontCards from './FontCards';
 import OverridesManager from './OverridesManager';
 
 
-const SidebarFonts = ({ selectedGroup, setHighlitLanguageId, fontFilter, setFontFilter }) => {
+const SidebarFonts = ({ selectedGroup, highlitLanguageId, setHighlitLanguageId, fontFilter, setFontFilter }) => {
     const { activeConfigTab } = useTypo();
     const activeTab = activeConfigTab;
     const [showFontManager, setShowFontManager] = useState(false);
@@ -30,6 +30,7 @@ const SidebarFonts = ({ selectedGroup, setHighlitLanguageId, fontFilter, setFont
             <FontCards
                 activeTab={activeTab}
                 selectedGroup={selectedGroup}
+                highlitLanguageId={highlitLanguageId}
                 setHighlitLanguageId={setHighlitLanguageId}
                 readOnly={false}
                 fontFilter={fontFilter}

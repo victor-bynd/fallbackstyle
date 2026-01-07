@@ -247,8 +247,11 @@ const SidebarLanguageList = ({
                                 >
                                     {languages.map(lang => {
                                         const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
-                                        const isSelected = activeTab === lang.id || (activeTab === 'primary' && isPrimary);
-                                        const isHighlighted = highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && isPrimary);
+                                        // If we have a specific highlight, use it. 
+                                        // Otherwise, if in 'primary' mode, all primary languages are technically 'selected' (scope), 
+                                        // but we only want to highlight the specific one being interacted with if available.
+                                        const isSelected = activeTab === lang.id || (activeTab === 'primary' && isPrimary && (!highlitLanguageId || highlitLanguageId === lang.id));
+                                        const isHighlighted = highlitLanguageId === lang.id;
                                         const isActive = isSelected || isHighlighted;
 
                                         return (

@@ -375,15 +375,40 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
         }
     };
 
-    const handleModalConfirm = ({ mappings, orderedFonts }) => {
+    const handleModalConfirm = ({ mappings, orderedFonts, primaryLanguages: selectedPrimaryLanguages }) => {
         try {
-            // ... existing logic ...
-            const autoFonts = [];
-            const primaryItem = orderedFonts[0];
+            const fontObjectsToRegister = [];
+            const languageMappings = {};
+            const languageIdsToConfigure = new Set();
 
-            // Use the ordered list from the modal
+            // Handle Primary Language Selection from Modal
+            if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
+                // We assume single selection as enforced in modal
+                const pLangId = selectedPrimaryLanguages[0];
+                togglePrimaryLanguage(pLangId);
+            }
+
+            const primaryItem = orderedFonts[0];
+            const autoFonts = [];
+
+            // 1. Process All Fonts
             orderedFonts.forEach((item, index) => {
-                if (index === 0) return; // Skip primary
+                if (index === 0) return;
+                const fontData = {
+                    id: `uploaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'fallback',
+                    fontObject: item.font,
+                    fontUrl: item.url,
+                    fileName: item.file.name,
+                    name: item.file.name,
+                    axes: item.metadata.axes,
+                    isVariable: item.metadata.isVariable,
+                    staticWeight: item.metadata.staticWeight ?? null
+                };
+
+                fontObjectsToRegister.push(fontData);
+
+                if (index === 0) return; // Skip primary for mapping loop
 
                 const Mapping = mappings[item.file.name];
                 if (Mapping === 'auto' || (Array.isArray(Mapping) && Mapping.length === 0)) {
@@ -393,90 +418,47 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                         if (langId === 'auto') {
                             autoFonts.push(item);
                         } else {
-                            addLanguageSpecificFallbackFont(
-                                item.font,
-                                item.url,
-                                item.file.name,
-                                item.metadata,
-                                langId
-                            );
+                            languageMappings[langId] = item.file.name;
+                            languageIdsToConfigure.add(langId);
                         }
                     });
-                } else {
-                    // Language specific fallback Mapping (legacy string)
-                    addLanguageSpecificFallbackFont(
-                        item.font,
-                        item.url,
-                        item.file.name,
-                        item.metadata,
-                        Mapping
-                    );
+                } else if (Mapping && Mapping !== 'auto') {
+                    languageMappings[Mapping] = item.file.name;
+                    languageIdsToConfigure.add(Mapping);
                 }
             });
 
-            // Load the designated Primary font first
+            // 2. Load the designated Primary font first (Special handling currently)
             if (primaryItem) {
                 loadFont(primaryItem.font, primaryItem.url, primaryItem.file.name, primaryItem.metadata);
+                // Also ensure primary language is mapped (usually handled by addPrimaryLanguageOverrides)
             }
 
-            // Remaining auto fonts become Fallbacks in the order they were in orderedFonts
-            if (autoFonts.length > 0) {
-                const fallbacks = autoFonts.map(item => {
-                    return {
-                        id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        type: 'fallback',
-                        fontObject: item.font,
-                        fontUrl: item.url,
-                        fileName: item.file.name,
-                        name: item.file.name,
-                        axes: item.metadata.axes,
-                        isVariable: item.metadata.isVariable,
-                        staticWeight: item.metadata.staticWeight ?? null
-                    };
-                });
-                addFallbackFonts(fallbacks);
+            // 3. Batch Add Fallbacks and Mappings
+            // This consolidated call handles deduplication and inheritance triggers
+            batchAddFontsAndMappings({
+                fonts: fontObjectsToRegister,
+                mappings: languageMappings,
+                languageIds: Array.from(languageIdsToConfigure)
+            });
+
+            // 4. Ensure Primary Language is mapped to Primary Font
+            if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
+                addPrimaryLanguageOverrides(selectedPrimaryLanguages);
+                selectedPrimaryLanguages.forEach(id => languageIdsToConfigure.add(id));
             }
 
-            // Ensure the Primary Language is mapped to the Primary Font
-            if (primaryLanguages && primaryLanguages.length > 0) {
-                addPrimaryLanguageOverrides(primaryLanguages);
-            }
-
-            // CRITICAL FIX: Ensure we have Configured Languages!
-            // If "Start with Font" is used, configuredLanguages is empty by default.
-            // We must add any mapped languages, or default to 'en-US' so the App doesn't show a blank screen.
+            // 5. Ensure at least en-US if nothing else
             setTimeout(() => {
-                const languagesToConfigure = new Set();
-
-                // 1. Add mapped languages
-                orderedFonts.forEach(item => {
-                    const Mapping = mappings[item.file.name];
-                    if (Array.isArray(Mapping)) {
-                        Mapping.forEach(id => {
-                            if (id !== 'auto') languagesToConfigure.add(id);
-                        });
-                    } else if (Mapping && Mapping !== 'auto') {
-                        languagesToConfigure.add(Mapping);
-                    }
-                });
-
-                // 2. Add existing primary languages (if any defined in context)
-                if (primaryLanguages && primaryLanguages.length > 0) {
-                    primaryLanguages.forEach(id => languagesToConfigure.add(id));
-                }
-
-                // 3. Default to en-US if empty
-                if (languagesToConfigure.size === 0) {
-                    languagesToConfigure.add('en-US');
-                    // Ensure en-US is set key as primary if we are defaulting to it
-                    // Check directly against current state references or assume empty if defaulting
+                if (languageIdsToConfigure.size === 0) {
+                    batchAddConfiguredLanguages(['en-US']);
                     if (!primaryLanguages || primaryLanguages.length === 0) {
                         togglePrimaryLanguage('en-US');
                     }
+                } else {
+                    batchAddConfiguredLanguages(Array.from(languageIdsToConfigure));
                 }
-
-                batchAddConfiguredLanguages(Array.from(languagesToConfigure));
-            }, 50); // Small delay to let font load state settle and prevent main thread lockup
+            }, 50);
 
         } catch (error) {
             console.error("Error in font modal confirm:", error);

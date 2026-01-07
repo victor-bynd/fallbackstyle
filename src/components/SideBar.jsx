@@ -36,6 +36,7 @@ const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, on
                     />
                     <SidebarFonts
                         selectedGroup={selectedGroup}
+                        highlitLanguageId={highlitLanguageId}
                         setHighlitLanguageId={setHighlitLanguageId}
                         fontFilter={fontFilter}
                         setFontFilter={props.setFontFilter}

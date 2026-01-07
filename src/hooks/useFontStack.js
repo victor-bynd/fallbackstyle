@@ -42,7 +42,9 @@ export const useFontStack = () => {
             if (typeof val === 'string') excludedFontIds.add(val);
         });
 
+        const { normalizeFontName } = useTypo();
         const primaryFont = fonts.find(f => f.type === 'primary');
+        const pNameNormalized = normalizeFontName(primaryFont?.fileName || primaryFont?.name);
 
         // Filter out fallback fonts that are used as overrides in ANY language
         // AND ensure we don't duplicate the primary font in the fallback stack (same ID or same Name)
@@ -54,9 +56,8 @@ export const useFontStack = () => {
             !f.isLangSpecific &&
             f.id !== primaryFont?.id && // Sanity check for ID duplication
             !(
-                // If it's a system font (added by name) and matches primary name, it's a duplicate
-                (!f.fontObject && !f.fontUrl) &&
-                (f.name === primaryFont?.name || f.name === primaryFont?.fileName)
+                // Robust Name match
+                pNameNormalized && normalizeFontName(f.fileName || f.name) === pNameNormalized
             )
         );
 

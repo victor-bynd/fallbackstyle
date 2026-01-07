@@ -30,6 +30,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         getPrimaryFontOverrideForStyle,
         getFallbackFontOverrideForStyle,
         removeConfiguredLanguage,
+        clearPrimaryFontOverride,
         viewMode,
         textCase,
         fontObject,
@@ -38,7 +39,9 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         activeFontStyleId,
         resetTextOverride,
         systemFallbackOverrides,
-        showFallbackOrder
+        showFallbackOrder,
+        mapLanguageToFont,
+        unmapLanguage
     } = useTypo();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
@@ -164,6 +167,11 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         return 'primary';
     };
 
+    const handleUnmap = () => {
+        unmapLanguage(language.id);
+        handleCloseMenu();
+    };
+
     const getCurrentFallbackFontIdForStyle = (styleId) => {
         const id = getFallbackFontOverrideForStyle(styleId, language.id);
         if (!id || id === 'legacy') return id;
@@ -273,10 +281,10 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                     // System fonts (no fontObject) use the 'missing/system' color because we can't verify 
                     // if they are truly used or if the browser fell back to the OS default.
                     const useMappedColor = fontIndex >= 0 && usedFallback.fontObject;
-                    const baseColor = useMappedColor ? (fontObj?.color || colors.primary) : (systemFallbackOverrides[language.id]?.missingColor || missingColor);
+                    const baseColor = useMappedColor ? (fallbackSettings.color || colors.primary) : (systemFallbackOverrides[language.id]?.missingColor || missingColor);
                     const fontColor = showFallbackColors
                         ? baseColor
-                        : (fonts[0]?.color || colors.primary);
+                        : (primarySettings.color || colors.primary);
 
                     const isVariable = fontObj?.isVariable;
                     const weight = fallbackSettings.weight || 400;
@@ -301,6 +309,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                                 fontSize: `${fontSizeEm}em`,
                                 // lineHeight removed to allow inheritance of fixed pixel value from parent container
                                 letterSpacing: `${fallbackSettings.letterSpacing}em`,
+                                verticalAlign: 'baseline',
 
                                 fontWeight: weight,
                                 fontVariationSettings: isVariable ? `'wght' ${weight} ` : undefined,
@@ -318,10 +327,10 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                     borderRadius: '2px'
                 } : {};
 
-                const primaryColor = effectivePrimaryFont?.color || fonts[0]?.color || colors.primary;
-                const finalColor = showFallbackColors ? primaryColor : (fonts[0]?.color || colors.primary);
+                const primaryColor = primarySettings.color || colors.primary;
+                const finalColor = showFallbackColors ? primaryColor : (primarySettings.color || colors.primary);
 
-                return <span key={index} style={{ color: finalColor, ...inlineBoxStyle }}>{char}</span>;
+                return <span key={index} style={{ color: finalColor, verticalAlign: 'baseline', ...inlineBoxStyle }}>{char}</span>;
             });
         });
 
@@ -507,8 +516,10 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                 e.stopPropagation(); // Prevent background click from firing
                 if (isActive) {
                     setActiveConfigTab('ALL');
+                    if (setHighlitLanguageId) setHighlitLanguageId(null);
                 } else {
                     setActiveConfigTab(isPrimary ? 'primary' : language.id);
+                    if (setHighlitLanguageId) setHighlitLanguageId(language.id);
                 }
             }}
             className={`
@@ -659,11 +670,12 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                         fallbackOverrideOptions={fallbackOverrideOptions}
                         onSelectFallback={(val) => {
                             if (!val) {
-                                clearFallbackFontOverrideForStyle(activeMetricsStyleId, language.id);
+                                unmapLanguage(language.id);
                             } else if (val === 'legacy') {
                                 setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, 'legacy');
                             } else {
-                                setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, val);
+                                // Use new unified mapping
+                                mapLanguageToFont(language.id, val);
                             }
                         }}
                         isOpen={configDropdownOpen}
@@ -673,6 +685,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                         onStartEdit={handleStartEdit}
 
                         onRemove={() => removeConfiguredLanguage(language.id)}
+                        onUnmap={handleUnmap}
                     />
                 </div>
             </div>
@@ -1019,6 +1032,7 @@ const LanguageActionMenu = ({
     onClose,
     addLanguageSpecificFallbackFont,
     onStartEdit,
+    onUnmap,
 
     onRemove
 }) => {
@@ -1153,6 +1167,19 @@ const LanguageActionMenu = ({
                             <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Upload Font</span>
                         </button>
 
+                        <button
+                            onClick={() => {
+                                onUnmap();
+                                onClose();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-indigo-600">
+                                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Unmap Language</span>
+                        </button>
+
                         <div className="my-1 border-t border-slate-100" />
 
                         {/* Danger Zone */}
@@ -1199,6 +1226,7 @@ LanguageActionMenu.propTypes = {
     onClose: PropTypes.func.isRequired,
     addLanguageSpecificFallbackFont: PropTypes.func.isRequired,
     onStartEdit: PropTypes.func.isRequired,
+    onUnmap: PropTypes.func.isRequired,
 
     onRemove: PropTypes.func.isRequired
 };
