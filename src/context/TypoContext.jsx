@@ -3398,6 +3398,7 @@ export const TypoProvider = ({ children }) => {
             resetFallbackFontOverrides,
             toggleFallbackLineHeightAuto,
             getEffectiveFontSettings,
+            fonts: activeStyle.fonts || [],
             updateFontWeight,
             addLanguageSpecificFont,
             addStrictlyMappedFonts,

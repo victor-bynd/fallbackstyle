@@ -793,7 +793,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
 
 
                             const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
-                                (primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== '' && primaryFont?.lineHeight !== 'normal')
+                                primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== null
                             );
 
                             const primaryOverrideLineHeight = hasLineHeightOverride
@@ -932,7 +932,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                             : undefined;
 
                         const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
-                            (primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== '' && primaryFont?.lineHeight !== 'normal')
+                            primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== null
                         );
 
                         const primaryOverrideLineHeight = hasLineHeightOverride

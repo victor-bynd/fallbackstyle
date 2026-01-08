@@ -88,6 +88,104 @@ const FontCardContent = ({
         return [...new Set(tags)].filter(t => t && t !== 'undefined');
     }, [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages, consolidatedIds]);
 
+    // Helper to determine if a language has an active override on this card
+    const getOverrideState = (langId) => {
+        // Resolve Target Font Logic
+        const isPrimaryCard = font.type === 'primary' || font.isPrimaryOverride;
+        const pId = primaryFontOverrides?.[langId];
+        const fOverrides = fallbackFontOverrides?.[langId];
+
+        let fId = null;
+        if (typeof fOverrides === 'object' && fOverrides !== null) {
+            const matchedBaseId = idsToCheck.find(id => fOverrides[id]);
+            if (matchedBaseId) fId = fOverrides[matchedBaseId];
+            else fId = idsToCheck.find(id => Object.values(fOverrides).includes(id));
+        } else if (typeof fOverrides === 'string') {
+            fId = fOverrides;
+        }
+
+        const targetId = isPrimaryCard ? pId : fId;
+        const targetFont = targetId ? fonts.find(f => f.id === targetId) : null;
+
+        if (!targetId) return false;
+
+        // FAIL-SAFE: If mapped to the card's own base ID, it's NOT an override.
+        // This ensures "Clean Mapping" never shows a dot.
+        // EXCEPTION: If the card ITSELF is a clone (specialized view), then matching ID implies override relative to global base.
+        if (targetId === font.id && !font.isClone && !font.isLangSpecific) return false;
+
+        if (!targetFont) return false;
+
+        // 2. It IS an override if:
+        // a) It's a language-specific clone
+        if (targetFont.isLangSpecific || targetFont.isClone) {
+            // NEW CHECK: Validating that it ACTUALLY has override values
+            // For clones, we check if any relevant property is set defined/differently from base
+            const overrideProps = [
+                'weightOverride',
+                'scale',
+                'lineHeight',
+                'letterSpacing',
+                'lineGapOverride',
+                'ascentOverride',
+                'descentOverride',
+                'fontSizeAdjust'
+            ];
+
+            // RESOLVE BASE FONT for comparison
+            // If mapped to a clone, the "base" is its parent.
+            // If mapped to a primary/base font, the base is itself (but then isClone check above handles it).
+            const baseFontForComparison = targetFont.parentId
+                ? fonts.find(f => f.id === targetFont.parentId)
+                : (targetFont.isClone ? null : targetFont);
+
+            // Fallback to provided 'font' if parent resolution fails (unlikely) or if self is base.
+            const comparisonBase = baseFontForComparison || font;
+
+            const hasActualChange = overrideProps.some(prop => {
+                let val = targetFont[prop];
+                let baseVal = comparisonBase[prop];
+
+                // Normalization for comparisons
+                // 1. Scale: 
+                // If override is undefined/null, it means INHERIT. We should NOT force it to 1.
+                // If base is undefined/null, it implies default 1. We SHOULD force it to 1 for comparison against explicit override.
+                if (prop === 'scale') {
+                    // if (val === undefined || val === null) val = 1; // <--- REMOVED (Caused Regression)
+                    if (baseVal === undefined || baseVal === null) baseVal = 1;
+                }
+
+                // If value is undefined/null (after potential normalization), it's inheriting.
+                // If inheriting, it matches base by definition. Return false for this prop.
+                if (val === undefined || val === null) return false;
+
+                // If value is defined, we check if it is DIFFERENT from base.
+                return val !== baseVal;
+            });
+
+            if (hasActualChange) return true;
+
+            // Color check: strictly speaking color is an override, but sometimes it just inherits.
+            if (targetFont.color && targetFont.color !== comparisonBase.color) return true;
+
+            // If it's a clone/lang-specific but has NO properties set, it's just a "soft mapping"
+            // (maybe waiting for user input, or just isolated for potential future input).
+            // In this case, we do NOT show the dot.
+            return false;
+        }
+
+        // b) It's mapped to a different global font than the one(s) this card represents
+        // Only if targetId is NOT a clone (clones handled above).
+        if (targetFont.isClone || targetFont.isLangSpecific) return false;
+
+        return !idsToCheck.includes(targetId);
+    };
+
+    const singleLang = languageTags.length === 1 ? languageTags[0] : null;
+    const singleLangHasOverride = singleLang ? getOverrideState(singleLang) : false;
+    // Show merged view if there is exactly one language AND it has no active override
+    const showMergedView = singleLang && !singleLangHasOverride;
+
     // Sync editScope with activeConfigTab (Global Selection)
     useEffect(() => {
         if (!activeConfigTab || activeConfigTab === 'ALL') {
@@ -98,12 +196,20 @@ const FontCardContent = ({
         if (activeConfigTab === 'primary') {
             // Find if this card has a tag for the specifically highlighted primary language
             if (highlitLanguageId && languageTags.includes(highlitLanguageId)) {
-                onSetScope(highlitLanguageId);
+                if (showMergedView && highlitLanguageId === singleLang) {
+                    onSetScope('ALL');
+                } else {
+                    onSetScope(highlitLanguageId);
+                }
             } else {
                 // Otherwise find the first primary language tag this card has
                 const firstPrimary = languageTags.find(tag => primaryLanguages.includes(tag));
                 if (firstPrimary) {
-                    onSetScope(firstPrimary);
+                    if (showMergedView && firstPrimary === singleLang) {
+                        onSetScope('ALL');
+                    } else {
+                        onSetScope(firstPrimary);
+                    }
                 } else {
                     onSetScope('ALL');
                 }
@@ -113,12 +219,16 @@ const FontCardContent = ({
 
         // If a specific language is active, check if this card has a tab for it
         if (languageTags.includes(activeConfigTab)) {
-            onSetScope(activeConfigTab);
+            if (showMergedView && activeConfigTab === singleLang) {
+                onSetScope('ALL');
+            } else {
+                onSetScope(activeConfigTab);
+            }
         } else {
             // Default to ALL if no match
             onSetScope('ALL');
         }
-    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope]);
+    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, showMergedView, singleLang]);
 
     const scopeFontId = useMemo(() => {
         if (editScope === 'ALL') return font.id;
@@ -312,24 +422,45 @@ const FontCardContent = ({
                 {/* Tab Bar (Moved) */}
                 {showTabs && (
                     <div className="flex items-center gap-1 mt-2 mb-0 overflow-x-auto no-scrollbar mask-linear-fade">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSetScope('ALL');
-                                setActiveConfigTab('ALL');
-                                if (setHighlitLanguageId) setHighlitLanguageId(null);
-                            }}
-                            className={`
-                                px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2
-                                ${editScope === 'ALL'
-                                    ? 'text-indigo-600 border-indigo-600 bg-indigo-50/50'
-                                    : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
-                                }
-                            `}
-                        >
-                            GLOBAL
-                        </button>
-                        {languageTags.map(langId => {
+                        {showMergedView ? (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSetScope('ALL');
+                                    setActiveConfigTab('ALL');
+                                    if (setHighlitLanguageId) setHighlitLanguageId(null);
+                                }}
+                                className={`
+                                    px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2
+                                    ${editScope === 'ALL'
+                                        ? 'text-indigo-600 border-indigo-600 bg-indigo-50/50'
+                                        : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
+                                    }
+                                `}
+                            >
+                                {singleLang}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSetScope('ALL');
+                                    setActiveConfigTab('ALL');
+                                    if (setHighlitLanguageId) setHighlitLanguageId(null);
+                                }}
+                                className={`
+                                    px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2
+                                    ${editScope === 'ALL'
+                                        ? 'text-indigo-600 border-indigo-600 bg-indigo-50/50'
+                                        : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
+                                    }
+                                `}
+                            >
+                                GLOBAL
+                            </button>
+                        )}
+
+                        {!showMergedView && languageTags.map(langId => {
                             const isSelected = editScope === langId;
                             // Resolve Target Font Logic
                             const isPrimaryCard = font.type === 'primary' || font.isPrimaryOverride;
@@ -348,80 +479,7 @@ const FontCardContent = ({
                             const targetId = isPrimaryCard ? pId : fId;
                             const targetFont = targetId ? fonts.find(f => f.id === targetId) : null;
 
-                            const hasOverride = (() => {
-                                if (!targetId) return false;
-
-                                // FAIL-SAFE: If mapped to the card's own base ID, it's NOT an override.
-                                // This ensures "Clean Mapping" never shows a dot.
-                                // EXCEPTION: If the card ITSELF is a clone (specialized view), then matching ID implies override relative to global base.
-                                if (targetId === font.id && !font.isClone && !font.isLangSpecific) return false;
-
-                                if (!targetFont) return false;
-
-                                // 2. It IS an override if:
-                                // a) It's a language-specific clone
-                                if (targetFont.isLangSpecific || targetFont.isClone) {
-                                    // NEW CHECK: Validating that it ACTUALLY has override values
-                                    // For clones, we check if any relevant property is set defined/differently from base
-                                    const overrideProps = [
-                                        'weightOverride',
-                                        'scale',
-                                        'lineHeight',
-                                        'letterSpacing',
-                                        'lineGapOverride',
-                                        'ascentOverride',
-                                        'descentOverride',
-                                        'fontSizeAdjust'
-                                    ];
-
-                                    // RESOLVE BASE FONT for comparison
-                                    // If mapped to a clone, the "base" is its parent.
-                                    // If mapped to a primary/base font, the base is itself (but then isClone check above handles it).
-                                    const baseFontForComparison = targetFont.parentId
-                                        ? fonts.find(f => f.id === targetFont.parentId)
-                                        : (targetFont.isClone ? null : targetFont);
-
-                                    // Fallback to provided 'font' if parent resolution fails (unlikely) or if self is base.
-                                    const comparisonBase = baseFontForComparison || font;
-
-                                    const hasActualChange = overrideProps.some(prop => {
-                                        let val = targetFont[prop];
-                                        let baseVal = comparisonBase[prop];
-
-                                        // Normalization for comparisons
-                                        // 1. Scale: 
-                                        // If override is undefined/null, it means INHERIT. We should NOT force it to 1.
-                                        // If base is undefined/null, it implies default 1. We SHOULD force it to 1 for comparison against explicit override.
-                                        if (prop === 'scale') {
-                                            // if (val === undefined || val === null) val = 1; // <--- REMOVED (Caused Regression)
-                                            if (baseVal === undefined || baseVal === null) baseVal = 1;
-                                        }
-
-                                        // If value is undefined/null (after potential normalization), it's inheriting.
-                                        // If inheriting, it matches base by definition. Return false for this prop.
-                                        if (val === undefined || val === null) return false;
-
-                                        // If value is defined, we check if it is DIFFERENT from base.
-                                        return val !== baseVal;
-                                    });
-
-                                    if (hasActualChange) return true;
-
-                                    // Color check: strictly speaking color is an override, but sometimes it just inherits.
-                                    if (targetFont.color && targetFont.color !== comparisonBase.color) return true;
-
-                                    // If it's a clone/lang-specific but has NO properties set, it's just a "soft mapping"
-                                    // (maybe waiting for user input, or just isolated for potential future input).
-                                    // In this case, we do NOT show the dot.
-                                    return false;
-                                }
-
-                                // b) It's mapped to a different global font than the one(s) this card represents
-                                // Only if targetId is NOT a clone (clones handled above).
-                                if (targetFont.isClone || targetFont.isLangSpecific) return false;
-
-                                return !idsToCheck.includes(targetId);
-                            })();
+                            const hasOverride = getOverrideState(langId);
 
                             return (
                                 <button
@@ -601,7 +659,9 @@ const FontCardContent = ({
                                     max="300"
                                     step="5"
                                     value={(() => {
-                                        const lh = getEffectiveFontSettings(scopeFontId).lineHeight;
+                                        const settings = getEffectiveFontSettings(scopeFontId);
+                                        const lh = settings.lineHeight;
+                                        // console.log('[DEBUG] Slider Value Calc', { scopeFontId, lh });
                                         return lh === 'normal' ? 120 : lh * 100;
                                     })()}
                                     onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
