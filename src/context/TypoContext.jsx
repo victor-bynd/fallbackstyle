@@ -15,6 +15,7 @@ import { PersistenceService } from '../services/PersistenceService';
 import { safeParseFontFile } from '../services/SafeFontLoader';
 
 import { TypoContext } from './TypoContextDefinition';
+import { useUI } from './UIContext';
 
 
 
@@ -28,7 +29,6 @@ const createEmptyStyleState = () => ({
             fontUrl: null,
             fileName: null,
             name: null,
-            baseFontSize: 60,
             // Weight metadata
             axes: null,
             isVariable: false,
@@ -38,7 +38,7 @@ const createEmptyStyleState = () => ({
         }
     ],
     activeFont: 'primary',
-    baseFontSize: 60,
+    baseFontSize: 16,
     weight: 400, // Global weight for this style
     fontScales: { active: 100, fallback: 100 },
     isFallbackLinked: true,
@@ -66,6 +66,18 @@ const createEmptyStyleState = () => ({
 export const TypoProvider = ({ children }) => {
     const [activeFontStyleId, setActiveFontStyleId] = useState('primary');
 
+    const {
+        viewMode, setViewMode,
+        textCase, setTextCase,
+        gridColumns, setGridColumns,
+        activeConfigTab, setActiveConfigTab,
+        showFallbackColors, setShowFallbackColors,
+        showAlignmentGuides, setShowAlignmentGuides,
+        showBrowserGuides, setShowBrowserGuides,
+        showFallbackOrder, setShowFallbackOrder,
+        colors, setColors
+    } = useUI();
+
     // Ref to track which fonts have been saved to IDB to avoid re-saving
     const persistedFontIds = useRef(new Set());
 
@@ -91,8 +103,8 @@ export const TypoProvider = ({ children }) => {
     const fileName = primaryFont?.fileName || null;
 
     const DEFAULT_HEADER_STYLES = useMemo(() => ({
-        h1: { scale: 3.75, lineHeight: 1.2, letterSpacing: 0 },
-        h2: { scale: 3.0, lineHeight: 1.2, letterSpacing: 0 },
+        h1: { scale: 3.0, lineHeight: 1.2, letterSpacing: 0 },
+        h2: { scale: 2.625, lineHeight: 1.2, letterSpacing: 0 },
         h3: { scale: 2.25, lineHeight: 1.2, letterSpacing: 0 },
         h4: { scale: 1.875, lineHeight: 1.2, letterSpacing: 0 },
         h5: { scale: 1.5, lineHeight: 1.2, letterSpacing: 0 },
@@ -168,8 +180,7 @@ export const TypoProvider = ({ children }) => {
         }
     }, [headerOverrides, markHeaderOverride]);
 
-    // activeConfigTab tracks the sidebar selection (e.g. 'primary' or a language ID)
-    const [activeConfigTab, setActiveConfigTab] = useState('ALL');
+
 
     // Content Overrides
     const [textOverrides, setTextOverrides] = useState({});
@@ -214,18 +225,26 @@ export const TypoProvider = ({ children }) => {
 
     const baseFontSize = activeStyle.baseFontSize;
     const setBaseFontSize = (valueOrUpdater) => {
-        updateStyleState(activeFontStyleId, prev => ({
-            ...prev,
-            baseFontSize: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.baseFontSize) : valueOrUpdater
-        }));
+        updateStyleState(activeFontStyleId, prev => {
+            const newVal = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.baseFontSize) : valueOrUpdater;
+            return {
+                ...prev,
+                baseFontSize: newVal,
+                baseRem: newVal // Sync baseRem
+            };
+        });
     };
 
-    const baseRem = activeStyle.baseRem || 16;
+    const baseRem = activeStyle.baseFontSize || activeStyle.baseRem || 16;
     const setBaseRem = (valueOrUpdater) => {
-        updateStyleState(activeFontStyleId, prev => ({
-            ...prev,
-            baseRem: typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.baseRem) : valueOrUpdater
-        }));
+        updateStyleState(activeFontStyleId, prev => {
+            const newVal = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev.baseRem) : valueOrUpdater;
+            return {
+                ...prev,
+                baseRem: newVal,
+                baseFontSize: newVal // Sync baseFontSize
+            };
+        });
     };
 
     const fontScales = activeStyle.fontScales;
@@ -396,16 +415,7 @@ export const TypoProvider = ({ children }) => {
     const setMissingBgColor = (color) => {
         updateStyleState(activeFontStyleId, prev => ({ ...prev, missingBgColor: color }));
     };
-    const [textCase, setTextCase] = useState('none');
-    const [viewMode, setViewMode] = useState('h1');
-    const [gridColumns, setGridColumns] = useState(1);
-    const [showFallbackColors, setShowFallbackColors] = useState(true);
-    const [colors, setColors] = useState({
-        primary: '#0f172a'
-    });
-    const [showAlignmentGuides, setShowAlignmentGuides] = useState(false);
-    const [showBrowserGuides, setShowBrowserGuides] = useState(false);
-    const [showFallbackOrder, setShowFallbackOrder] = useState(false);
+
 
     const fonts = activeStyle.fonts;
     const setFonts = (valueOrUpdater) => {
@@ -638,6 +648,7 @@ export const TypoProvider = ({ children }) => {
                 baseFontSize: style.baseFontSize,
                 scale: 100,
                 lineHeight: style.lineHeight,
+                letterSpacing: style.letterSpacing,
                 weight: resolveWeightForFont(font, style.weight),
                 lineGapOverride: font.lineGapOverride,
                 ascentOverride: font.ascentOverride,
@@ -964,7 +975,7 @@ export const TypoProvider = ({ children }) => {
                 lineGapOverride: undefined,
                 ascentOverride: undefined,
                 descentOverride: undefined,
-                color: undefined,
+
                 fontSizeAdjust: undefined,
                 ...initialUpdates // Apply initial updates (e.g. triggered by Split action)
             };
@@ -2377,11 +2388,15 @@ export const TypoProvider = ({ children }) => {
 
     // Update a fallback font's override settings
     const updateFallbackFontOverride = (fontId, field, value) => {
-        setFonts(prev => prev.map(f =>
-            f.id === fontId
-                ? { ...f, [field]: value }
-                : f
-        ));
+        setFonts(prev => {
+            const font = prev.find(f => f.id === fontId);
+            if (font && font[field] === value) return prev;
+            return prev.map(f =>
+                f.id === fontId
+                    ? { ...f, [field]: value }
+                    : f
+            );
+        });
     };
 
     // Toggle font visibility
@@ -3370,8 +3385,7 @@ export const TypoProvider = ({ children }) => {
             primaryLanguages: activeStyle.primaryLanguages || [],
             togglePrimaryLanguage,
 
-            activeConfigTab,
-            setActiveConfigTab,
+
 
             activeFontStyleId,
             setActiveFontStyleId,
@@ -3396,6 +3410,7 @@ export const TypoProvider = ({ children }) => {
             assignFontToMultipleLanguages,
 
             // NEW: Multi-font system
+            fontStyles,
             fonts,
             setFonts,
             updateFontColor,
@@ -3412,13 +3427,13 @@ export const TypoProvider = ({ children }) => {
             resetFallbackFontOverrides,
             toggleFallbackLineHeightAuto,
             getEffectiveFontSettings,
-            fonts: activeStyle.fonts || [],
+
             updateFontWeight,
             addLanguageSpecificFont,
             addStrictlyMappedFonts,
             addLanguageSpecificPrimaryFont,
             addLanguageSpecificPrimaryFontFromId,
-            assignFontToMultipleLanguages,
+
             mapLanguageToFont, // NEW
             unmapLanguage,     // NEW
             linkFontToLanguage,
@@ -3454,8 +3469,7 @@ export const TypoProvider = ({ children }) => {
             fallbackFont,
             setFallbackFont,
             toggleFontVisibility,
-            colors,
-            setColors,
+
             fontSizes, // Derived
             baseFontSize,
             setBaseFontSize,
@@ -3488,15 +3502,7 @@ export const TypoProvider = ({ children }) => {
             clearFallbackFontOverride,
             resetAllFallbackFontOverrides,
             getFallbackFontForLanguage,
-            gridColumns,
-            setGridColumns,
-            textCase,
-            setTextCase,
-            viewMode,
-            setViewMode,
-            fallbackOptions,
-            showFallbackColors,
-            setShowFallbackColors,
+
             isFallbackLinked,
             setIsFallbackLinked,
             headerStyles,
@@ -3519,12 +3525,7 @@ export const TypoProvider = ({ children }) => {
             textOverrides,
             setTextOverride,
             resetTextOverride,
-            showAlignmentGuides,
-            setShowAlignmentGuides,
-            toggleAlignmentGuides: () => setShowAlignmentGuides(v => !v),
-            showBrowserGuides,
-            setShowBrowserGuides,
-            toggleBrowserGuides: () => setShowBrowserGuides(v => !v),
+
             // New "Supported" vs "Mapped" distinction
             supportedLanguages: languages,
             supportedLanguageIds: languages.map(l => l.id), // ALL AVAILABLE
@@ -3552,8 +3553,13 @@ export const TypoProvider = ({ children }) => {
             isAppResetting,
             isSessionLoading,
             normalizeFontName, // Export for consistent UI checks
-            showFallbackOrder,
-            setShowFallbackOrder,
+
+            // UI Guides
+            showAlignmentGuides,
+            toggleAlignmentGuides: () => setShowAlignmentGuides(prev => !prev),
+            showBrowserGuides,
+            toggleBrowserGuides: () => setShowBrowserGuides(prev => !prev),
+
         }}>
             {children}
         </TypoContext.Provider>

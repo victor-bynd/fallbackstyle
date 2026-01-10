@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTypo } from './context/useTypo';
+import { useUI } from './context/UIContext';
 import LandingPage from './components/LandingPage';
 import SideBar from './components/SideBar';
 import LanguageCard from './components/LanguageCard';
@@ -51,8 +52,6 @@ const MainContent = ({
     fontObject,
     fontStyles,
     headerStyles,
-    gridColumns,
-    setGridColumns,
     primaryFontOverrides,
     fallbackFontOverrides,
     addConfiguredLanguage,
@@ -64,26 +63,31 @@ const MainContent = ({
     configuredLanguages,
     primaryLanguages, // New
 
-    // Restore missing variables
-    showFallbackColors,
-    setShowFallbackColors,
-    showAlignmentGuides,
-    toggleAlignmentGuides,
-    showBrowserGuides,
-    toggleBrowserGuides,
-    showFallbackOrder,
-    setShowFallbackOrder,
 
-    setActiveConfigTab,
-    activeConfigTab,
     resetApp,
     isSessionLoading,
     fonts // Added for filtering
   } = useTypo();
 
+  const {
+    showFallbackColors,
+    setShowFallbackColors,
+    showAlignmentGuides,
+    setShowAlignmentGuides,
+    showBrowserGuides,
+    setShowBrowserGuides,
+    showFallbackOrder,
+    setShowFallbackOrder,
+    activeConfigTab,
+    setActiveConfigTab,
+    gridColumns,
+    setGridColumns,
+    // viewMode, setViewMode, textCase, setTextCase // Not used directly in App? viewMode is in ConfigService serialization if needed
+  } = useUI();
+
   // const [fontFilter, setFontFilter] = useState([]); // Lifted to App
 
-  const visibleLanguagesList = (() => {
+  const visibleLanguagesList = useMemo(() => {
     // 1. Base List: strict Configured Order
     const baseList = configuredLanguages
       .map(id => supportedLanguages.find(l => l.id === id))
@@ -137,7 +141,6 @@ const MainContent = ({
       } else if (selectedGroup !== 'ALL') {
         visible = visible.filter(lang => {
           const group = getLanguageGroup(lang);
-          const isGroupExpanded = expandedGroups[group] ?? true;
           // Check collapse state for specific group selection if not 'ALL'/'MAPPED'/'UNMAPPED' (implied by falling through here)
           // Actually, earlier logic says:
           // if selectedGroup is specific group, we return group === selectedGroup.
@@ -219,7 +222,7 @@ const MainContent = ({
     }
 
     return visible;
-  })();
+  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides]);
 
   const visibleCount = visibleLanguagesList.length;
   const totalCount = supportedLanguages.length;
@@ -544,7 +547,7 @@ const MainContent = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     /* UI: TYPE GRID */
-                    onClick={() => toggleAlignmentGuides()}
+                    onClick={() => setShowAlignmentGuides(p => !p)}
                     className={`
                   px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showAlignmentGuides
@@ -558,7 +561,7 @@ const MainContent = ({
 
                   <button
                     /* UI: LINEBOX VIEW */
-                    onClick={() => toggleBrowserGuides()}
+                    onClick={() => setShowBrowserGuides(p => !p)}
                     className={`
                   px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showBrowserGuides
@@ -749,8 +752,8 @@ const MainContent = ({
                           </div>
                           <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 grid grid-cols-1 gap-1">
                             {[
-                              { label: 'Type Grid', active: showAlignmentGuides, toggle: toggleAlignmentGuides },
-                              { label: 'Linebox View', active: showBrowserGuides, toggle: toggleBrowserGuides },
+                              { label: 'Type Grid', active: showAlignmentGuides, toggle: () => setShowAlignmentGuides(p => !p) },
+                              { label: 'Linebox View', active: showBrowserGuides, toggle: () => setShowBrowserGuides(p => !p) },
                               { label: 'Color Guide', active: showFallbackColors, toggle: () => setShowFallbackColors(!showFallbackColors) },
                               { label: 'Fallback Order', active: showFallbackOrder, toggle: () => setShowFallbackOrder(!showFallbackOrder) }
                             ].map((guide) => (
@@ -818,6 +821,7 @@ const MainContent = ({
                       isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
                       isMenuOpen={activeMenuId === lang.id}
                       onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
+                      setHighlitLanguageId={setHighlitLanguageId}
                     />
                   </motion.div>
                 ))}
@@ -898,7 +902,9 @@ function App() {
   const [fontFilter, setFontFilter] = useState([]); // Lifted State (Multi-select)
   // Force HMR Update
 
-  const { resetApp, isAppResetting } = useTypo();
+  const { resetApp, isAppResetting, fontObject, configuredLanguages, fontStyles } = useTypo();
+
+  const isLandingPage = !fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name;
 
   // Live Preview Mode
 
@@ -915,8 +921,8 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="flex min-h-screen w-full">
-        {/* LEFT SIDEBAR: Show only when NOT in header mode */}
-        {sidebarMode !== 'headers' && (
+        {/* LEFT SIDEBAR: Show only when NOT in header mode and NOT on landing page */}
+        {sidebarMode !== 'headers' && !isLandingPage && (
           <SideBar
             sidebarMode={sidebarMode}
             setSidebarMode={setSidebarMode}
@@ -960,8 +966,8 @@ function App() {
         // showResetConfirm and setShowResetConfirm are no longer needed here as App handles the modal
         />
 
-        {/* RIGHT SIDEBAR: Show only when IN header mode */}
-        {sidebarMode === 'headers' && (
+        {/* RIGHT SIDEBAR: Show only when IN header mode and NOT on landing page */}
+        {sidebarMode === 'headers' && !isLandingPage && (
           <SideBar
             sidebarMode={sidebarMode}
             setSidebarMode={setSidebarMode} // Pass same props

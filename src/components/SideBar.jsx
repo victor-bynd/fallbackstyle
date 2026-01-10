@@ -7,7 +7,8 @@ import SidebarFonts from './SidebarFonts';
 const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, onAddLanguage, highlitLanguageId, setHighlitLanguageId, onManageLanguages, searchQuery, setSearchQuery, fontFilter, ...props }) => {
     const { fontObject } = useTypo();
 
-    if (!fontObject) return null;
+    // Constraint removed: Sidebar should be visible if App decides to render it (e.g. ghost font state)
+    // if (!fontObject) return null;
 
     return (
         <div className={`

@@ -7,6 +7,7 @@ export const useFontStack = () => {
         getFontsForStyle,
         getFallbackFontOverrideForStyle,
         getEffectiveFontSettingsForStyle,
+        normalizeFontName
     } = useTypo();
 
     const buildFallbackFontStackForStyle = useCallback((styleId, languageId) => {
@@ -42,7 +43,6 @@ export const useFontStack = () => {
             if (typeof val === 'string') excludedFontIds.add(val);
         });
 
-        const { normalizeFontName } = useTypo();
         const primaryFont = fonts.find(f => f.type === 'primary');
         const pNameNormalized = normalizeFontName(primaryFont?.fileName || primaryFont?.name);
 
@@ -155,7 +155,7 @@ export const useFontStack = () => {
         }
 
         return fontStack;
-    }, [fontStyles, getFontsForStyle, getFallbackFontOverrideForStyle, getEffectiveFontSettingsForStyle]);
+    }, [fontStyles, getFontsForStyle, getFallbackFontOverrideForStyle, getEffectiveFontSettingsForStyle, normalizeFontName]);
 
     return { buildFallbackFontStackForStyle };
 };

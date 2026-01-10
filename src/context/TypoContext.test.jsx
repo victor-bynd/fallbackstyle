@@ -2,12 +2,22 @@ import { render, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import React, { useContext, useEffect } from 'react';
 import { TypoProvider } from './TypoContext';
+import { UIProvider } from './UIContext';
 import { TypoContext } from './TypoContextDefinition';
 
 // Mock FontLoader services
 vi.mock('../services/FontLoader', () => ({
     parseFontFile: vi.fn(),
     createFontUrl: vi.fn(),
+}));
+
+vi.mock('../services/PersistenceService', () => ({
+    PersistenceService: {
+        saveConfig: vi.fn(),
+        loadConfig: vi.fn().mockResolvedValue({}),
+        clearConfig: vi.fn(),
+        initDB: vi.fn().mockResolvedValue(),
+    }
 }));
 
 // Helper component to expose Context values to tests
@@ -23,23 +33,27 @@ describe('TypoContext', () => {
     it('provides default values', () => {
         let contextValues;
         render(
-            <TypoProvider>
-                <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         expect(contextValues).toBeDefined();
         expect(contextValues.activeFontStyleId).toBe('primary');
-        expect(contextValues.baseFontSize).toBe(60);
+        expect(contextValues.baseFontSize).toBe(16);
         expect(contextValues.fontStyles.primary).toBeDefined();
     });
 
     it('can set base font size', () => {
         let contextValues;
         render(
-            <TypoProvider>
-                <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         act(() => {
@@ -52,9 +66,11 @@ describe('TypoContext', () => {
     it('can add a fallback font', () => {
         let contextValues;
         render(
-            <TypoProvider>
-                <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const newFont = {
@@ -75,9 +91,11 @@ describe('TypoContext', () => {
     it('can remove a fallback font', () => {
         let contextValues;
         render(
-            <TypoProvider>
-                <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const newFont = {
@@ -103,9 +121,11 @@ describe('TypoContext', () => {
     it('preserves font colors when reordering fallback fonts', () => {
         let contextValues;
         render(
-            <TypoProvider>
-                <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         // 1. Initial State: Primary Font + 2 Fallbacks
@@ -150,9 +170,11 @@ describe('TypoContext', () => {
     it('swaps colors when a fallback font replaces the primary font', () => {
         let contextValues;
         render(
-            <TypoProvider>
-                <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         // 1. Initial State

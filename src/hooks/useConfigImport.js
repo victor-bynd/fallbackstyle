@@ -127,7 +127,7 @@ export const useConfigImport = () => {
             // Helper to search for a font by filename in existing styles
             const findFontByFilename = (filename) => {
                 const allFonts = [
-                    ...(fontStyles.primary?.fonts || [])
+                    ...(fontStyles?.primary?.fonts || [])
                 ];
                 return allFonts.find(f => f.fileName === filename && f.fontUrl);
             };

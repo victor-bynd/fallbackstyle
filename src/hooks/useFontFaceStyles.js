@@ -28,11 +28,21 @@ export const useFontFaceStyles = () => {
                     ? `descent-override: ${primarySettings.descentOverride * 100}%;`
                     : '';
 
+                const primaryVariationSettings = (primary && (primary.isVariable || primary.axes?.weight))
+                    ? `font-variation-settings: 'wght' ${primarySettings?.weight ?? 400};`
+                    : '';
+
+                const primarySizeAdjust = (primarySettings?.scale && primarySettings.scale !== 100)
+                    ? `size-adjust: ${primarySettings.scale}%;`
+                    : '';
+
                 const primaryRule = (primary?.fontUrl)
                     ? `
           @font-face {
             font-family: 'UploadedFont-${styleId}';
             src: url('${primary.fontUrl}');
+            ${primarySizeAdjust}
+            ${primaryVariationSettings}
             ${primaryLineGapOverride}
             ${primaryAscentOverride}
             ${primaryDescentOverride}

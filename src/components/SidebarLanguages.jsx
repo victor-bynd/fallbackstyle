@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTypo } from '../context/useTypo';
+import { useUI } from '../context/UIContext';
 import languagesData from '../data/languages.json';
 import { getLanguageGroup } from '../utils/languageUtils';
 import LanguageGroupFilter from './LanguageGroupFilter';
@@ -21,8 +22,6 @@ const SidebarLanguages = ({
     fontFilter // New prop
 }) => {
     const {
-        activeConfigTab,
-        setActiveConfigTab,
         configuredLanguages,
         primaryFontOverrides,
         fallbackFontOverrides,
@@ -34,6 +33,8 @@ const SidebarLanguages = ({
         primaryLanguages, // New
         fonts // Needed for font filter check
     } = useTypo();
+
+    const { activeConfigTab, setActiveConfigTab } = useUI();
 
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
     const [showSettings, setShowSettings] = React.useState(false);

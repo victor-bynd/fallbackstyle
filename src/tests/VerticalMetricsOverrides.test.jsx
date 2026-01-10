@@ -2,8 +2,19 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { TypoProvider } from '../context/TypoContext';
+import { UIProvider } from '../context/UIContext';
 import { TypoContext } from '../context/TypoContextDefinition';
 import { useContext } from 'react';
+import { vi } from 'vitest';
+
+vi.mock('../services/PersistenceService', () => ({
+    PersistenceService: {
+        saveConfig: vi.fn(),
+        loadConfig: vi.fn().mockResolvedValue({}),
+        clearConfig: vi.fn(),
+        initDB: vi.fn().mockResolvedValue(),
+    }
+}));
 
 // Simple component to extract context for testing
 const TestComponent = ({ onContext }) => {
@@ -16,9 +27,11 @@ describe('Vertical Metrics Overrides', () => {
     it('initializes with undefined overrides', () => {
         let capturedContext;
         render(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const fonts = capturedContext.fonts;
@@ -29,9 +42,11 @@ describe('Vertical Metrics Overrides', () => {
     it('updates ascentOverride via updateFallbackFontOverride', () => {
         let capturedContext;
         const { rerender } = render(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const sampleFont = {
@@ -42,9 +57,11 @@ describe('Vertical Metrics Overrides', () => {
         capturedContext.addFallbackFont(sampleFont);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const fontId = 'test-font-ascent';
@@ -52,9 +69,11 @@ describe('Vertical Metrics Overrides', () => {
         capturedContext.updateFallbackFontOverride(fontId, 'ascentOverride', newVal);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const updatedFont = capturedContext.fonts.find(f => f.id === fontId);
@@ -67,9 +86,11 @@ describe('Vertical Metrics Overrides', () => {
     it('updates descentOverride via updateFallbackFontOverride', () => {
         let capturedContext;
         const { rerender } = render(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const sampleFont = {
@@ -80,9 +101,11 @@ describe('Vertical Metrics Overrides', () => {
         capturedContext.addFallbackFont(sampleFont);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const fontId = 'test-font-descent';
@@ -90,9 +113,11 @@ describe('Vertical Metrics Overrides', () => {
         capturedContext.updateFallbackFontOverride(fontId, 'descentOverride', newVal);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const updatedFont = capturedContext.fonts.find(f => f.id === fontId);
@@ -105,9 +130,11 @@ describe('Vertical Metrics Overrides', () => {
     it('clears overrides when resetting fallback font', () => {
         let capturedContext;
         const { rerender } = render(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const sampleFont = {
@@ -118,9 +145,11 @@ describe('Vertical Metrics Overrides', () => {
         capturedContext.addFallbackFont(sampleFont);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const fontId = 'test-font-reset';
@@ -128,21 +157,80 @@ describe('Vertical Metrics Overrides', () => {
         capturedContext.updateFallbackFontOverride(fontId, 'descentOverride', 0.5);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         capturedContext.resetFallbackFontOverrides(fontId);
 
         rerender(
-            <TypoProvider>
-                <TestComponent onContext={ctx => capturedContext = ctx} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         const updatedFont = capturedContext.fonts.find(f => f.id === fontId);
         expect(updatedFont.ascentOverride).toBeUndefined();
         expect(updatedFont.descentOverride).toBeUndefined();
     });
+    it('clears override when updating with undefined', () => {
+        let capturedContext;
+        const { rerender } = render(
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
+        );
+
+        const sampleFont = {
+            id: 'test-font-undefined',
+            type: 'fallback',
+            name: 'Test Font Undefined'
+        };
+        capturedContext.addFallbackFont(sampleFont);
+
+        rerender(
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
+        );
+
+        const fontId = 'test-font-undefined';
+        capturedContext.updateFallbackFontOverride(fontId, 'ascentOverride', 1.5);
+
+        rerender(
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
+        );
+
+        // Verify it was set
+        let updatedFont = capturedContext.fonts.find(f => f.id === fontId);
+        expect(updatedFont.ascentOverride).toBe(1.5);
+
+        // Update with undefined to clear
+        capturedContext.updateFallbackFontOverride(fontId, 'ascentOverride', undefined);
+
+        rerender(
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onContext={ctx => capturedContext = ctx} />
+                </TypoProvider>
+            </UIProvider>
+        );
+
+        updatedFont = capturedContext.fonts.find(f => f.id === fontId);
+        expect(updatedFont.ascentOverride).toBeUndefined();
+    });
 });
+
