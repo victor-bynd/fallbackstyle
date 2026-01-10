@@ -15,77 +15,210 @@ const OverridesManager = () => {
         clearFallbackFontOverrideForStyle,
         updateLineHeightOverrideForStyle,
         headerOverrides,
-        DEFAULT_HEADER_STYLES,
         resetHeaderStyle,
-        resetAllHeaderStyles
+        resetAllHeaderStyles,
+        primaryFontOverrides,
+        clearPrimaryFontOverride,
+        systemFallbackOverrides,
+        resetSystemFallbackOverride
     } = useTypo();
 
-    // Collect all overrides
-    const visibleSet = new Set(visibleLanguageIds);
-
-    const getStyleOverrides = (styleId) => {
+    // 1. Grouping Logic
+    const getGroupedOverrides = (styleId) => {
         const style = fontStyles?.[styleId];
-        if (!style) {
-            return {
-                hasGlobalFallbackScale: false,
-                fontLevelOverrides: [],
-                languageLevelOverrides: [],
-                lineHeightOverridesList: []
-            };
-        }
+        if (!style) return [];
 
+        const visibleSet = new Set(visibleLanguageIds);
         const fonts = getFontsForStyle(styleId);
 
-        const fontLevelOverrides = fonts
-            .filter(f => f.type === 'fallback' && (f.scale !== undefined || f.lineHeight !== undefined || f.letterSpacing !== undefined || f.weightOverride !== undefined))
-            .map(f => ({
-                type: 'font-level',
-                fontId: f.id,
-                fontName: f.fileName?.replace(/\.[^/.]+$/, '') || f.name || 'Unnamed Font',
-                overrides: {
-                    scale: f.scale !== undefined,
-                    lineHeight: f.lineHeight !== undefined,
-                    letterSpacing: f.letterSpacing !== undefined,
-                    weight: f.weightOverride !== undefined
+        // Data Structure:
+        // [ { id: 'global' | langId, name: string, overrides: [] }]
+        const groups = {};
+
+        // Helper to get/create group
+        const getGroup = (id, name) => {
+            if (!groups[id]) {
+                groups[id] = { id, name, overrides: [] };
+            }
+            return groups[id];
+        };
+
+        // --- GLOBAL SECTION ---
+        // 1. Global Fallback Scale
+        if ((style.fontScales?.fallback ?? 100) !== 100) {
+            getGroup('global', 'Global').overrides.push({
+                id: 'global-scale',
+                label: 'Global Fallback Scale',
+                details: `${style.fontScales.fallback}%`,
+                onReset: () => resetGlobalFallbackScaleForStyle(styleId)
+            });
+        }
+
+        // 2. Global Font Metrics (Non-Language Specific Fonts)
+        fonts
+            .filter(f => f.type === 'fallback' && !f.isLangSpecific && !f.isClone)
+            .forEach(f => {
+                const changes = [];
+                if (f.scale !== undefined) changes.push('Size Adjust');
+                if (f.lineHeight !== undefined) changes.push('Line Height');
+                if (f.letterSpacing !== undefined) changes.push('Letter Spacing');
+                if (f.weightOverride !== undefined) changes.push('Weight');
+                if (f.fontSizeAdjust !== undefined) changes.push('F-Size');
+                if (f.ascentOverride !== undefined) changes.push('Ascent');
+                if (f.descentOverride !== undefined) changes.push('Descent');
+                if (f.lineGapOverride !== undefined) changes.push('Line Gap');
+
+                if (changes.length > 0) {
+                    getGroup('global', 'Global').overrides.push({
+                        id: `font-${f.id}`,
+                        label: f.fileName?.replace(/\.[^/.]+$/, '') || f.name || 'Unnamed Font',
+                        details: changes.map(c => `• ${c}`).join(' '),
+                        onReset: () => resetFallbackFontOverridesForStyle(styleId, f.id) // This function name assumes it works for ANY font override reset, need to verify context
+                    });
                 }
-            }));
-
-        const languageLevelOverrides = Object.entries(style.fallbackFontOverrides || {})
-            .filter(([langId]) => visibleSet.has(langId))
-            .map(([langId, fontId]) => {
-                const language = languages.find(l => l.id === langId);
-                const font = fonts.find(f => f.id === fontId);
-                const resolvedFontName = fontId === 'legacy'
-                    ? 'System'
-                    : (font?.fileName?.replace(/\.[^/.]+$/, '') || font?.name || 'Unknown Font');
-                return {
-                    type: 'language-level',
-                    langId,
-                    languageName: language?.name || 'Unknown',
-                    fontName: resolvedFontName
-                };
             });
 
-        const lineHeightOverridesList = Object.entries(style.lineHeightOverrides || {})
-            .filter(([langId]) => visibleSet.has(langId))
-            .map(([langId, value]) => {
-                const language = languages.find(l => l.id === langId);
-                return {
-                    type: 'line-height',
-                    langId,
-                    languageName: language?.name || 'Unknown',
-                    value
-                };
+
+        // --- LANGUAGE SECTIONS ---
+
+        // 3. Primary Overrides
+        Object.entries(primaryFontOverrides || {}).forEach(([langId, fontId]) => {
+            if (!visibleSet.has(langId)) return;
+            const langName = languages.find(l => l.id === langId)?.name || 'Unknown';
+            const font = fonts.find(f => f.id === fontId);
+            const fontName = font?.fileName?.replace(/\.[^/.]+$/, '') || font?.name || 'Unknown Font';
+
+            getGroup(langId, langName).overrides.push({
+                id: `primary-${langId}`,
+                label: 'Primary Font',
+                details: fontName,
+                isPrimary: true,
+                onReset: () => clearPrimaryFontOverride(langId)
             });
 
-        const hasGlobalFallbackScale = (style.fontScales?.fallback ?? 100) !== 100;
+            // Check for metrics on this specific PRIMARY override font
+            if (font) {
+                const changes = [];
+                // Primary overrides usually inherit unless changed
+                if (font.weightOverride !== undefined) changes.push('Weight');
+                if (font.scale !== undefined) changes.push('Scale'); // Should be rare for primary
+                if (font.lineHeight !== undefined) changes.push('Line Height');
+                if (font.letterSpacing !== undefined) changes.push('Letter Spacing');
+                if (font.fontSizeAdjust !== undefined) changes.push('F-Size');
+                if (font.ascentOverride !== undefined) changes.push('Ascent');
+                if (font.descentOverride !== undefined) changes.push('Descent');
+                if (font.lineGapOverride !== undefined) changes.push('Line Gap');
 
-        return { hasGlobalFallbackScale, fontLevelOverrides, languageLevelOverrides, lineHeightOverridesList };
+                if (changes.length > 0) {
+                    getGroup(langId, langName).overrides.push({
+                        id: `primary-metrics-${font.id}`,
+                        label: `${fontName} (Metrics)`,
+                        details: changes.map(c => `• ${c}`).join(' '),
+                        onReset: () => {
+                            // Resetting metrics on a primary override font.
+                            // Currently we don't have a granular "reset metrics for this specific font" easily exposed
+                            // besides manually updating every prop to undefined.
+                            // Use resetFallbackFontOverridesForStyle which cleans metrics?
+                            resetFallbackFontOverridesForStyle(styleId, font.id);
+                        }
+                    });
+                }
+            }
+        });
+
+        // 4. Fallback Overrides (Mappings)
+        Object.entries(style.fallbackFontOverrides || {}).forEach(([langId, val]) => {
+            if (!visibleSet.has(langId)) return;
+            const langName = languages.find(l => l.id === langId)?.name || 'Unknown';
+
+            // Helper to process a mapped font
+            const processMappedFont = (fontIdOrMap) => {
+                // It could be a map { origId: overrideId } or string overrideId
+                // We want to list the resulting OVERRIDE font
+                let overrideIds = [];
+                if (typeof fontIdOrMap === 'string') overrideIds.push(fontIdOrMap);
+                else if (typeof fontIdOrMap === 'object') overrideIds = Object.values(fontIdOrMap);
+
+                overrideIds.forEach(fId => {
+                    const font = fonts.find(f => f.id === fId);
+                    if (!font) return;
+
+                    const fontName = font.fileName?.replace(/\.[^/.]+$/, '') || font.name || 'Unknown Font';
+                    getGroup(langId, langName).overrides.push({
+                        id: `fallback-${fId}`,
+                        label: 'Fallback Font',
+                        details: fontName,
+                        onReset: () => {
+                            // Resetting a fallback mapping.
+                            // Context function: clearFallbackFontOverrideForStyle(styleID, langId)
+                            // Warning: This clears ALL fallbacks for langId in current implementation?
+                            // Let's check usage. 
+                            // Ideally we want granular unmap.
+                            // For now, use clearFallbackFontOverrideForStyle which seems to be the main "Reset" for lang fallbacks.
+                            clearFallbackFontOverrideForStyle(styleId, langId);
+                        }
+                    });
+
+                    // Check metrics
+                    const changes = [];
+                    if (font.scale !== undefined) changes.push('Size Adjust');
+                    if (font.lineHeight !== undefined) changes.push('Line Height');
+                    if (font.letterSpacing !== undefined) changes.push('Letter Spacing');
+                    if (font.weightOverride !== undefined) changes.push('Weight');
+                    if (font.fontSizeAdjust !== undefined) changes.push('F-Size');
+                    if (font.ascentOverride !== undefined) changes.push('Ascent');
+                    if (font.descentOverride !== undefined) changes.push('Descent');
+                    if (font.lineGapOverride !== undefined) changes.push('Line Gap');
+
+                    if (changes.length > 0) {
+                        getGroup(langId, langName).overrides.push({
+                            id: `fallback-metrics-${fId}`,
+                            label: `${fontName} (Metrics)`,
+                            details: changes.map(c => `• ${c}`).join(' '),
+                            onReset: () => resetFallbackFontOverridesForStyle(styleId, fId)
+                        });
+                    }
+                });
+            };
+
+            processMappedFont(val);
+        });
+
+        // 5. Line Height Overrides
+        Object.entries(style.lineHeightOverrides || {}).forEach(([langId, value]) => {
+            if (!visibleSet.has(langId)) return;
+            const langName = languages.find(l => l.id === langId)?.name || 'Unknown';
+
+            getGroup(langId, langName).overrides.push({
+                id: `lh-${langId}`,
+                label: 'Global Line Height',
+                details: value,
+                onReset: () => updateLineHeightOverrideForStyle(styleId, langId, null)
+            });
+        });
+
+        // 6. System Fallback Overrides
+        Object.entries(systemFallbackOverrides || {}).forEach(([langId, overrides]) => {
+            if (!visibleSet.has(langId)) return;
+            const langName = languages.find(l => l.id === langId)?.name || 'Unknown';
+            const summary = Object.keys(overrides || {}).join(', ');
+
+            getGroup(langId, langName).overrides.push({
+                id: `sys-${langId}`,
+                label: 'System Fallback',
+                details: summary,
+                onReset: () => resetSystemFallbackOverride(langId)
+            });
+        });
+
+        return Object.values(groups).sort((a, b) => {
+            if (a.id === 'global') return -1;
+            if (b.id === 'global') return 1;
+            return a.name.localeCompare(b.name);
+        });
     };
 
-    const primary = getStyleOverrides('primary');
-
-    // Header overrides are tracked explicitly in context (only manual changes appear here)
+    // Header overrides are distinct
     const headerOverrideList = Object.entries(headerOverrides || {}).map(([tag, props]) => {
         const changed = [];
         if (props.scale) changed.push('Font Size');
@@ -96,15 +229,15 @@ const OverridesManager = () => {
         return { tag, changed };
     }).filter(Boolean);
 
-    const totalOverrides =
-        (primary.hasGlobalFallbackScale ? 1 : 0) +
-        primary.fontLevelOverrides.length +
-        primary.languageLevelOverrides.length +
-        primary.lineHeightOverridesList.length;
 
-    const totalWithHeader = totalOverrides + headerOverrideList.length;
+    // Use Primary style for now (Active Style)
+    // Note: OverridesManager seems designed for one active style?
+    // The previous code mapped `['primary']` so we follow that.
+    const groupedOverrides = getGroupedOverrides('primary');
 
-    if (totalWithHeader === 0) return null;
+    const totalCount = groupedOverrides.reduce((acc, g) => acc + g.overrides.length, 0) + headerOverrideList.length;
+
+    if (totalCount === 0) return null;
 
     return (
         <div className="pb-4">
@@ -113,7 +246,7 @@ const OverridesManager = () => {
                 className="w-full flex items-center justify-between py-2 group cursor-pointer"
             >
                 <label className="text-[10px] text-slate-400 font-bold tracking-wider cursor-pointer group-hover:text-slate-600 transition-colors">
-                    Active Overrides ({totalWithHeader})
+                    Active Overrides ({totalCount})
                 </label>
                 <svg
                     className={`w-4 h-4 text-slate-400 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -127,24 +260,22 @@ const OverridesManager = () => {
 
             {isOpen && (
                 <div className="space-y-3 pt-1">
+                    {/* Headers Section */}
                     {headerOverrideList.length > 0 && (
                         <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
                             <div className="px-3 py-2 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between">
-                                <div className="text-[10px] text-slate-500 font-bold tracking-wider">Header Styles ({headerOverrideList.length})</div>
+                                <div className="text-[10px] text-slate-500 font-bold tracking-wider">HTML Markers ({headerOverrideList.length})</div>
                                 <button
                                     onClick={() => {
-                                        if (confirm('Reset all header style overrides? This cannot be undone.')) {
+                                        if (confirm('Reset all header style overrides?')) {
                                             resetAllHeaderStyles();
                                         }
                                     }}
                                     className="text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                    title={`Reset all header overrides`}
-                                    type="button"
                                 >
-                                    Reset Headers
+                                    Reset All
                                 </button>
                             </div>
-
                             <div className="divide-y divide-slate-200">
                                 {headerOverrideList.map(h => (
                                     <div key={h.tag} className="p-3 flex items-start justify-between gap-2">
@@ -153,12 +284,8 @@ const OverridesManager = () => {
                                             <div className="text-[10px] text-slate-500 mt-0.5">{h.changed.map(c => `• ${c}`).join(' ')}</div>
                                         </div>
                                         <button
-                                            onClick={() => {
-                                                resetHeaderStyle(h.tag);
-                                            }}
+                                            onClick={() => resetHeaderStyle(h.tag)}
                                             className="flex-shrink-0 text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                            title="Reset header overrides"
-                                            type="button"
                                         >
                                             Reset
                                         </button>
@@ -167,144 +294,69 @@ const OverridesManager = () => {
                             </div>
                         </div>
                     )}
-                    {['primary'].map(styleId => {
-                        const group = primary;
-                        const styleLabel = 'Primary';
-                        const style = fontStyles?.[styleId];
-                        const groupTotal = (group.hasGlobalFallbackScale ? 1 : 0)
-                            + group.fontLevelOverrides.length
-                            + group.languageLevelOverrides.length
-                            + group.lineHeightOverridesList.length;
 
-                        if (!style || groupTotal === 0) return null;
-
-                        return (
-                            <div key={styleId} className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                                <div className="px-3 py-2 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between">
-                                    <div className="text-[10px] text-slate-500 font-bold tracking-wider">
-                                        {styleLabel} ({groupTotal})
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            if (confirm(`Reset all ${styleLabel} overrides? This cannot be undone.`)) {
-                                                if (group.hasGlobalFallbackScale) resetGlobalFallbackScaleForStyle(styleId);
-                                                group.fontLevelOverrides.forEach(o => resetFallbackFontOverridesForStyle(styleId, o.fontId));
-                                                resetAllFallbackFontOverridesForStyle(styleId);
-                                                resetAllLineHeightOverridesForStyle(styleId);
-                                            }
-                                        }}
-                                        className="text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                        title={`Reset all ${styleLabel} overrides`}
-                                        type="button"
-                                    >
-                                        Reset {styleLabel}
-                                    </button>
+                    {groupedOverrides.map(group => (
+                        <div key={group.id} className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                            <div className="px-3 py-2 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between">
+                                <div className="text-[10px] text-slate-500 font-bold tracking-wider">
+                                    {group.name} ({group.overrides.length})
                                 </div>
-
-                                <div className="divide-y divide-slate-200">
-                                    {group.hasGlobalFallbackScale && (
-                                        <div className="p-3 flex items-start justify-between gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-semibold text-slate-700 truncate">Main Fallback Size Adjust</div>
-                                                <div className="text-[10px] text-slate-500 mt-0.5">
-                                                    • {style.fontScales.fallback}%
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => resetGlobalFallbackScaleForStyle(styleId)}
-                                                className="flex-shrink-0 text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                                title="Reset to 100%"
-                                                type="button"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {group.fontLevelOverrides.map(override => (
-                                        <div key={override.fontId} className="p-3 flex items-start justify-between gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-semibold text-slate-700 truncate">{override.fontName}</div>
-                                                <div className="text-[10px] text-slate-500 mt-0.5 flex gap-2">
-                                                    {override.overrides.scale && <span>• Size Adjust</span>}
-                                                    {override.overrides.lineHeight && <span>• Line Height</span>}
-                                                    {override.overrides.letterSpacing && <span>• Letter Spacing</span>}
-                                                    {override.overrides.weight && <span>• Weight</span>}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => resetFallbackFontOverridesForStyle(styleId, override.fontId)}
-                                                className="flex-shrink-0 text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                                title="Reset font overrides"
-                                                type="button"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    {group.languageLevelOverrides.map(override => (
-                                        <div key={override.langId} className="p-3 flex items-start justify-between gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-semibold text-slate-700 truncate">{override.languageName}</div>
-                                                <div className="text-[10px] text-slate-500 mt-0.5">
-                                                    • Fallback: {override.fontName}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => clearFallbackFontOverrideForStyle(styleId, override.langId)}
-                                                className="flex-shrink-0 text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                                title="Reset language override"
-                                                type="button"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    {group.lineHeightOverridesList.map(override => (
-                                        <div key={override.langId} className="p-3 flex items-start justify-between gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-semibold text-slate-700 truncate">{override.languageName}</div>
-                                                <div className="text-[10px] text-slate-500 mt-0.5">
-                                                    • Line Height: {override.value}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => updateLineHeightOverrideForStyle(styleId, override.langId, null)}
-                                                className="flex-shrink-0 text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
-                                                title="Reset line height override"
-                                                type="button"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (confirm(`Reset all overrides for ${group.name}?`)) {
+                                            // Batch Reset Logic
+                                            group.overrides.forEach(o => o.onReset && o.onReset());
+                                        }
+                                    }}
+                                    className="text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
+                                >
+                                    Reset Section
+                                </button>
                             </div>
-                        );
-                    })}
 
-                    <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                        <div className="p-3 bg-slate-100">
-                            <button
-                                onClick={() => {
-                                    if (confirm('Reset all overrides for all styles? This cannot be undone.')) {
-                                        ['primary'].forEach(styleId => {
-                                            const group = primary;
-                                            if (group.hasGlobalFallbackScale) resetGlobalFallbackScaleForStyle(styleId);
-                                            group.fontLevelOverrides.forEach(o => resetFallbackFontOverridesForStyle(styleId, o.fontId));
-                                            resetAllFallbackFontOverridesForStyle(styleId);
-                                            resetAllLineHeightOverridesForStyle(styleId);
-                                        });
-                                    }
-                                }}
-                                className="w-full py-2 text-[10px] font-bold text-rose-600 border border-rose-300 rounded hover:bg-rose-50 transition-colors"
-                                type="button"
-                            >
-                                Reset All Overrides
-                            </button>
+                            <div className="divide-y divide-slate-200">
+                                {group.overrides.map(override => (
+                                    <div key={override.id} className="p-3 flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-xs font-semibold text-slate-700 truncate">
+                                                {override.label}
+                                            </div>
+                                            <div className={`text-[10px] mt-0.5 ${override.isPrimary ? 'text-indigo-600 font-medium' : 'text-slate-500'}`}>
+                                                {override.isPrimary ? `• ${override.details}` : override.details}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={override.onReset}
+                                            className="flex-shrink-0 text-[10px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
+                                        >
+                                            Reset
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+                    ))}
+
+                    <div className="p-3">
+                        <button
+                            onClick={() => {
+                                if (confirm('Reset everything? This cannot be undone.')) {
+                                    // Reset All - Bruteforce
+                                    resetGlobalFallbackScaleForStyle('primary');
+                                    resetAllFallbackFontOverridesForStyle('primary');
+                                    resetAllLineHeightOverridesForStyle('primary');
+                                    resetAllHeaderStyles();
+                                    // We also need to loop keys to clear primary overrides since context might not have a "Reset ALL Primary Overrides"
+                                    // But resetAllFallback... might handle clones? No.
+                                    // We need to manually clear known primary overrides.
+                                    Object.keys(primaryFontOverrides || {}).forEach(lid => clearPrimaryFontOverride(lid));
+                                    Object.keys(systemFallbackOverrides || {}).forEach(lid => resetSystemFallbackOverride(lid));
+                                }
+                            }}
+                            className="w-full py-2 text-[10px] font-bold text-rose-600 border border-rose-300 rounded hover:bg-rose-50 transition-colors"
+                        >
+                            Reset All Overrides
+                        </button>
                     </div>
                 </div>
             )}

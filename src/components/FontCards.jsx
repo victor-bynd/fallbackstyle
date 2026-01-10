@@ -10,6 +10,7 @@ import { createFontUrl, parseFontFile } from '../services/FontLoader';
 import InfoTooltip from './InfoTooltip';
 import { getLanguageGroup } from '../utils/languageUtils';
 import languagesData from '../data/languages.json';
+import BufferedInput from './BufferedInput';
 
 const FontCardContent = ({
     font,
@@ -557,20 +558,26 @@ const FontCardContent = ({
                                     <span>Size (Base REM)</span>
                                     <div className="flex gap-2">
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 value={baseRem}
-                                                onChange={(e) => setBaseRem?.(parseInt(e.target.value))}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    if (!isNaN(val)) setBaseRem?.(val);
+                                                }}
                                                 className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                             />
                                             <span className="text-[9px]">px</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 step="0.125"
                                                 value={baseRem / 16}
-                                                onChange={(e) => setBaseRem?.(Math.round(parseFloat(e.target.value) * 16))}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val)) setBaseRem?.(Math.round(val * 16));
+                                                }}
                                                 className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                             />
                                             <span className="text-[9px]">rem</span>
@@ -620,7 +627,7 @@ const FontCardContent = ({
                                             return null;
                                         })()}
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 step="1"
                                                 value={(() => {
@@ -631,14 +638,14 @@ const FontCardContent = ({
                                                 })()}
                                                 onChange={(e) => {
                                                     const px = parseFloat(e.target.value);
-                                                    handleScopedUpdate('lineHeight', px / baseRem);
+                                                    if (!isNaN(px)) handleScopedUpdate('lineHeight', px / baseRem);
                                                 }}
                                                 className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                             />
                                             <span className="text-[9px]">px</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 step="5"
                                                 value={(() => {
@@ -646,7 +653,10 @@ const FontCardContent = ({
                                                     const lh = settings.lineHeight;
                                                     return lh === 'normal' ? 120 : Math.round(lh * 100);
                                                 })()}
-                                                onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val)) handleScopedUpdate('lineHeight', val / 100);
+                                                }}
                                                 className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                             />
                                             <span className="text-[9px]">%</span>
@@ -677,7 +687,7 @@ const FontCardContent = ({
                                     <span>Letter Spacing</span>
                                     <div className="flex gap-2">
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 step="0.1"
                                                 value={(() => {
@@ -685,13 +695,16 @@ const FontCardContent = ({
                                                     const ls = settings.letterSpacing;
                                                     return Math.round((ls || 0) * baseRem * 10) / 10;
                                                 })()}
-                                                onChange={(e) => handleScopedUpdate('letterSpacing', parseFloat(e.target.value) / baseRem)}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val)) handleScopedUpdate('letterSpacing', val / baseRem);
+                                                }}
                                                 className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                             />
                                             <span className="text-[9px]">px</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 step="0.01"
                                                 value={(() => {
@@ -699,7 +712,10 @@ const FontCardContent = ({
                                                     const ls = settings.letterSpacing;
                                                     return ls || 0;
                                                 })()}
-                                                onChange={(e) => handleScopedUpdate('letterSpacing', parseFloat(e.target.value))}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val)) handleScopedUpdate('letterSpacing', val);
+                                                }}
                                                 className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                             />
                                             <span className="text-[9px]">em</span>
@@ -771,10 +787,13 @@ const FontCardContent = ({
                                             </button>
                                         )}
                                         <div className="flex items-center gap-1">
-                                            <input
+                                            <BufferedInput
                                                 type="number"
                                                 value={Math.round(scopeFontSettings?.scale || 100)}
-                                                onChange={(e) => handleScopedUpdate('scale', parseInt(e.target.value))}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    if (!isNaN(val)) handleScopedUpdate('scale', val);
+                                                }}
                                                 className="w-12 bg-transparent text-right outline-none text-slate-600 font-mono border-b border-slate-200 focus:border-indigo-500"
                                             />
                                             <span className="text-slate-600 font-mono text-[9px]">%</span>
@@ -882,7 +901,7 @@ const FontCardContent = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

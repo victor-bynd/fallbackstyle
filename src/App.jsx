@@ -13,7 +13,10 @@ import LanguageGroupFilter from './components/LanguageGroupFilter';
 import AddLanguageModal from './components/AddLanguageModal';
 import FontLanguageModal from './components/FontLanguageModal';
 import ConfigActionsModal from './components/ConfigActionsModal';
+import FontComparisonSelectorModal from './components/FontComparisonSelectorModal';
+import FontComparisonView from './components/FontComparisonView';
 import FontFilter from './components/FontFilter'; // New Import
+import ExportCSSModal from './components/ExportCSSModal';
 import { parseFontFile, createFontUrl } from './services/FontLoader';
 import { safeParseFontFile } from './services/SafeFontLoader';
 import { useConfigImport } from './hooks/useConfigImport';
@@ -228,6 +231,22 @@ const MainContent = ({
   const [pendingFonts, setPendingFonts] = useState([]);
   const [pendingFileMap, setPendingFileMap] = useState(null);
 
+  // Font Comparison State
+  const [showComparisonSelector, setShowComparisonSelector] = useState(false);
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [comparisonFontIds, setComparisonFontIds] = useState([]);
+
+  const handleStartComparison = (selectedIds) => {
+    setComparisonFontIds(selectedIds);
+    setIsComparisonMode(true);
+    setShowComparisonSelector(false);
+  };
+
+  const handleCloseComparison = () => {
+    setIsComparisonMode(false);
+    setComparisonFontIds([]);
+  };
+
   // Z-Index Management (Single Active Menu)
   const [activeMenuId, setActiveMenuId] = useState(null);
 
@@ -426,15 +445,13 @@ const MainContent = ({
 
   // Scroll detection for toolbar
   useEffect(() => {
+    if (isComparisonMode) return; // Don't observe in comparison mode
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsToolbarVisible(entry.isIntersecting);
       },
-      {
-        root: null,
-        threshold: 0,
-        rootMargin: "0px"
-      }
+      { threshold: 0 }
     );
 
     const currentToolbarRef = toolbarRef.current;
@@ -447,7 +464,7 @@ const MainContent = ({
         observer.unobserve(currentToolbarRef);
       }
     };
-  }, [fontObject]);
+  }, [fontObject, isComparisonMode]);
 
   useEffect(() => {
     if (!showListSettings) return;
@@ -476,315 +493,347 @@ const MainContent = ({
 
 
 
+  const handleSwapFont = (index, newFontId) => {
+    setComparisonFontIds(prevIds => {
+      const newIds = [...prevIds];
+      newIds[index] = newFontId;
+      return newIds;
+    });
+  };
+
   return (
     <div className="flex-1 bg-slate-50 min-h-screen relative">
       <style>{fontFaceStyles}</style>
 
-      {isSessionLoading ? (
-        <LoadingScreen />
-      ) : (!fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name) ? (
-        <LandingPage importConfig={importConfig} />
-      ) : (
-        <div
-          className="pt-4 px-8 md:px-10 pb-32 min-h-screen cursor-default"
-          onClick={() => {
-            setActiveConfigTab('ALL');
-            if (setHighlitLanguageId) setHighlitLanguageId(null);
-          }}
-        >
-          <div
-            ref={toolbarRef}
-            className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-4 min-h-[34px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* LEFT: Live Demo Title */}
-            <div className="flex items-start gap-2">
-              <span className="text-xs font-black text-slate-800 uppercase tracking-widest whitespace-nowrap">
-                TYPE DEMO
-              </span>
-            </div>
 
-            {/* RIGHT: Controls */}
-            <div className={`flex items-center gap-2 transition-all duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              {/* Inline Guide Toggles - Compact Individual Buttons */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  /* UI: TYPE GRID */
-                  onClick={() => toggleAlignmentGuides()}
-                  className={`
+      {isComparisonMode ? (
+        <FontComparisonView
+          fontIds={comparisonFontIds}
+          onClose={handleCloseComparison}
+          onSwapFont={handleSwapFont}
+        />
+      ) : (
+        /* Regular Main Content */
+        isSessionLoading ? (
+          <LoadingScreen />
+        ) : (!fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name) ? (
+          <LandingPage importConfig={importConfig} />
+        ) : (
+          <div
+            className="pt-4 px-8 md:px-10 pb-32 min-h-screen cursor-default"
+            onClick={() => {
+              setActiveConfigTab('ALL');
+              if (setHighlitLanguageId) setHighlitLanguageId(null);
+            }}
+          >
+            <div
+              ref={toolbarRef}
+              className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-4 min-h-[34px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* LEFT: Live Demo Title */}
+              <div className="flex items-start gap-2">
+                <span className="text-xs font-black text-slate-800 uppercase tracking-widest whitespace-nowrap">
+                  TYPE DEMO
+                </span>
+              </div>
+
+              {/* RIGHT: Controls */}
+              <div className={`flex items-center gap-2 transition-all duration-300 ${isToolbarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                {/* Inline Guide Toggles - Compact Individual Buttons */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    /* UI: TYPE GRID */
+                    onClick={() => toggleAlignmentGuides()}
+                    className={`
                   px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showAlignmentGuides
-                      ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
-                      : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
-                    }
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
+                        : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
+                      }
                 `}
-                >
-                  TYPE GRID
-                </button>
+                  >
+                    TYPE GRID
+                  </button>
 
-                <button
-                  /* UI: LINEBOX VIEW */
-                  onClick={() => toggleBrowserGuides()}
-                  className={`
+                  <button
+                    /* UI: LINEBOX VIEW */
+                    onClick={() => toggleBrowserGuides()}
+                    className={`
                   px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showBrowserGuides
-                      ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
-                      : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
-                    }
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
+                        : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
+                      }
                 `}
-                >
-                  LINEBOX VIEW
-                </button>
+                  >
+                    LINEBOX VIEW
+                  </button>
 
-                <button
-                  /* UI: FALLBACK COLORS */
-                  onClick={() => setShowFallbackColors(!showFallbackColors)}
-                  className={`
+                  <button
+                    /* UI: FALLBACK COLORS */
+                    onClick={() => setShowFallbackColors(!showFallbackColors)}
+                    className={`
                   px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
                   ${showFallbackColors
-                      ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
-                      : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
-                    }
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
+                        : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
+                      }
                 `}
-                >
-                  COLOR GUIDE
-                </button>
+                  >
+                    COLOR GUIDE
+                  </button>
 
-                <button
-                  /* UI: FALLBACK ORDER */
-                  onClick={() => setShowFallbackOrder(!showFallbackOrder)}
-                  className={`
+                  <button
+                    /* UI: FALLBACK ORDER */
+                    onClick={() => setShowFallbackOrder(!showFallbackOrder)}
+                    className={`
                   px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border relative z-50
                   ${showFallbackOrder
-                      ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
-                      : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
-                    }
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
+                        : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
+                      }
                 `}
-                >
-                  FALLBACK ORDER
-                </button>
+                  >
+                    FALLBACK ORDER
+                  </button>
 
 
-                {/* Font Filter Component */}
-                <FontFilter
-                  fonts={fonts}
-                  primaryFontOverrides={primaryFontOverrides}
-                  fallbackFontOverrides={fallbackFontOverrides}
-                  selectedFilter={fontFilter}
-                  onSelectFilter={setFontFilter}
-                  compact={true}
-                />
+
+
+
+                  {/* Font Filter Component */}
+                  <FontFilter
+                    fonts={fonts}
+                    primaryFontOverrides={primaryFontOverrides}
+                    fallbackFontOverrides={fallbackFontOverrides}
+                    selectedFilter={fontFilter}
+                    onSelectFilter={setFontFilter}
+                    compact={true}
+                  />
+                </div>
+                <div className="w-[34px] h-[34px] hidden sm:block shrink-0" aria-hidden="true" />
               </div>
-              <div className="w-[34px] h-[34px] hidden sm:block shrink-0" aria-hidden="true" />
             </div>
-          </div>
 
-          {/* Fixed Settings Button - Moved here to escape opacity transition */}
-          {sidebarMode !== 'headers' && (
-            <div className="fixed top-4 right-8 md:top-4 md:right-10 z-40" ref={listSettingsRef} onClick={(e) => e.stopPropagation()}>
-              <button
-                /* UI: Settings / Config Button */
-                onClick={() => setShowListSettings(!showListSettings)}
-                className={`
+            {/* Fixed Settings Button - Moved here to escape opacity transition */}
+            {sidebarMode !== 'headers' && (
+              <div className="fixed top-4 right-8 md:top-4 md:right-10 z-40" ref={listSettingsRef} onClick={(e) => e.stopPropagation()}>
+                <button
+                  /* UI: Settings / Config Button */
+                  onClick={() => setShowListSettings(!showListSettings)}
+                  className={`
                     p-2 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 w-[34px] h-[34px]
                     ${!isToolbarVisible ? 'shadow-[0_20px_50px_rgba(0,0,0,0.08),0_10px_30px_rgba(0,0,0,0.04)]' : ''}
                     ${showListSettings
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                    : 'bg-white border-gray-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-slate-50'
-                  }
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                      : 'bg-white border-gray-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-slate-50'
+                    }
                 `}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="4" y1="21" x2="4" y2="14"></line>
-                  <line x1="4" y1="10" x2="4" y2="3"></line>
-                  <line x1="12" y1="21" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12" y2="3"></line>
-                  <line x1="20" y1="21" x2="20" y2="16"></line>
-                  <line x1="20" y1="12" x2="20" y2="3"></line>
-                  <line x1="1" y1="14" x2="7" y2="14"></line>
-                  <line x1="9" y1="8" x2="15" y2="8"></line>
-                  <line x1="17" y1="16" x2="23" y2="16"></line>
-                </svg>
-              </button>
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                  </svg>
+                </button>
 
-              {showListSettings && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-100 rounded-2xl shadow-2xl shadow-slate-200/50 origin-top-right z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 slide-in-from-top-2">
-                  <div className="p-4 space-y-5">
-                    {/* Interface Section */}
-                    <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
-                        <span>Interface</span>
-                        <div className="h-px flex-1 bg-slate-100 ml-3" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-500 ml-1">Grid</label>
-                          <div className="relative">
-                            <select
-                              value={gridColumns}
-                              onChange={(e) => setGridColumns(parseInt(e.target.value))}
-                              className="w-full py-1.5 pl-3 pr-8 text-[10px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none font-bold text-slate-700 tracking-tight transition-all"
-                            >
-                              {[1, 2, 3, 4].map(num => (
-                                <option key={num} value={num}>{num} Col</option>
-                              ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                              </svg>
+                {showListSettings && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-100 rounded-2xl shadow-2xl shadow-slate-200/50 origin-top-right z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 slide-in-from-top-2">
+                    <div className="p-4 space-y-5">
+                      {/* Interface Section */}
+                      <div>
+                        <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
+                          <span>Interface</span>
+                          <div className="h-px flex-1 bg-slate-100 ml-3" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 ml-1">Grid</label>
+                            <div className="relative">
+                              <select
+                                value={gridColumns}
+                                onChange={(e) => setGridColumns(parseInt(e.target.value))}
+                                className="w-full py-1.5 pl-3 pr-8 text-[10px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none font-bold text-slate-700 tracking-tight transition-all"
+                              >
+                                {[1, 2, 3, 4].map(num => (
+                                  <option key={num} value={num}>{num} Col</option>
+                                ))}
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                </svg>
+                              </div>
                             </div>
                           </div>
+                          <div className="space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 ml-1">Display</label>
+                            <ViewModeSelector variant="simple" />
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-500 ml-1">Display</label>
-                          <ViewModeSelector variant="simple" />
+                      </div>
+
+                      {/* Typography Section */}
+                      <div>
+                        <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
+                          <span>Typography</span>
+                          <div className="h-px flex-1 bg-slate-100 ml-3" />
+                        </div>
+                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-1">
+                          <TextCasingSelector variant="simple" />
                         </div>
                       </div>
-                    </div>
 
-                    {/* Typography Section */}
-                    <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
-                        <span>Typography</span>
-                        <div className="h-px flex-1 bg-slate-100 ml-3" />
-                      </div>
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-1">
-                        <TextCasingSelector variant="simple" />
-                      </div>
-                    </div>
-
-                    {/* Tools Section */}
-                    <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
-                        <span>Tools</span>
-                        <div className="h-px flex-1 bg-slate-100 ml-3" />
-                      </div>
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => {
-                            setSidebarMode(sidebarMode === 'headers' ? 'main' : 'headers');
-                            setShowListSettings(false);
-                          }}
-                          className={`
-                            w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all border
-                            ${sidebarMode === 'headers'
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200'
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50'
-                            }
-                          `}
-                        >
-                          <span className="flex items-center gap-2.5">
-                            <span className={`font-serif italic text-sm ${sidebarMode === 'headers' ? 'text-white' : 'text-slate-400'}`}>Aa</span>
-                            <span>Edit Header Styles</span>
-                          </span>
-                          {sidebarMode === 'headers' && (
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setPreviewMode(true);
-                            setShowListSettings(false);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                          Live Website Preview
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Danger Zone */}
-                    <div>
-                      <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
-                        <span>Danger Zone</span>
-                        <div className="h-px flex-1 bg-slate-100 ml-3" />
-                      </div>
-                      <button
-                        onClick={() => {
-                          resetApp();
-                          setShowListSettings(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-white text-rose-500 border border-slate-200 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 transition-all"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
-                          <path d="M3 6h18"></path>
-                          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                        </svg>
-                        Reset Application
-                      </button>
-                    </div>
-
-                    {/* Guides Section (Only visible when main toolbar is not visible) */}
-                    {!isToolbarVisible && (
+                      {/* Tools Section */}
                       <div>
                         <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
                           <span>Tools</span>
                           <div className="h-px flex-1 bg-slate-100 ml-3" />
                         </div>
-                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 grid grid-cols-1 gap-1">
-                          {[
-                            { label: 'Type Grid', active: showAlignmentGuides, toggle: toggleAlignmentGuides },
-                            { label: 'Linebox View', active: showBrowserGuides, toggle: toggleBrowserGuides },
-                            { label: 'Color Guide', active: showFallbackColors, toggle: () => setShowFallbackColors(!showFallbackColors) },
-                            { label: 'Fallback Order', active: showFallbackOrder, toggle: () => setShowFallbackOrder(!showFallbackOrder) }
-                          ].map((guide) => (
-                            <button
-                              key={guide.label}
-                              onClick={guide.toggle}
-                              className={`
-                                flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold transition-all
-                                ${guide.active
-                                  ? 'bg-white text-indigo-600'
-                                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                                }
-                              `}
-                            >
-                              <span>{guide.label}</span>
-                              {guide.active && <div className="w-1 h-1 rounded-full bg-indigo-600" />}
-                            </button>
-                          ))}
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => {
+                              setSidebarMode(sidebarMode === 'headers' ? 'main' : 'headers');
+                              setShowListSettings(false);
+                            }}
+                            className={`
+                            w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all border
+                            ${sidebarMode === 'headers'
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50'
+                              }
+                          `}
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <span className={`font-serif italic text-sm ${sidebarMode === 'headers' ? 'text-white' : 'text-slate-400'}`}>Aa</span>
+                              <span>Edit Header Styles</span>
+                            </span>
+                            {sidebarMode === 'headers' && (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </button>
+
+
+
+                          <button
+                            onClick={() => {
+                              setShowComparisonSelector(true);
+                              setShowListSettings(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                              <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
+                              <line x1="12" y1="3" x2="12" y2="21"></line>
+                            </svg>
+                            Compare Fonts
+                          </button>
                         </div>
                       </div>
-                    )}
+
+                      {/* Guides Section (Only visible when main toolbar is not visible) */}
+                      {!isToolbarVisible && (
+                        <div>
+                          <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
+                            <span>Tools</span>
+                            <div className="h-px flex-1 bg-slate-100 ml-3" />
+                          </div>
+                          <div className="bg-slate-50 border border-slate-100 rounded-xl p-1 grid grid-cols-1 gap-1">
+                            {[
+                              { label: 'Type Grid', active: showAlignmentGuides, toggle: toggleAlignmentGuides },
+                              { label: 'Linebox View', active: showBrowserGuides, toggle: toggleBrowserGuides },
+                              { label: 'Color Guide', active: showFallbackColors, toggle: () => setShowFallbackColors(!showFallbackColors) },
+                              { label: 'Fallback Order', active: showFallbackOrder, toggle: () => setShowFallbackOrder(!showFallbackOrder) }
+                            ].map((guide) => (
+                              <button
+                                key={guide.label}
+                                onClick={guide.toggle}
+                                className={`
+                                flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold transition-all
+                                ${guide.active
+                                    ? 'bg-white text-indigo-600'
+                                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                                  }
+                              `}
+                              >
+                                <span>{guide.label}</span>
+                                {guide.active && <div className="w-1 h-1 rounded-full bg-indigo-600" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Danger Zone */}
+                      <div>
+                        <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
+                          <span>Danger Zone</span>
+                          <div className="h-px flex-1 bg-slate-100 ml-3" />
+                        </div>
+                        <button
+                          onClick={() => {
+                            resetApp();
+                            setShowListSettings(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-white text-rose-500 border border-slate-200 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 transition-all"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                          </svg>
+                          Reset Application
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
+            <div className="grid gap-4 transition-all duration-300 ease-in-out relative" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
+              <AnimatePresence initial={false}>
+                {visibleLanguagesList.map(lang => (
+                  <motion.div
+                    key={lang.id}
+                    className="h-full"
+                    style={{ zIndex: activeMenuId === lang.id ? 50 : 1 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      transition: { duration: 0.2 }
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <LanguageCard
+                      language={lang}
+                      isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
+                      isMenuOpen={activeMenuId === lang.id}
+                      onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
-          )}
-          <div className="grid gap-4 transition-all duration-300 ease-in-out relative" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
-            <AnimatePresence initial={false}>
-              {visibleLanguagesList.map(lang => (
-                <motion.div
-                  key={lang.id}
-                  className="h-full"
-                  style={{ zIndex: activeMenuId === lang.id ? 50 : 1 }}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{
-                    opacity: 0,
-                    transition: { duration: 0.2 }
-                  }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <LanguageCard
-                    language={lang}
-                    isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
-                    isMenuOpen={activeMenuId === lang.id}
-                    onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
           </div>
-        </div>
+        )
+      )}
+
+
+      {showComparisonSelector && (
+        <FontComparisonSelectorModal
+          isOpen={showComparisonSelector}
+          onClose={() => setShowComparisonSelector(false)}
+          onCompare={handleStartComparison}
+        />
       )}
 
       {showLanguageModal && (
@@ -814,12 +863,18 @@ const MainContent = ({
         />
       )}
 
-      {activeConfigModal && (
+      {activeConfigModal && activeConfigModal !== 'export-css' && (
         <ConfigActionsModal
           mode={activeConfigModal}
           onClose={() => setActiveConfigModal(null)}
           onImport={handleImport}
           onExport={handleExport}
+        />
+      )}
+
+      {activeConfigModal === 'export-css' && (
+        <ExportCSSModal
+          onClose={() => setActiveConfigModal(null)}
         />
       )}
 
@@ -830,7 +885,7 @@ const MainContent = ({
 
 function App() {
   const [sidebarMode, setSidebarMode] = useState('main');
-  const [previewMode, setPreviewMode] = useState(false);
+
   const [selectedGroup, setSelectedGroup] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState(''); // New search state
   const [highlitLanguageId, setHighlitLanguageId] = useState(null);
@@ -846,9 +901,7 @@ function App() {
   const { resetApp, isAppResetting } = useTypo();
 
   // Live Preview Mode
-  if (previewMode) {
-    return <LivePreview onClose={() => setPreviewMode(false)} />;
-  }
+
 
   const handleAddLanguage = (group) => {
     setAddLanguageGroupFilter(group);
@@ -867,8 +920,7 @@ function App() {
           <SideBar
             sidebarMode={sidebarMode}
             setSidebarMode={setSidebarMode}
-            previewMode={previewMode}
-            setPreviewMode={setPreviewMode}
+
             selectedGroup={selectedGroup}
             onSelectGroup={setSelectedGroup}
             onAddLanguage={handleAddLanguage}
@@ -898,7 +950,7 @@ function App() {
           setAddLanguageGroupFilter={setAddLanguageGroupFilter}
           highlitLanguageId={highlitLanguageId}
           setHighlitLanguageId={setHighlitLanguageId}
-          setPreviewMode={setPreviewMode}
+
           activeConfigModal={activeConfigModal}
           setActiveConfigModal={setActiveConfigModal}
           searchQuery={searchQuery}
@@ -913,8 +965,7 @@ function App() {
           <SideBar
             sidebarMode={sidebarMode}
             setSidebarMode={setSidebarMode} // Pass same props
-            previewMode={previewMode}
-            setPreviewMode={setPreviewMode}
+
             selectedGroup={selectedGroup}
             onSelectGroup={setSelectedGroup}
             onAddLanguage={handleAddLanguage}

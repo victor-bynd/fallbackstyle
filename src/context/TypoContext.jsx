@@ -2666,11 +2666,24 @@ export const TypoProvider = ({ children }) => {
             let nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
             let nextFonts = [...(prev.fonts || [])];
 
+            // Helper to check if a font ID is used by ANY other language (primary or fallback)
+            const isFontUsedElsewhere = (fontId) => {
+                const usedInPrimary = Object.entries(nextPrimaryOverrides).some(([lid, fid]) => lid !== langId && fid === fontId);
+                const usedInFallback = Object.entries(nextFallbackOverrides).some(([lid, val]) => {
+                    if (lid === langId) return false;
+                    if (typeof val === 'string') return val === fontId;
+                    return false;
+                });
+                return usedInPrimary || usedInFallback;
+            };
+
             // Cleanup Primary
             if (nextPrimaryOverrides[langId]) {
                 const oldId = nextPrimaryOverrides[langId];
                 const oldFont = nextFonts.find(f => f.id === oldId);
-                if (oldFont && (oldFont.isLangSpecific || oldFont.isClone || (typeof oldFont.id === 'string' && oldFont.id.startsWith('lang-')))) {
+
+                // Only remove if NOT used elsewhere
+                if (oldFont && !isFontUsedElsewhere(oldId) && (oldFont.isLangSpecific || oldFont.isClone || (typeof oldFont.id === 'string' && oldFont.id.startsWith('lang-')))) {
                     nextFonts = nextFonts.filter(f => f.id !== oldId);
                 }
                 delete nextPrimaryOverrides[langId];
@@ -2681,7 +2694,8 @@ export const TypoProvider = ({ children }) => {
                 const oldVal = nextFallbackOverrides[langId];
                 if (typeof oldVal === 'string') {
                     const oldFont = nextFonts.find(f => f.id === oldVal);
-                    if (oldFont && (oldFont.isLangSpecific || oldFont.isClone || (typeof oldFont.id === 'string' && oldFont.id.startsWith('lang-')))) {
+                    // Only remove if NOT used elsewhere
+                    if (oldFont && !isFontUsedElsewhere(oldVal) && (oldFont.isLangSpecific || oldFont.isClone || (typeof oldFont.id === 'string' && oldFont.id.startsWith('lang-')))) {
                         nextFonts = nextFonts.filter(f => f.id !== oldVal);
                     }
                 }

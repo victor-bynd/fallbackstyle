@@ -366,6 +366,8 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
     }
 
     // If primary language and no explicit override, default to mapping to primary font
+    const isMapped = !!fallbackOverrideFontId || !!primaryOverrideId;
+
     if (!fallbackOverrideFontId) {
         if (primaryOverrideId) {
             fallbackOverrideFontId = primaryOverrideId;
@@ -376,8 +378,36 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
 
     const fallbackOverrideOptions = useMemo(() => {
         const fonts = getFontsForStyle(activeMetricsStyleId) || [];
-        return fonts
-            .filter(f => (f.type === 'fallback' || f.type === 'primary') && !f.isLangSpecific && !f.isPrimaryOverride)
+
+        // Map to store unique font entities by signature (fileName or name)
+        const uniqueFonts = new Map();
+
+        fonts.forEach(f => {
+            // Identifier for the font file/entity
+            const signature = f.fileName || f.name;
+            if (!signature) return;
+
+            // Check if we already have a candidate for this font
+            const existing = uniqueFonts.get(signature);
+
+            // Definition of a "Better" candidate:
+            // We prefer global fonts (not lang-specific) because mapping to them is cleaner.
+            // If we only have a lang-specific version (e.g. uploaded directly to a language), we use that.
+
+            const isGlobal = !f.isLangSpecific && !f.isPrimaryOverride;
+
+            if (!existing) {
+                uniqueFonts.set(signature, f);
+            } else {
+                const existingIsGlobal = !existing.isLangSpecific && !existing.isPrimaryOverride;
+                // If existing is NOT global, but current IS global, replace with current.
+                if (!existingIsGlobal && isGlobal) {
+                    uniqueFonts.set(signature, f);
+                }
+            }
+        });
+
+        return Array.from(uniqueFonts.values())
             .map(f => ({
                 id: f.id,
                 label: f.fileName?.replace(/\.[^/.]+$/, '') || f.name || 'Unnamed Font',
@@ -449,26 +479,11 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         const getAutoLabel = () => {
             const realFallbacks = metricsFallbackFontStack.filter(f => f.fontId !== 'legacy');
             if (realFallbacks.length === 0) return null; // No fallbacks -> Hide badge
-
-            const firstFontId = realFallbacks[0].fontId;
-            const firstFont = fonts.find(f => f.id === firstFontId);
-            const name = firstFont?.label || firstFont?.fileName?.replace(/\.[^/.]+$/, '') || firstFont?.name || 'Unknown';
-
-            if (realFallbacks.length > 1) {
-                return `${name} (+${realFallbacks.length - 1})`;
-            }
-            return name;
+            return 'Default';
         };
 
         if (!fallbackOverrideFontId) {
-            return getAutoLabel(); // Default to Auto string if we want to show it, but wait...
-            // If getAutoLabel returns null (no fallbacks), we previously returned 'Auto'. 
-            // The original code returned 'Auto' if length 0.
-            // Let's decide: If no fallbacks, do we want "Auto" or Nothing?
-            // "I'd also like to plan for no fonts in the general fallback list, it should just disappear"
-            // So if !fallbackOverrideFontId (Auto mode) AND no fallbacks -> Disappear.
-            // Original code: if (realFallbacks.length === 0) return 'Auto';
-            // We should change this to null.
+            return getAutoLabel();
         }
 
         if (typeof fallbackOverrideFontId === 'string') {
@@ -668,6 +683,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                         currentFallbackLabel={currentFallbackLabel}
                         fallbackOverrideFontId={fallbackOverrideFontId}
                         fallbackOverrideOptions={fallbackOverrideOptions}
+                        isMapped={isMapped}
                         onSelectFallback={(val) => {
                             if (!val) {
                                 unmapLanguage(language.id);
@@ -1033,6 +1049,7 @@ const LanguageActionMenu = ({
     addLanguageSpecificFallbackFont,
     onStartEdit,
     onUnmap,
+    isMapped,
 
     onRemove
 }) => {
@@ -1167,18 +1184,20 @@ const LanguageActionMenu = ({
                             <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Upload Font</span>
                         </button>
 
-                        <button
-                            onClick={() => {
-                                onUnmap();
-                                onClose();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-indigo-600">
-                                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Unmap Language</span>
-                        </button>
+                        {isMapped && (
+                            <button
+                                onClick={() => {
+                                    onUnmap();
+                                    onClose();
+                                }}
+                                className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-indigo-600">
+                                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Unmap Language</span>
+                            </button>
+                        )}
 
                         <div className="my-1 border-t border-slate-100" />
 
@@ -1227,6 +1246,7 @@ LanguageActionMenu.propTypes = {
     addLanguageSpecificFallbackFont: PropTypes.func.isRequired,
     onStartEdit: PropTypes.func.isRequired,
     onUnmap: PropTypes.func.isRequired,
+    isMapped: PropTypes.bool.isRequired,
 
     onRemove: PropTypes.func.isRequired
 };
