@@ -17,6 +17,7 @@ export const useTextRenderer = () => {
 
     const {
         colors,
+        textCase,
         showFallbackColors,
         showBrowserGuides
     } = useUI();
@@ -36,6 +37,17 @@ export const useTextRenderer = () => {
     }) => {
         if (!content) return null;
 
+        let processedContent = content;
+        if (textCase === 'uppercase') {
+            processedContent = languageId ? content.toLocaleUpperCase(languageId) : content.toUpperCase();
+        } else if (textCase === 'lowercase') {
+            processedContent = languageId ? content.toLocaleLowerCase(languageId) : content.toLowerCase();
+        } else if (textCase === 'capitalize') {
+            // Sentence case: First letter Upper, rest Lower
+            const lower = languageId ? content.toLocaleLowerCase(languageId) : content.toLowerCase();
+            processedContent = (languageId ? lower.charAt(0).toLocaleUpperCase(languageId) : lower.charAt(0).toUpperCase()) + lower.slice(1);
+        }
+
         const primaryOverrideId = getPrimaryFontOverrideForStyle(styleId, languageId);
         const allFonts = getFontsForStyle(styleId);
 
@@ -54,7 +66,7 @@ export const useTextRenderer = () => {
         }
 
         const primaryFontObject = effectivePrimaryFont?.fontObject;
-        if (!primaryFontObject) return content; // Return raw content if no primary font object (system font mode?)
+        if (!primaryFontObject) return processedContent; // Return raw content if no primary font object (system font mode?)
 
         const style = fontStyles?.[styleId];
         const baseFontSize = fontSize ?? style?.baseFontSize ?? 16;
@@ -77,7 +89,7 @@ export const useTextRenderer = () => {
         // Ensure we use the provided color if context doesn't have it or we want to force it
         const effectivePrimaryColor = color || primarySettings.color || colors.primary;
 
-        return content.split('').map((char, index) => {
+        return processedContent.split('').map((char, index) => {
             const glyphIndex = primaryFontObject.charToGlyphIndex(char);
             const isMissing = glyphIndex === 0;
 
