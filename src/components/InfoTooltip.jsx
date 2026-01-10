@@ -33,6 +33,7 @@ const InfoTooltip = ({ content, children }) => {
             className={`relative inline-flex items-center group ${children ? '' : 'ml-2'}`}
             onMouseEnter={() => setIsVisible(true)}
             onMouseLeave={() => setIsVisible(false)}
+            onClick={() => setIsVisible(false)}
         >
             <div className="cursor-help transition-colors">
                 {children ? children : (

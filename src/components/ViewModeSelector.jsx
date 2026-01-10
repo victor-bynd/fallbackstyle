@@ -1,7 +1,7 @@
-import { useTypo } from '../context/useTypo';
+import { useUI } from '../context/UIContext';
 
 const ViewModeSelector = ({ variant = 'default' }) => {
-    const { viewMode, setViewMode } = useTypo();
+    const { viewMode, setViewMode } = useUI();
 
     const tabs = [
         { id: 'all', label: 'All' },

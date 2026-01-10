@@ -1,6 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import FontSwapModal from './FontSwapModal';
 import { useTypo } from '../context/useTypo';
+import { useUI } from '../context/UIContext';
+import { useTextRenderer } from '../hooks/useTextRenderer';
+import { useFontStack } from '../hooks/useFontStack';
+import MetricGuidesOverlay from './MetricGuidesOverlay';
 
 const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
     const {
@@ -10,8 +14,14 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
         showAlignmentGuides,
         toggleAlignmentGuides,
         showBrowserGuides,
-        toggleBrowserGuides
+        toggleBrowserGuides,
+        getEffectiveFontSettingsForStyle,
+        activeFontStyleId
     } = useTypo();
+
+    const { showFallbackColors } = useUI();
+    const { renderText } = useTextRenderer();
+    const { buildFallbackFontStackForStyle } = useFontStack();
 
     // Language Selection State
     const [selectedLanguageId, setSelectedLanguageId] = useState('en');
@@ -37,14 +47,29 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
     const comparisonFontFaceStyles = useMemo(() => {
         return selectedFonts.map(font => {
             if (!font.fontUrl) return '';
+            const settings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', font.id);
+
+            const ascent = (settings?.ascentOverride !== undefined && settings.ascentOverride !== '')
+                ? `ascent-override: ${settings.ascentOverride * 100}%;`
+                : '';
+            const descent = (settings?.descentOverride !== undefined && settings.descentOverride !== '')
+                ? `descent-override: ${settings.descentOverride * 100}%;`
+                : '';
+            const lineGap = (settings?.lineGapOverride !== undefined && settings.lineGapOverride !== '')
+                ? `line-gap-override: ${settings.lineGapOverride * 100}%;`
+                : '';
+
             return `
         @font-face {
           font-family: 'CompareFont-${font.id}';
           src: url('${font.fontUrl}');
+          ${ascent}
+          ${descent}
+          ${lineGap}
         }
       `;
         }).join('\n');
-    }, [selectedFonts]);
+    }, [selectedFonts, getEffectiveFontSettingsForStyle, activeFontStyleId]);
 
     // Sample Text Logic
     const sampleText = useMemo(() => {
@@ -68,85 +93,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
     // Calculate exact pixel line height for consistent grid
     const lineHeightPx = baseFontSize * lineHeightMultiplier;
 
-    // Grid Generation Helper
-    const generateGridStyle = (font) => {
-        if (!font?.fontObject || !showAlignmentGuides) return {};
-
-        const { fontObject } = font;
-        const upm = fontObject.unitsPerEm;
-        const ascender = fontObject.ascender;
-        const descender = fontObject.descender;
-
-        // We need to calculate the Baseline Position relative to the Content Box Top.
-        // With half-leading:
-        const contentHeightUnits = ascender - descender;
-        const totalHeightUnits = upm * lineHeightMultiplier;
-        const halfLeadingUnits = (totalHeightUnits - contentHeightUnits) / 2;
-
-        // Important: Ascender is usually positive, Descender negative.
-        // Distance from Top of LineBox to Baseline:
-        const baselineYUnits = halfLeadingUnits + ascender;
-
-        // Grid Lines (Offsets from Top of Box)
-        const xHeight = fontObject.tables?.os2?.sxHeight || 0;
-        const capHeight = fontObject.tables?.os2?.sCapHeight || 0;
-
-        const guideLines = [
-            { y: baselineYUnits, color: 'rgba(0,0,0,0.6)', width: 1 }, // Baseline
-            { y: baselineYUnits - xHeight, color: 'rgba(0,0,0,0.3)', width: 1 },
-            { y: baselineYUnits - capHeight, color: 'rgba(0,0,0,0.3)', width: 1 },
-            { y: baselineYUnits - ascender, color: 'rgba(0,0,0,0.1)', width: 1 },
-            { y: baselineYUnits + Math.abs(descender), color: 'rgba(0,0,0,0.1)', width: 1 }
-        ];
-
-        // We draw ONE unit block based on TotalHeightUnits
-        // SVG ViewBox Height = totalHeightUnits
-        // Then we scale it via background-size to match lineHeightPx
-
-        // Correction: SVG needs to be scalable.
-        // Actually, easiest is to use pixels inside SVG if we know them?
-        // Or keep units and rely on viewbox.
-        // Let's use Units.
-
-        // Stroke width needs to be visible.
-        // If 1px at 60px font size...
-        // scale = upm / 60.
-        // stroke = 1 * scale.
-        const scale = upm / baseFontSize;
-        const strokeWidth = 1 * scale;
-        const dashArray = `${4 * scale} ${4 * scale}`;
-
-        const paths = guideLines.map(line =>
-            `<line x1="0" y1="${line.y}" x2="100%" y2="${line.y}" stroke="${line.color}" stroke-width="${strokeWidth}" stroke-dasharray="${dashArray}" />`
-        ).join('');
-
-        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='100' height='${totalHeightUnits}' viewBox='0 0 100 ${totalHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
-        const base64Svg = btoa(svgString);
-
-        return {
-            backgroundImage: `url("data:image/svg+xml;base64,${base64Svg}")`,
-            backgroundSize: `auto ${lineHeightPx}px`, // Fixed pixel height
-            backgroundRepeat: 'repeat',
-            backgroundPosition: '0 0',
-            // Positioning for the "Underlay"
-            position: 'absolute',
-            top: 'calc(1rem + 1px)', // Offset for p-4 (1rem) + border (1px) inside the cards
-            // Span very wide to cover the entire container.
-            // The container (grid) has padding-top/bottom but inside the flex-1 container with px-8 (2rem).
-            // We want to stretch left/right 2rem to cover that padding "visually" if needed, or just 100% of the grid width.
-            // Actually, the user wants it to stretch across the ENTIRE viewport width.
-            // But the grid is constrained by px-8. So we need negative margins or left/right: -2rem.
-            left: '-2rem',
-            right: '-2rem',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: 0
-        };
-    };
-
     const referenceFont = baselineSourceIndex !== null ? fonts.find(f => f.id === fontIds[baselineSourceIndex]) : fonts.find(f => f.id === fontIds[0]);
-    // Fallback to first font if no baseline selected or font not found, just for grid rendering default.
-    const gridStyle = useMemo(() => generateGridStyle(referenceFont || fonts.find(f => f.id === fontIds[0])), [referenceFont, fontIds, fonts, showAlignmentGuides, lineHeightMultiplier, baseFontSize]);
 
 
     return (
@@ -158,7 +105,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onClose}
-                        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold text-sm"
+                        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold text-[10px] uppercase tracking-wider"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                         Back
@@ -182,15 +129,14 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                             onChange={(e) => setComparisonFontSize(Number(e.target.value))}
                             className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                         />
-                        <span className="text-xs font-bold text-slate-600 w-8 text-right">{comparisonFontSize}px</span>
+                        <span className="text-[10px] font-bold text-slate-600 w-8 text-right">{comparisonFontSize}px</span>
                     </div>
 
-                    {/* Language Selector */}
                     <div className="relative border-r border-gray-200 pr-2 mr-2">
                         <select
                             value={selectedLanguageId}
                             onChange={(e) => setSelectedLanguageId(e.target.value)}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider py-1.5 pl-3 pr-8 rounded-lg outline-none cursor-pointer border-none appearance-none transition-colors w-32"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider py-1.5 pl-3 pr-8 rounded-lg outline-none cursor-pointer border-none appearance-none transition-colors w-64"
                             style={{
                                 backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`,
                                 backgroundRepeat: 'no-repeat',
@@ -211,7 +157,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                     <button
                         onClick={() => toggleAlignmentGuides()}
                         className={`
-                            px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border
+                            px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border
                             ${showAlignmentGuides
                                 ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
                                 : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:bg-slate-50'
@@ -223,7 +169,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                     <button
                         onClick={() => toggleBrowserGuides()}
                         className={`
-                             px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border
+                             px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border
                             ${showBrowserGuides
                                 ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
                                 : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:bg-slate-50'
@@ -266,12 +212,10 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                         const shouldRenderGrid = (baselineSourceIndex === null && index === 0) || isBaselineReference;
 
 
-                        // Inline Box Style
-                        const inlineBoxStyle = showBrowserGuides ? {
-                            outline: '1px solid rgba(59, 130, 246, 0.5)',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderRadius: '2px'
-                        } : {};
+                        const fallbackStack = buildFallbackFontStackForStyle(activeFontStyleId || 'primary', selectedLanguageId);
+                        const fallbackStackString = fallbackStack.length > 0
+                            ? fallbackStack.map(f => f.fontFamily).join(', ')
+                            : 'sans-serif';
 
                         const fontColor = '#0f172a';
 
@@ -279,21 +223,23 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                             <div key={`${font.id}-${index}`} className="relative group min-w-0">
 
                                 {/* Grid attached to reference font */}
-                                {shouldRenderGrid && showAlignmentGuides && (
-                                    <div
-                                        style={{
-                                            ...gridStyle,
-                                            // Override positioning to break out of the container but move WITH it vertically
-                                            position: 'absolute',
-                                            top: 'calc(1rem + 1px)', // align with text inside padding
-                                            left: '-500vw',
-                                            width: '1000vw',
-                                            height: '100%',
-                                            zIndex: 0,
-                                            pointerEvents: 'none'
-                                        }}
-                                    />
-                                )}
+                                {shouldRenderGrid && (() => {
+                                    const referenceSettings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', referenceFont?.id);
+                                    return (
+                                        <MetricGuidesOverlay
+                                            fontObject={referenceFont?.fontObject}
+                                            fontSizePx={baseFontSize}
+                                            lineHeight={lineHeightMultiplier}
+                                            showAlignmentGuides={showAlignmentGuides}
+                                            showBrowserGuides={false}
+                                            fullWidth={true}
+                                            topOffset="calc(1rem + 1px)"
+                                            ascentOverride={referenceSettings?.ascentOverride}
+                                            descentOverride={referenceSettings?.descentOverride}
+                                            lineGapOverride={referenceSettings?.lineGapOverride}
+                                        />
+                                    );
+                                })()}
 
                                 {/* Label - Absolute positioning to avoid affecting baseline flow */}
                                 <div className="absolute -top-7 left-0 right-0 gap-2 px-0 flex items-center">
@@ -345,20 +291,18 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                                     style={{
                                         fontSize: `${baseFontSize}px`,
                                         lineHeight: lineHeightMultiplier, // Use global line height
-                                        fontFamily: `"${generatedFamily}", sans-serif`,
+                                        fontFamily: `"${generatedFamily}", ${fallbackStackString}`,
                                     }}
                                 >
-                                    {sampleText.split('').map((char, i) => (
-                                        <span
-                                            key={i}
-                                            style={{
-                                                color: fontColor,
-                                                ...inlineBoxStyle
-                                            }}
-                                        >
-                                            {char}
-                                        </span>
-                                    ))}
+                                    {renderText({
+                                        content: sampleText,
+                                        languageId: selectedLanguageId,
+                                        styleId: activeFontStyleId || 'primary',
+                                        primaryFont: font,
+                                        fontSize: baseFontSize,
+                                        lineHeight: lineHeightMultiplier,
+                                        color: fontColor
+                                    })}
                                 </div>
                             </div>
                         )

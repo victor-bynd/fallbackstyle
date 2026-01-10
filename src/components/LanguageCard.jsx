@@ -1,26 +1,25 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
+import { useUI } from '../context/UIContext';
 import { useFontStack } from '../hooks/useFontStack';
+import { useTextRenderer } from '../hooks/useTextRenderer.jsx';
+import HeaderPreviewRow from './HeaderPreviewRow';
+import LanguageCardHeader from './LanguageCardHeader';
+import LanguageEditPanel from './LanguageEditPanel';
 import { languageCharacters } from '../data/languageCharacters';
-import { parseFontFile, createFontUrl } from '../services/FontLoader';
-import FontSelectionModal from './FontSelectionModal';
-import InfoTooltip from './InfoTooltip';
+import MetricGuidesOverlay from './MetricGuidesOverlay';
+import { calculateNumericLineHeight } from '../utils/fontUtils';
 
-const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => {
+const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHighlitLanguageId }) => {
     const {
         primaryLanguages,
 
         fontStyles,
         headerStyles,
-        colors,
         textOverrides,
         setTextOverride,
-        activeConfigTab,
-        setActiveConfigTab,
         missingColor,
-        showFallbackColors,
-        showBrowserGuides,
         addLanguageSpecificFallbackFont,
         getFontsForStyle,
         getPrimaryFontFromStyle,
@@ -31,102 +30,30 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         getFallbackFontOverrideForStyle,
         removeConfiguredLanguage,
         clearPrimaryFontOverride,
-        viewMode,
-        textCase,
         fontObject,
-        showAlignmentGuides,
         headerFontStyleMap,
         activeFontStyleId,
         resetTextOverride,
         systemFallbackOverrides,
-        showFallbackOrder,
         mapLanguageToFont,
         unmapLanguage
     } = useTypo();
 
+    const {
+        viewMode,
+        textCase,
+        colors,
+        activeConfigTab,
+        setActiveConfigTab,
+        showFallbackColors,
+        showBrowserGuides,
+        showAlignmentGuides,
+        showFallbackOrder
+    } = useUI();
+
     const { buildFallbackFontStackForStyle } = useFontStack();
 
-    const getAlignmentGuideStyle = (primaryFont, effectiveLineHeight, finalSizePx) => {
-        if (!showAlignmentGuides || !primaryFont?.fontObject) return {};
 
-        const { fontObject } = primaryFont;
-        const upm = fontObject.unitsPerEm;
-        const ascender = fontObject.ascender;
-        const descender = fontObject.descender;
-        const xHeight = fontObject.tables?.os2?.sxHeight || 0;
-        const capHeight = fontObject.tables?.os2?.sCapHeight || 0;
-
-        const contentHeightUnits = ascender - descender;
-        let numericLineHeight = effectiveLineHeight;
-        if (effectiveLineHeight === 'normal' || isNaN(Number(effectiveLineHeight))) {
-            const lineGap = fontObject.tables?.os2?.sTypoLineGap ?? fontObject.hhea?.lineGap ?? 0;
-            // 'normal' is roughly (ascender + |descender| + lineGap) / upm
-            numericLineHeight = (Math.abs(ascender) + Math.abs(descender) + lineGap) / upm;
-        }
-
-        const totalHeightUnits = upm * numericLineHeight;
-        const halfLeadingUnits = (totalHeightUnits - contentHeightUnits) / 2;
-
-        const baselineYUnits = halfLeadingUnits + ascender;
-        const xHeightYUnits = baselineYUnits - xHeight;
-        const capHeightYUnits = baselineYUnits - capHeight;
-        const descenderYUnits = baselineYUnits + Math.abs(descender);
-        const ascenderYUnits = baselineYUnits - ascender;
-
-        const guideLines = [
-            { y: baselineYUnits },
-            { y: xHeightYUnits },
-            { y: ascenderYUnits },
-            { y: descenderYUnits },
-            { y: capHeightYUnits }
-        ];
-
-        // Improve visibility calculation
-        // ViewBox is "totalHeightUnits" tall (thousands).
-        // Rendered Height is "finalSizePx * effectiveLineHeight" px.
-        // Scale Factor = ViewBoxHeight / RenderedHeight = upm / finalSizePx.
-        const scaleFactor = upm / finalSizePx;
-
-        // We want a 1px stroke.
-        // Stroke width in User Units = 1px * scaleFactor.
-        const strokeWidth = scaleFactor;
-
-        // Dash pattern: 4px on, 3px off.
-        const dashOn = 4 * scaleFactor;
-        const dashOff = 3 * scaleFactor;
-        const dashArray = `${dashOn} ${dashOff} `;
-
-        const strokeColor = "rgba(0,0,0,0.5)"; // Updated to 50% transparent black per user request
-
-        const paths = guideLines.map(line =>
-            `<path d="M0 ${line.y} H${totalHeightUnits * 10}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${dashArray}" />`
-        ).join('');
-
-        // Use a wide viewBox width to ensure horizontal lines cover enough (though pattern repeats).
-        // Actually, for a horizontal repeating pattern, we need the VIEWBOX WIDTH to match the repeat width?
-        // No, we set backgroundRepeat. But we need the dash pattern to align? 
-        // Simple horizontal line is fine.
-
-        // SVG width 8 is arbitrary if we just draw horizontal lines.
-        // But for dashArray to work, we need path length.
-        // Let's use a width of 100 units?
-        // Actually, if we use background-repeat, the SVG tiles.
-        // If we want the dash pattern to be seamless, the SVG width must be a multiple of the pattern period (4+3=7px).
-        // 7px * scaleFactor.
-        const patternWidthUnits = (dashOn + dashOff);
-
-        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${patternWidthUnits}' height='${totalHeightUnits}' viewBox='0 0 ${patternWidthUnits} ${totalHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
-
-        // Use Base64 to avoid encoding issues
-        const base64Svg = btoa(svgString);
-        const svgDataUri = `data:image/svg+xml;base64,${base64Svg}`;
-
-        return {
-            backgroundImage: `url("${svgDataUri}")`,
-            backgroundSize: `${4 + 3}px ${numericLineHeight}em`, // Width matches pattern period in px
-            backgroundRepeat: 'repeat'
-        };
-    };
 
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState('');
@@ -203,139 +130,15 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         setIsEditing(false);
     };
 
-    const renderedTextByStyleId = useMemo(() => {
-        const result = {};
-        Object.keys(fontStyles || {}).forEach(styleId => {
-            const primaryOverrideId = getPrimaryFontOverrideForStyle(styleId, language.id);
-            const fallbackOverrideId = getFallbackFontOverrideForStyle(styleId, language.id);
+    const { renderText } = useTextRenderer();
 
-            const allFonts = getFontsForStyle(styleId);
-
-            let effectivePrimaryFont = null;
-
-            // 1. Check Primary Overrides (highest priority, strict overrides)
-            if (primaryOverrideId) {
-                effectivePrimaryFont = allFonts.find(f => f.id === primaryOverrideId);
-            }
-
-
-
-            // 3. functional Primary Font
-            if (!effectivePrimaryFont) {
-                effectivePrimaryFont = getPrimaryFontFromStyle(styleId);
-            }
-
-            const primaryFontObject = effectivePrimaryFont?.fontObject;
-            if (!primaryFontObject) return;
-
-            const style = fontStyles?.[styleId];
-            const baseFontSize = style?.baseFontSize ?? 60;
-            const fontScales = style?.fontScales || { active: 100, fallback: 100 };
-            const lineHeight = style?.lineHeight ?? 1.2;
-
-            const fallbackFontStack = buildFallbackFontStackForStyle(styleId, language.id);
-            const fallbackFontStackString = fallbackFontStack.length > 0
-                ? fallbackFontStack.map(f => f.fontFamily).join(', ')
-                : 'sans-serif';
-
-            // Get primary font settings for comparison
-            const primarySettings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
-
-            result[styleId] = contentToRender.split('').map((char, index) => {
-                const glyphIndex = primaryFontObject.charToGlyphIndex(char);
-                const isMissing = glyphIndex === 0;
-                const fonts = getFontsForStyle(styleId);
-
-                if (isMissing && fallbackFontStack.length > 0) {
-                    let usedFallback = null;
-
-                    for (const fallback of fallbackFontStack) {
-                        if (fallback.fontObject) {
-                            try {
-                                const fallbackGlyphIndex = fallback.fontObject.charToGlyphIndex(char);
-                                if (fallbackGlyphIndex !== 0) {
-                                    usedFallback = fallback;
-                                    break;
-                                }
-                            } catch {
-                                // Ignore errors, continue to next
-                            }
-                        } else {
-                            usedFallback = fallback;
-                            break;
-                        }
-                    }
-
-                    if (!usedFallback) {
-                        usedFallback = fallbackFontStack[fallbackFontStack.length - 1];
-                    }
-
-                    const fallbackSettings = getEffectiveFontSettingsForStyle(styleId, usedFallback.fontId) || { baseFontSize, scale: fontScales.fallback, lineHeight: 1.2, letterSpacing: 0, weight: 400 };
-
-                    const fontIndex = fonts.findIndex(f => f.id === usedFallback.fontId);
-                    const fontObj = fonts[fontIndex];
-
-                    // Removed local-only check: always apply fallback settings to ensure global fallback defaults take effect
-
-
-                    // System fonts (no fontObject) use the 'missing/system' color because we can't verify 
-                    // if they are truly used or if the browser fell back to the OS default.
-                    const useMappedColor = fontIndex >= 0 && usedFallback.fontObject;
-                    const baseColor = useMappedColor ? (fallbackSettings.color || colors.primary) : (systemFallbackOverrides[language.id]?.missingColor || missingColor);
-                    const fontColor = showFallbackColors
-                        ? baseColor
-                        : (primarySettings.color || colors.primary);
-
-                    const isVariable = fontObj?.isVariable;
-                    const weight = fallbackSettings.weight || 400;
-
-                    const inlineBoxStyle = showBrowserGuides ? {
-                        outline: '1px solid rgba(59, 130, 246, 0.5)', // Blue-500 @ 50%
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',   // Blue-500 @ 10%
-                        borderRadius: '2px'
-                    } : {};
-
-
-                    // Calculate font size ratio based on BASE sizes, ignoring scale (which is handled by CSS size-adjust)
-                    // We must ensure primary base size is used as the reference since we are in a container likely sized by primary.
-                    const fontSizeEm = fallbackSettings.baseFontSize / primarySettings.baseFontSize;
-
-                    return (
-                        <span
-                            key={index}
-                            style={{
-                                fontFamily: fallbackFontStackString,
-                                color: fontColor,
-                                fontSize: `${fontSizeEm}em`,
-                                // lineHeight removed to allow inheritance of fixed pixel value from parent container
-                                letterSpacing: `${fallbackSettings.letterSpacing}em`,
-                                verticalAlign: 'baseline',
-
-                                fontWeight: weight,
-                                fontVariationSettings: isVariable ? `'wght' ${weight} ` : undefined,
-                                ...inlineBoxStyle
-                            }}
-                        >
-                            {char}
-                        </span>
-                    );
-                }
-
-                const inlineBoxStyle = showBrowserGuides ? {
-                    outline: '1px solid rgba(59, 130, 246, 0.5)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderRadius: '2px'
-                } : {};
-
-                const primaryColor = primarySettings.color || colors.primary;
-                const finalColor = showFallbackColors ? primaryColor : (primarySettings.color || colors.primary);
-
-                return <span key={index} style={{ color: finalColor, verticalAlign: 'baseline', ...inlineBoxStyle }}>{char}</span>;
-            });
+    const renderedContent = useMemo(() => {
+        return renderText({
+            content: contentToRender,
+            languageId: language.id,
+            styleId: activeFontStyleId || 'primary'
         });
-
-        return result;
-    }, [buildFallbackFontStackForStyle, contentToRender, missingColor, systemFallbackOverrides, colors.primary, fontStyles, getEffectiveFontSettingsForStyle, getFontsForStyle, getPrimaryFontFromStyle, language.id, showFallbackColors, showBrowserGuides, getPrimaryFontOverrideForStyle, getFallbackFontOverrideForStyle]);
+    }, [renderText, contentToRender, language.id, activeFontStyleId]);
 
     // Stats based on current content (moved check to end of render)
 
@@ -507,6 +310,33 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
         return getAutoLabel();
     }, [fallbackOverrideFontId, currentFallbackFont, activeMetricsStyleId, getFontsForStyle, metricsFallbackFontStack]);
 
+    const effectiveFallbackFont = useMemo(() => {
+        let effectiveFont = currentFallbackFont;
+        if (!effectiveFont) {
+            const realFallbacks = metricsFallbackFontStack.filter(f => f.fontId !== 'legacy');
+            if (realFallbacks.length > 0) {
+                const fonts = getFontsForStyle(activeMetricsStyleId) || [];
+                effectiveFont = fonts.find(f => f.id === realFallbacks[0].fontId);
+            }
+        }
+        return effectiveFont;
+    }, [currentFallbackFont, metricsFallbackFontStack, activeMetricsStyleId, getFontsForStyle]);
+
+    const handleSelectFallback = (val) => {
+        if (!val) {
+            unmapLanguage(language.id);
+        } else if (val === 'legacy') {
+            setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, 'legacy');
+        } else {
+            mapLanguageToFont(language.id, val);
+        }
+    };
+
+    const handleResetEdit = () => {
+        setEditText(language.sampleSentence);
+        resetTextOverride(language.id);
+    };
+
     const supportHelpText = useMemo(() => {
         const isCJK = ['zh-Hans', 'zh-Hant', 'ja-JP', 'ko-KR'].includes(language.id);
         if (isCJK) {
@@ -522,6 +352,34 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
 
     const isPrimary = primaryLanguages?.includes(language.id);
     const isActive = isHighlighted || activeConfigTab === language.id || (activeConfigTab === 'primary' && isPrimary);
+
+    // Determine the actual font being used for the main view to get its metrics
+    const mainViewStyleId = activeFontStyleId || 'primary';
+    const mainViewAllFonts = getFontsForStyle(mainViewStyleId);
+
+    // Start with the specific choice for this language (the font shown in the badge)
+    let mainViewEffectiveFont = effectiveFallbackFont;
+
+    // If no specific choice, check for primary override (lang-specific split)
+    if (!mainViewEffectiveFont) {
+        const mainViewPrimaryOverrideId = getPrimaryFontOverrideForStyle(mainViewStyleId, language.id);
+        if (mainViewPrimaryOverrideId) {
+            mainViewEffectiveFont = mainViewAllFonts.find(f => f.id === mainViewPrimaryOverrideId);
+        }
+    }
+
+    // Fallback to global primary
+    if (!mainViewEffectiveFont) {
+        mainViewEffectiveFont = getPrimaryFontFromStyle(mainViewStyleId);
+    }
+
+    const mainViewSettings = getEffectiveFontSettingsForStyle(mainViewStyleId, mainViewEffectiveFont?.id || 'primary');
+    const mainViewFontSize = mainViewSettings?.baseFontSize || 16;
+    const mainViewLineHeight = mainViewSettings?.lineHeight || 1.2;
+
+    const mainViewNumericLineHeight = useMemo(() => {
+        return calculateNumericLineHeight(mainViewLineHeight, mainViewEffectiveFont?.fontObject);
+    }, [mainViewLineHeight, mainViewEffectiveFont]);
 
     return (
         <div
@@ -546,200 +404,41 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                 }
             `}
         >
-            <div className="bg-slate-50/50 px-5 py-3 border-b border-gray-100 flex flex-wrap gap-y-2 justify-between items-center backdrop-blur-sm relative z-20 rounded-t-xl">
-                <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <h3 className="font-bold text-sm text-slate-800 tracking-tight truncate">{language.name}</h3>
-                            <span className="text-[10px] font-mono text-slate-600 bg-slate-200/60 border border-slate-200 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                {language.id}
-                            </span>
-                            {isPrimary && (
-                                <div className="flex items-center text-amber-500" title="Primary Language (Always Visible)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                        <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                            )}
-                        </div>
+            <LanguageCardHeader
+                language={language}
+                isPrimary={isPrimary}
+                hasVerifiableFont={hasVerifiableFont}
+                supportHelpText={supportHelpText}
+                supportedPercent={supportedPercent}
+                isFullSupport={isFullSupport}
+                textOverride={textOverrides[language.id]}
+                showFallbackOrder={showFallbackOrder}
+                metricsPrimaryFont={metricsPrimaryFont}
+                currentFallbackFont={currentFallbackFont}
+                effectiveFallbackFont={effectiveFallbackFont}
+                fallbackOverrideFontId={fallbackOverrideFontId}
+                currentFallbackLabel={currentFallbackLabel}
+                isMapped={isMapped}
+                fallbackOverrideOptions={fallbackOverrideOptions}
+                onSelectFallback={handleSelectFallback}
+                menuOpen={configDropdownOpen}
+                onToggleMenu={handleToggleMenu}
+                onCloseMenu={handleCloseMenu}
+                addLanguageSpecificFallbackFont={addLanguageSpecificFallbackFont}
+                onStartEdit={handleStartEdit}
+                onRemove={() => removeConfiguredLanguage(language.id)}
+                onUnmap={handleUnmap}
+            />
 
-                        {hasVerifiableFont ? (
-                            <InfoTooltip content={supportHelpText}>
-                                <div
-                                    className={`text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap ${isFullSupport
-                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                        : 'bg-rose-50 text-rose-600 border-rose-100'
-                                        }`}
-                                >
-                                    {supportedPercent}% Supported
-                                </div>
-                            </InfoTooltip>
-                        ) : (
-                            <div className="text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap bg-slate-100 text-slate-500 border-slate-200">
-                                Unknown Support
-                            </div>
-                        )}
-
-                        {textOverrides[language.id] && (
-                            <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Custom</span>
-                        )}
-                    </div>
-
-                    {/* Font Indicators - Controlled by showFallbackOrder */}
-                    {showFallbackOrder && (
-                        <div className="flex items-center gap-1.5 overflow-hidden pt-1">
-                            {/* Primary Font (Background) */}
-                            {(!currentFallbackFont || (metricsPrimaryFont && currentFallbackFont && metricsPrimaryFont.id !== currentFallbackFont.id && !currentFallbackFont.isPrimaryOverride)) && (
-                                <>
-                                    <span
-                                        className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap"
-                                        title="Primary Font"
-                                    >
-                                        {metricsPrimaryFont?.label || metricsPrimaryFont?.fileName?.replace(/\.[^/.]+$/, '') || metricsPrimaryFont?.name || 'Primary'}
-                                    </span>
-
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-slate-300 flex-shrink-0">
-                                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                                    </svg>
-                                </>
-                            )}
-
-                            {/* Mapped / Auto Font */}
-                            {fallbackOverrideFontId !== 'legacy' && currentFallbackLabel && (() => {
-                                // Resolve effective font for color/style
-                                // If specifically mapped font is valid, use it.
-                                // If NOT mapped, OR mapped font is missing/invalid (broken link), fall back to Auto stack.
-                                let effectiveFont = currentFallbackFont;
-
-                                if (!effectiveFont) {
-                                    // Auto mode OR Broken Mapping: Find the first font in the stack
-                                    const realFallbacks = metricsFallbackFontStack.filter(f => f.fontId !== 'legacy');
-                                    if (realFallbacks.length > 0) {
-                                        const fonts = getFontsForStyle(activeMetricsStyleId) || [];
-                                        effectiveFont = fonts.find(f => f.id === realFallbacks[0].fontId);
-                                    }
-                                }
-
-                                // Treat as mapped ONLY if we have an override ID AND the font actually exists.
-                                // This handles the case where a mapping exists to a deleted font - we show it as Auto/Global.
-                                const isMapped = !!fallbackOverrideFontId && !!currentFallbackFont;
-
-                                return (
-                                    <>
-                                        <div
-                                            className="flex items-center gap-1.5 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide max-w-[200px]"
-                                            style={effectiveFont?.color ? {
-                                                backgroundColor: effectiveFont.color + '1A', // ~10% opacity
-                                                color: effectiveFont.color,
-                                                borderColor: effectiveFont.color + '40', // ~25% opacity
-                                            } : {
-                                                backgroundColor: '#EFF6FF', // blue-50
-                                                color: '#2563EB', // blue-600
-                                                borderColor: '#DBEAFE' // blue-100
-                                            }}
-                                            title={isMapped ? `Mapped to: ${currentFallbackLabel}` : `Using Global Fallback: ${currentFallbackLabel}`}
-                                        >
-                                            {/* Icon */}
-                                            {isMapped ? (
-                                                // Pin Icon (Mapped)
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 flex-shrink-0 opacity-70">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                </svg>
-                                            ) : (
-                                                // Unpin Icon (Unmapped/Global) - "Unmap" style
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 flex-shrink-0 opacity-70">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-                                                </svg>
-                                            )}
-
-                                            <span className="truncate">
-                                                {currentFallbackLabel}
-                                            </span>
-                                        </div>
-
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-slate-300 flex-shrink-0">
-                                            <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                                        </svg>
-                                    </>
-                                );
-                            })()}
-
-                            {/* System Fallback */}
-                            <span
-                                className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide bg-slate-50 text-slate-400 border border-slate-200 whitespace-nowrap opacity-75"
-                                title="System Fallback"
-                            >
-                                System
-                            </span>
-                        </div>
-                    )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <LanguageActionMenu
-                        language={language}
-                        currentFallbackLabel={currentFallbackLabel}
-                        fallbackOverrideFontId={fallbackOverrideFontId}
-                        fallbackOverrideOptions={fallbackOverrideOptions}
-                        isMapped={isMapped}
-                        onSelectFallback={(val) => {
-                            if (!val) {
-                                unmapLanguage(language.id);
-                            } else if (val === 'legacy') {
-                                setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, 'legacy');
-                            } else {
-                                // Use new unified mapping
-                                mapLanguageToFont(language.id, val);
-                            }
-                        }}
-                        isOpen={configDropdownOpen}
-                        onToggle={handleToggleMenu}
-                        onClose={handleCloseMenu}
-                        addLanguageSpecificFallbackFont={addLanguageSpecificFallbackFont}
-                        onStartEdit={handleStartEdit}
-
-                        onRemove={() => removeConfiguredLanguage(language.id)}
-                        onUnmap={handleUnmap}
-                    />
-                </div>
-            </div>
-
-            {/* Edit Mode Panel */}
             {isEditing && (
-                <div className="p-4 bg-slate-50 border-b border-gray-100">
-                    <textarea
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        className="w-full h-24 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none mb-3"
-                        placeholder="Type something..."
-                        dir={language.dir || 'ltr'}
-                    />
-                    <div className="flex justify-end gap-2">
-                        <button
-                            onClick={handleCancel}
-                            className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={() => {
-                                setEditText(language.sampleSentence);
-                                resetTextOverride(language.id); // Clear override to remove "Custom" tag
-                            }}
-                            className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-rose-600 mr-auto"
-                        >
-                            Reset to Default
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-                        >
-                            Save Changes
-                        </button>
-                    </div>
-                </div>
+                <LanguageEditPanel
+                    editText={editText}
+                    setEditText={setEditText}
+                    languageDir={language.dir}
+                    onCancel={handleCancel}
+                    onSave={handleSave}
+                    onReset={handleResetEdit}
+                />
             )}
 
 
@@ -747,8 +446,34 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
 
 
             {/* Set Base Font Size on Container */}
-            {/* Set Base Font Size on Container */}
-            <div className="p-4">
+            <div className="p-6">
+                {/* Standard Body Text View (Fallback for 'simple', 'paragraph', or any non-header mode) */}
+                {!viewMode.startsWith('h') && viewMode !== 'all' && (
+                    <div
+                        dir={language.dir || 'ltr'}
+                        style={{
+                            fontSize: `${mainViewFontSize}px`,
+                            lineHeight: mainViewLineHeight,
+                            position: 'relative' // Needed for absolute positioning of overlay
+                        }}
+                    >
+                        <div className="relative z-20">
+                            {renderedContent}
+                        </div>
+                        {/* Guides Overlay */}
+                        <MetricGuidesOverlay
+                            fontObject={mainViewEffectiveFont?.fontObject}
+                            fontSizePx={mainViewFontSize}
+                            lineHeight={mainViewNumericLineHeight}
+                            showAlignmentGuides={showAlignmentGuides}
+                            showBrowserGuides={showBrowserGuides}
+                            ascentOverride={mainViewSettings?.ascentOverride}
+                            descentOverride={mainViewSettings?.descentOverride}
+                            lineGapOverride={mainViewSettings?.lineGapOverride}
+                        />
+                    </div>
+                )}
+
                 {/* DEBUG: Check viewMode */}
 
                 {viewMode === 'all' && (
@@ -756,500 +481,36 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu }) => 
                         {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((tag) => {
                             const headerStyle = headerStyles?.[tag];
                             // Safety check: ensure headerStyle exists
-                            if (!headerStyle) {
-
-                                return null;
-                            }
-
-
-
-                            const styleIdForTag = resolveStyleIdForHeader(tag);
-                            const currentFallbackFontId = getCurrentFallbackFontIdForStyle(styleIdForTag);
-
-                            // Calculate Base Size for this specific header's style
-                            const fonts = getFontsForStyle(styleIdForTag);
-                            const primaryOverrideId = getPrimaryFontOverrideForStyle(styleIdForTag, language.id);
-                            const fallbackOverrideId = getFallbackFontOverrideForStyle(styleIdForTag, language.id);
-
-                            let primaryFont = null;
-
-
-
-                            // 2. Check Primary Override (Only if no explicit mapping exists)
-                            if (!primaryFont && primaryOverrideId) {
-                                primaryFont = fonts.find(f => f.id === primaryOverrideId);
-                            }
-
-                            // 3. Fallback to Global Primary
-                            if (!primaryFont) {
-                                primaryFont = fonts.find(f => f.type === 'primary');
-                            }
-
-                            // Identify Global Primary (for comparison)
-                            const globalPrimary = fonts.find(f => f.type === 'primary');
-                            const isGlobalPrimary = primaryFont && globalPrimary && primaryFont.id === globalPrimary.id;
-
-
-
-                            const style = fontStyles?.[styleIdForTag];
-                            const styleBaseRem = (primaryFont?.isPrimaryOverride && primaryFont?.baseRem) || style?.baseRem || 16;
-                            const baseFontSize = style?.baseFontSize ?? 60;
-                            const fontScales = style?.fontScales || { active: 100, fallback: 100 };
-                            const lineHeight = style?.lineHeight ?? 1.2;
-
-                            const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight };
-                            // Calculate Final Pixel Size
-                            // Use styleBaseRem from the specific style, not the global baseRem
-
-                            let finalSizePx = headerStyle.scale * styleBaseRem;
-                            if (tag === 'h1' && primaryFont?.isPrimaryOverride && primarySettings?.h1Rem) {
-                                finalSizePx = primarySettings.h1Rem * styleBaseRem;
-                            }
-
-
-
-                            const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
-                                primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== null
-                            );
-
-                            const primaryOverrideLineHeight = hasLineHeightOverride
-                                ? primarySettings.lineHeight
-                                : undefined;
-
-                            const forcedLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
-                                ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
-                                : undefined;
-
-                            const effectiveLineHeight = primaryOverrideLineHeight ?? headerStyle.lineHeight ?? forcedLineHeight ?? lineHeight;
-
-                            // Calculate numeric LH for guide
-                            let numericLineHeight = effectiveLineHeight;
-                            if (effectiveLineHeight === 'normal' || isNaN(Number(effectiveLineHeight))) {
-                                if (primaryFont?.fontObject) {
-                                    const { ascender, descender, unitsPerEm } = primaryFont.fontObject;
-                                    const lineGap = primaryFont.fontObject.tables?.os2?.sTypoLineGap ?? primaryFont.fontObject.hhea?.lineGap ?? 0;
-                                    numericLineHeight = (Math.abs(ascender) + Math.abs(descender) + lineGap) / unitsPerEm;
-                                } else {
-                                    numericLineHeight = 1.2; // Default fallback if no metrics
-                                }
-                            }
-                            // Note: 'lineHeight' var comes from style default above
-
-                            // Note: 'lineHeight' var comes from style default above
-
-                            const alignmentStyle = getAlignmentGuideStyle(
-                                primaryFont,
-                                effectiveLineHeight,
-                                finalSizePx
-                            );
-
-                            const browserGuideStyle = showBrowserGuides ? {
-                                backgroundImage: `repeating-linear-gradient(
-    to bottom,
-    rgba(59, 130, 246, 0.05) 0em,
-    rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
-    rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
-    rgba(59, 130, 246, 0.2) ${numericLineHeight}em
-)`,
-                                backgroundSize: `100% ${numericLineHeight}em`
-                            } : {};
+                            if (!headerStyle) return null;
 
                             return (
-                                <div key={tag}>
-                                    <span className="text-[10px] text-slate-400 font-mono uppercase mb-1 block">{tag}</span>
-                                    <div
-                                        dir={language.dir || 'ltr'}
-                                        style={{
-                                            // Usage: If it's NOT the global primary (meaning it's an Override or Mapped Font), use specific ID reference
-                                            fontFamily: !isGlobalPrimary && primaryFont
-                                                ? `'FallbackFont-${styleIdForTag}-${primaryFont.id}'`
-                                                : `UploadedFont-${styleIdForTag}`,
-                                            color: primaryFont?.color || colors.primary,
-                                            fontSize: `${finalSizePx}px`,
-                                            fontWeight: primarySettings.weight || 400,
-                                            fontVariationSettings: primaryFont?.isVariable ? `'wght' ${primarySettings.weight || 400}` : undefined,
-                                            lineHeight: (
-                                                (primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '') ||
-                                                (primarySettings.ascentOverride !== undefined && primarySettings.ascentOverride !== '') ||
-                                                (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
-                                            ) ? 'normal'
-                                                : effectiveLineHeight,
-                                            letterSpacing: `${primarySettings.letterSpacing ?? headerStyle.letterSpacing ?? 0}em`,
-                                            textTransform: textCase,
-                                            position: 'relative',
-                                            ...browserGuideStyle
-                                        }}
-                                    >
-                                        {renderedTextByStyleId[styleIdForTag] || contentToRender}
-                                        {alignmentStyle.backgroundImage && (
-                                            <div
-                                                aria-hidden="true"
-                                                style={{
-                                                    position: 'absolute',
-                                                    inset: 0,
-                                                    pointerEvents: 'none',
-                                                    zIndex: 10,
-                                                    ...alignmentStyle
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
+                                <HeaderPreviewRow
+                                    key={tag}
+                                    tag={tag}
+                                    language={language}
+                                    headerStyle={headerStyle}
+                                />
                             );
                         })}
                     </div>
                 )}
 
-                {viewMode.startsWith('h') && (
-                    (() => {
-                        const styleIdForTag = resolveStyleIdForHeader(viewMode);
-                        const headerStyle = headerStyles?.[viewMode];
-
-                        // Safety check: ensure headerStyle exists
-                        if (!headerStyle) {
-
-                            return null;
-                        }
-
-                        const currentFallbackFontId = getCurrentFallbackFontIdForStyle(styleIdForTag);
-
-                        // Calculate Base Size
-                        const fonts = getFontsForStyle(styleIdForTag);
-                        const primaryOverrideId = getPrimaryFontOverrideForStyle(styleIdForTag, language.id);
-                        let primaryFont = primaryOverrideId
-                            ? fonts.find(f => f.id === primaryOverrideId)
-                            : null;
-
-                        if (!primaryFont) {
-                            primaryFont = fonts.find(f => f.type === 'primary');
-                        }
-
-                        const style = fontStyles?.[styleIdForTag];
-                        const styleBaseRem = (primaryFont?.isPrimaryOverride && primaryFont?.baseRem) || style?.baseRem || 16;
-                        const baseFontSize = style?.baseFontSize ?? 60;
-                        const fontScales = style?.fontScales || { active: 100, fallback: 100 };
-                        const lineHeight = style?.lineHeight ?? 1.2;
-
-                        const primarySettings = getEffectiveFontSettingsForStyle(styleIdForTag, primaryFont?.id || 'primary') || { baseFontSize, scale: fontScales.active, lineHeight, weight: 400 };
-                        const weight = primarySettings.weight || 400;
-                        const isVariable = primaryFont?.isVariable;
-
-                        // Calculate Final Pixel Size
-                        // Use styleBaseRem from the specific style, not the global baseRem
-                        let finalSizePx = headerStyle.scale * styleBaseRem;
-                        if (viewMode === 'h1' && primaryFont?.isPrimaryOverride && primarySettings?.h1Rem) {
-                            finalSizePx = primarySettings.h1Rem * styleBaseRem;
-                        }
-
-
-
-                        const forcedLineHeight = currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy'
-                            ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
-                            : undefined;
-
-                        const hasLineHeightOverride = primaryFont?.isPrimaryOverride && (
-                            primaryFont?.lineHeight !== undefined && primaryFont?.lineHeight !== null
-                        );
-
-                        const primaryOverrideLineHeight = hasLineHeightOverride
-                            ? primarySettings.lineHeight
-                            : undefined;
-
-                        const effectiveLineHeight = primaryOverrideLineHeight ?? headerStyle.lineHeight ?? forcedLineHeight ?? lineHeight;
-
-
-
-                        const alignmentStyle = getAlignmentGuideStyle(
-                            primaryFont,
-                            effectiveLineHeight,
-                            finalSizePx
-                        );
-
-                        // Calculate numeric LH for guide
-                        let numericLineHeight = effectiveLineHeight;
-                        if (effectiveLineHeight === 'normal' || isNaN(Number(effectiveLineHeight))) {
-                            if (metricsPrimaryFontObject) {
-                                const { ascender, descender, unitsPerEm } = metricsPrimaryFontObject;
-                                const lineGap = metricsPrimaryFontObject.tables?.os2?.sTypoLineGap ?? metricsPrimaryFontObject.hhea?.lineGap ?? 0;
-                                numericLineHeight = (Math.abs(ascender) + Math.abs(descender) + lineGap) / unitsPerEm;
-                            } else {
-                                numericLineHeight = 1.2; // Default fallback if no metrics
-                            }
-                        }
-
-                        // Browser Guide: Line Box Visualization
-                        // Vertical repeating stripes matching effectiveLineHeight
-                        const browserGuideStyle = showBrowserGuides ? {
-                            backgroundImage: `repeating-linear-gradient(
-    to bottom,
-    rgba(59, 130, 246, 0.05) 0em,
-    rgba(59, 130, 246, 0.05) ${numericLineHeight - 0.05}em,
-    rgba(59, 130, 246, 0.2) ${numericLineHeight - 0.05}em,
-    rgba(59, 130, 246, 0.2) ${numericLineHeight}em
-)`,
-                            backgroundSize: `100% ${numericLineHeight}em`
-                        } : {};
-
-                        const isActualOverride = primaryFont?.id === primaryOverrideId;
-
-                        return (
-                            <div className="p-4">
-                                <div
-                                    dir={language.dir || 'ltr'}
-                                    style={{
-                                        fontFamily: isActualOverride ? `'FallbackFont-${styleIdForTag}-${primaryOverrideId}'` : `UploadedFont-${styleIdForTag}`,
-                                        color: primaryFont?.color || colors.primary,
-                                        fontSize: `${finalSizePx}px`,
-                                        fontWeight: weight,
-                                        fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
-                                        lineHeight: (
-                                            (primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '') ||
-                                            (primarySettings.ascentOverride !== undefined && primarySettings.ascentOverride !== '') ||
-                                            (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
-                                        ) ? 'normal'
-                                            : effectiveLineHeight,
-                                        letterSpacing: `${primarySettings.letterSpacing ?? headerStyle.letterSpacing ?? 0}em`,
-                                        textTransform: textCase,
-                                        position: 'relative',
-                                        ...browserGuideStyle
-                                    }}
-                                >
-                                    {renderedTextByStyleId[styleIdForTag] || contentToRender}
-                                    {alignmentStyle.backgroundImage && (
-                                        <div
-                                            aria-hidden="true"
-                                            style={{
-                                                position: 'absolute',
-                                                inset: 0,
-                                                pointerEvents: 'none',
-                                                zIndex: 10,
-                                                ...alignmentStyle
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })()
+                {viewMode.startsWith('h') && headerStyles?.[viewMode] && (
+                    <div className="p-0">
+                        <HeaderPreviewRow
+                            tag={viewMode}
+                            language={language}
+                            headerStyle={headerStyles[viewMode]}
+                            hideLabel={true}
+                        />
+                    </div>
                 )}
             </div>
         </div>
     );
 };
 
-const LanguageActionMenu = ({
-    language,
-    currentFallbackLabel,
-    fallbackOverrideFontId,
-    fallbackOverrideOptions,
-    onSelectFallback,
-    isOpen,
-    onToggle,
-    onClose,
-    addLanguageSpecificFallbackFont,
-    onStartEdit,
-    onUnmap,
-    isMapped,
 
-    onRemove
-}) => {
-    const dropdownRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const [showFontModal, setShowFontModal] = useState(false);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                onClose();
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen, onClose]);
-
-
-    const handleFileUpload = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            const { font: parsedFont, metadata } = await parseFontFile(file);
-            const url = createFontUrl(file);
-
-            addLanguageSpecificFallbackFont(
-                parsedFont,
-                url,
-                file.name,
-                metadata,
-                language.id
-            );
-
-            onClose();
-        } catch (err) {
-            console.error('Error uploading fallback font:', err);
-            alert('Failed to load font file. Please try another file.');
-        } finally {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".ttf,.otf,.woff,.woff2"
-                onChange={handleFileUpload}
-            />
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onToggle();
-                }}
-                className={`
-                    p-1.5 rounded-lg transition-all duration-200
-                    ${isOpen
-                        ? 'bg-indigo-50 text-indigo-600 ring-2 ring-indigo-500/20'
-                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                    }
-                `}
-                title="Language Settings"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                    <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 14a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
-                </svg>
-            </button>
-
-            {isOpen && (
-                <div
-                    className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-100 rounded-xl shadow-xl shadow-slate-200/50 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 slide-in-from-top-2 origin-top-right"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="p-1.5 space-y-0.5">
-                        {/* Text Actions Section */}
-                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Text Content
-                        </div>
-                        <button
-                            onClick={() => {
-                                onStartEdit();
-                                onClose();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-indigo-600">
-                                <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
-                                <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
-                            </svg>
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Edit Sample Sentence</span>
-                        </button>
-                        <div className="my-1 border-t border-slate-100" />
-
-                        {/* Font Settings Section */}
-                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Typography
-                        </div>
-                        <button
-                            onClick={() => {
-                                setShowFontModal(true);
-                                onClose();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
-                        >
-                            <div className="w-4 h-4 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:text-indigo-600 font-serif italic">Aa</div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Map Font</div>
-                                <div className="text-[10px] text-slate-400 truncate">{currentFallbackLabel}</div>
-                            </div>
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                fileInputRef.current?.click();
-                                onClose();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-indigo-600">
-                                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                            </svg>
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Upload Font</span>
-                        </button>
-
-                        {isMapped && (
-                            <button
-                                onClick={() => {
-                                    onUnmap();
-                                    onClose();
-                                }}
-                                className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-slate-50"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-indigo-600">
-                                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                                </svg>
-                                <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Unmap Language</span>
-                            </button>
-                        )}
-
-                        <div className="my-1 border-t border-slate-100" />
-
-                        {/* Danger Zone */}
-                        <button
-                            onClick={() => {
-                                if (window.confirm(`Remove ${language.name} from your list?`)) {
-                                    onRemove();
-                                    onClose();
-                                }
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 group transition-colors hover:bg-rose-50"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-slate-400 group-hover:text-rose-600">
-                                <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 007.542-2.53l.841-10.518.149.022a.75.75 0 00.23-1.482 41.038 41.038 0 00-2.365-.298V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4V2.5h1.25c.69 0 1.25.56 1.25 1.25v.302c-.833-.051-1.666-.076-2.5-.076s-1.667.025-2.5.076V3.75A1.25 1.25 0 018.75 2.5H10zM14.25 7.75l-.822 10.276a1.25 1.25 0 01-1.247 1.153H7.819a1.25 1.25 0 01-1.247-1.153L5.75 7.75h8.5z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-sm font-medium text-slate-700 group-hover:text-rose-700">Remove Language</span>
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Font Selection Modal */}
-            {showFontModal && (
-                <FontSelectionModal
-                    onClose={() => setShowFontModal(false)}
-                    onSelect={onSelectFallback}
-                    currentFontId={fallbackOverrideFontId || ''}
-                    fontOptions={fallbackOverrideOptions}
-                    title={`Select Font for ${language.name}`}
-                />
-            )}
-        </div>
-    );
-};
-
-LanguageActionMenu.propTypes = {
-    language: PropTypes.object.isRequired,
-    currentFallbackLabel: PropTypes.string.isRequired,
-    fallbackOverrideFontId: PropTypes.string,
-    fallbackOverrideOptions: PropTypes.array.isRequired,
-    onSelectFallback: PropTypes.func.isRequired,
-    isOpen: PropTypes.bool.isRequired,
-    onToggle: PropTypes.func.isRequired,
-    onClose: PropTypes.func.isRequired,
-    addLanguageSpecificFallbackFont: PropTypes.func.isRequired,
-    onStartEdit: PropTypes.func.isRequired,
-    onUnmap: PropTypes.func.isRequired,
-    isMapped: PropTypes.bool.isRequired,
-
-    onRemove: PropTypes.func.isRequired
-};
 
 LanguageCard.propTypes = {
     language: PropTypes.shape({

@@ -1,7 +1,7 @@
-import { useTypo } from '../context/useTypo';
+import { useUI } from '../context/UIContext';
 
 const TextCasingSelector = ({ variant = 'default' }) => {
-    const { textCase, setTextCase } = useTypo();
+    const { textCase, setTextCase } = useUI();
 
     const options = [
         { id: 'none', label: '–' },

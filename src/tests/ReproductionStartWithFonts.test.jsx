@@ -4,6 +4,16 @@ import { vi } from 'vitest';
 import React, { useEffect } from 'react';
 import { useTypo } from '../context/useTypo';
 import { TypoProvider } from '../context/TypoContext';
+import { UIProvider } from '../context/UIContext';
+
+vi.mock('../services/PersistenceService', () => ({
+    PersistenceService: {
+        saveConfig: vi.fn(),
+        loadConfig: vi.fn().mockResolvedValue({}),
+        clearConfig: vi.fn(),
+        initDB: vi.fn().mockResolvedValue(),
+    }
+}));
 
 // We need to test TypoContext STATE, not just UI.
 // So we'll creating a test component that uses useTypo and exposes state for verification.
@@ -45,9 +55,11 @@ describe('Start with Fonts Flow Reproduction', () => {
         const onState = (s) => { currentState = s; };
 
         render(
-            <TypoProvider>
-                <TestComponent onState={onState} />
-            </TypoProvider>
+            <UIProvider>
+                <TypoProvider>
+                    <TestComponent onState={onState} />
+                </TypoProvider>
+            </UIProvider>
         );
 
         // Simulation of FontUploader logic
@@ -132,13 +144,15 @@ test('Start with Fonts Logic Flow', async () => {
     };
 
     render(
-        <TypoProvider>
-            <TestComponent onState={(s) => { finalContext = s; }} />
-            <ScenarioRunner
-                scenario={scenario}
-                onCheck={() => { }} // No-op, we rely on TestComponent logic
-            />
-        </TypoProvider>
+        <UIProvider>
+            <TypoProvider>
+                <TestComponent onState={(s) => { finalContext = s; }} />
+                <ScenarioRunner
+                    scenario={scenario}
+                    onCheck={() => { }} // No-op, we rely on TestComponent logic
+                />
+            </TypoProvider>
+        </UIProvider>
     );
 
     // Wait for updates (simulating React ticks)
