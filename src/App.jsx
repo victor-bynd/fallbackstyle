@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useTypo } from './context/useTypo';
 import { useUI } from './context/UIContext';
 import LandingPage from './components/LandingPage';
@@ -18,7 +18,7 @@ import FontComparisonSelectorModal from './components/FontComparisonSelectorModa
 import FontComparisonView from './components/FontComparisonView';
 import FontFilter from './components/FontFilter'; // New Import
 import ExportCSSModal from './components/ExportCSSModal';
-import { parseFontFile, createFontUrl } from './services/FontLoader';
+import { createFontUrl } from './services/FontLoader';
 import { safeParseFontFile } from './services/SafeFontLoader';
 import { useConfigImport } from './hooks/useConfigImport';
 import { useFontFaceStyles } from './hooks/useFontFaceStyles';
@@ -33,7 +33,7 @@ const MainContent = ({
   sidebarMode,
   setSidebarMode,
   selectedGroup,
-  // setSelectedGroup - UNUSED
+  setSelectedGroup,
   // onAddLanguage - UNUSED
   showLanguageModal,
   setShowLanguageModal,
@@ -44,14 +44,13 @@ const MainContent = ({
   activeConfigModal,
   setActiveConfigModal,
   searchQuery,
+  setSearchQuery,
   expandedGroups, // New Prop
   fontFilter, // Lifted Prop
   setFontFilter // Lifted Prop
 }) => {
   const {
     fontObject,
-    fontStyles,
-    headerStyles,
     primaryFontOverrides,
     fallbackFontOverrides,
     addConfiguredLanguage,
@@ -59,7 +58,6 @@ const MainContent = ({
     // isLanguageMapped - UNUSED
     supportedLanguages, // New export
     mappedLanguageIds,
-    languages,
     configuredLanguages,
     primaryLanguages, // New
 
@@ -226,7 +224,7 @@ const MainContent = ({
 
   const visibleCount = visibleLanguagesList.length;
   const totalCount = supportedLanguages.length;
-  const isFiltered = visibleCount < totalCount;
+
 
   const { importConfig, missingFonts, existingFiles, resolveMissingFonts, cancelImport, parsedMappings } = useConfigImport();
   // Removed local showLanguageSelector state
@@ -268,7 +266,7 @@ const MainContent = ({
   }, [activeConfigTab, highlitLanguageId, setHighlitLanguageId, primaryLanguages]);
 
   // Centralized Scroll Logic
-  const lastMainScrolledId = useRef(null);
+
 
   useEffect(() => {
     // Scroll Logic
@@ -531,11 +529,11 @@ const MainContent = ({
           >
             <div
               ref={toolbarRef}
-              className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-4 min-h-[34px]"
+              className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4 min-h-[34px]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* LEFT: Live Demo Title */}
-              <div className="flex items-start gap-2">
+              <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-slate-800 uppercase tracking-widest whitespace-nowrap">
                   TYPE DEMO
                 </span>
@@ -626,11 +624,10 @@ const MainContent = ({
                   /* UI: Settings / Config Button */
                   onClick={() => setShowListSettings(!showListSettings)}
                   className={`
-                    p-2 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 w-[34px] h-[34px]
-                    ${!isToolbarVisible ? 'shadow-[0_20px_50px_rgba(0,0,0,0.08),0_10px_30px_rgba(0,0,0,0.04)]' : ''}
+                    p-2 rounded-md transition-all duration-200 flex items-center justify-center gap-2 w-[34px] h-[34px] border
                     ${showListSettings
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                      : 'bg-white border-gray-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-slate-50'
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200/50'
+                      : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
                     }
                 `}
                 >
@@ -802,30 +799,55 @@ const MainContent = ({
               </div>
             )}
             <div className="grid gap-4 transition-all duration-300 ease-in-out relative" style={{ gridTemplateColumns: `repeat(${fontObject ? gridColumns : 1}, minmax(0, 1fr))` }}>
-              <AnimatePresence initial={false}>
-                {visibleLanguagesList.map(lang => (
-                  <motion.div
-                    key={lang.id}
-                    className="h-full"
-                    style={{ zIndex: activeMenuId === lang.id ? 50 : 1 }}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{
-                      opacity: 0,
-                      transition: { duration: 0.2 }
+              {visibleLanguagesList.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">
+                  <div className="w-12 h-12 mb-4 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                  <h3 className="text-slate-900 font-bold mb-1">No languages match your filters</h3>
+                  <p className="text-slate-500 text-sm mb-4 max-w-xs mx-auto">
+                    Try adjusting your search query, group filters, or font filters to see more results.
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (setSearchQuery) setSearchQuery('');
+                      if (setSelectedGroup) setSelectedGroup('ALL');
+                      if (setFontFilter) setFontFilter([]);
                     }}
-                    transition={{ duration: 0.3 }}
+                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-indigo-100 transition-colors"
                   >
-                    <LanguageCard
-                      language={lang}
-                      isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
-                      isMenuOpen={activeMenuId === lang.id}
-                      onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
-                      setHighlitLanguageId={setHighlitLanguageId}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    Clear All Filters
+                  </button>
+                </div>
+              ) : (
+                <AnimatePresence initial={false}>
+                  {visibleLanguagesList.map(lang => (
+                    <motion.div
+                      key={lang.id}
+                      className="h-full"
+                      style={{ zIndex: activeMenuId === lang.id ? 50 : 1 }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{
+                        opacity: 0,
+                        transition: { duration: 0.2 }
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <LanguageCard
+                        language={lang}
+                        isHighlighted={highlitLanguageId === lang.id || (highlitLanguageId === 'primary' && primaryLanguages.includes(lang.id))}
+                        isMenuOpen={activeMenuId === lang.id}
+                        onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
+                        setHighlitLanguageId={setHighlitLanguageId}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
             </div>
           </div>
         )
@@ -960,6 +982,7 @@ function App() {
           activeConfigModal={activeConfigModal}
           setActiveConfigModal={setActiveConfigModal}
           searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
           expandedGroups={expandedGroups}
           fontFilter={fontFilter} // New Sync Prop
           setFontFilter={setFontFilter} // Lifted Prop

@@ -48,18 +48,18 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
 
         let pFont = null;
         if (currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy') {
-            pFont = fonts.find(f => f.id === currentFallbackFontId);
+            pFont = fonts.find(f => f && f.id === currentFallbackFontId);
         }
 
         if (!pFont && primaryOverrideId) {
-            pFont = fonts.find(f => f.id === primaryOverrideId);
+            pFont = fonts.find(f => f && f.id === primaryOverrideId);
         }
 
         if (!pFont) {
-            pFont = fonts.find(f => f.type === 'primary');
+            pFont = fonts.find(f => f && f.type === 'primary');
         }
 
-        const globalPrimary = fonts.find(f => f.type === 'primary');
+        const globalPrimary = fonts.find(f => f && f.type === 'primary');
         const isGlobal = pFont && globalPrimary && pFont.id === globalPrimary.id;
 
         const style = fontStyles?.[styleIdForTag];
@@ -115,8 +115,8 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
         lineHeight: ((primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '') ||
             (primarySettings.ascentOverride !== undefined && primarySettings.ascentOverride !== '') ||
             (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== ''))
-            ? 'normal'
-            : effectiveLineHeight,
+            ? numericLineHeight
+            : numericLineHeight,
         letterSpacing: `${primarySettings.letterSpacing || 0}em`,
         position: 'relative'
     };

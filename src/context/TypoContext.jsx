@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { fallbackOptions, DEFAULT_PALETTE } from '../data/constants';
+import { DEFAULT_PALETTE } from '../data/constants';
 import languagesData from '../data/languages.json';
 import sampleSentences from '../data/sampleSentences.json';
 
@@ -94,7 +94,7 @@ export const TypoProvider = ({ children }) => {
 
     const getPrimaryFontFromStyle = (styleId) => {
         const style = fontStyles[styleId];
-        return style?.fonts?.find(f => f.type === 'primary') || null;
+        return style?.fonts?.find(f => f && f.type === 'primary') || null;
     };
 
     const primaryFont = getPrimaryFontFromStyle('primary');
@@ -558,7 +558,7 @@ export const TypoProvider = ({ children }) => {
         const initialWeight = metadata.axes?.weight?.default ?? metadata.staticWeight ?? 400;
 
         updateStyleState(styleId, prev => {
-            const oldPrimary = (prev.fonts || []).find(f => f.type === 'primary');
+            const oldPrimary = (prev.fonts || []).find(f => f && f.type === 'primary');
             const primaryLangIds = prev.primaryLanguages || [];
             const primaryOverrides = prev.primaryFontOverrides || {};
 
@@ -572,8 +572,9 @@ export const TypoProvider = ({ children }) => {
                 staticWeight: metadata.staticWeight ?? null
             };
 
-            const newFonts = (prev.fonts || []).some(f => f.type === 'primary')
+            const newFonts = (prev.fonts || []).some(f => f && f.type === 'primary')
                 ? prev.fonts.map(f => {
+                    if (!f) return f;
                     if (f.type === 'primary') {
                         return {
                             ...f,
@@ -619,7 +620,7 @@ export const TypoProvider = ({ children }) => {
             return {
                 ...prev,
                 lineHeight: 'normal', // Reset to Auto when loading a new primary font
-                weight: prev.fonts.some(f => f.type === 'primary')
+                weight: prev.fonts.some(f => f && f.type === 'primary')
                     ? resolveWeightForFont(
                         {
                             fontObject: font,
@@ -640,7 +641,7 @@ export const TypoProvider = ({ children }) => {
         const style = fontStyles[styleId];
         if (!style) return null;
 
-        const font = style.fonts.find(f => f.id === fontId);
+        const font = style.fonts.find(f => f && f.id === fontId);
         if (!font) return null;
 
         if (font.type === 'primary' && !font.isPrimaryOverride) {
@@ -663,12 +664,12 @@ export const TypoProvider = ({ children }) => {
             if (font.parentId) {
                 // Return the parent font, but ONLY if it's NOT the same font (prevention)
                 if (font.parentId === fontId) return null;
-                return style.fonts.find(f => f.id === font.parentId);
+                return style.fonts.find(f => f && f.id === font.parentId);
             }
 
             // Fallback: match by name/fileName for older state
             if (font.isClone || font.isLangSpecific) {
-                return style.fonts.find(f =>
+                return style.fonts.find(f => f &&
                     !f.isClone &&
                     !f.isLangSpecific &&
                     f.fileName === font.fileName &&
@@ -745,10 +746,10 @@ export const TypoProvider = ({ children }) => {
     };
 
     // Helper to get primary font from fonts array
-    const getPrimaryFont = () => fonts.find(f => f.type === 'primary');
+    const getPrimaryFont = () => fonts.find(f => f && f.type === 'primary');
 
     const getFontsForStyle = (styleId) => {
-        return (fontStyles[styleId]?.fonts || []).slice();
+        return (fontStyles[styleId]?.fonts || []).filter(Boolean);
     };
 
     // Helper to check if a font is a system font (added by name, no uploaded file)
@@ -794,7 +795,7 @@ export const TypoProvider = ({ children }) => {
     const addFallbackFont = (fontData) => {
         setFonts(prev => {
             // Check for duplication against primary font
-            const primary = prev.find(f => f.type === 'primary');
+            const primary = prev.find(f => f && f.type === 'primary');
             if (primary) {
                 const pName = normalizeFontName(primary.fileName || primary.name);
                 const nName = normalizeFontName(fontData.fileName || fontData.name);
@@ -991,10 +992,10 @@ export const TypoProvider = ({ children }) => {
 
             let nextFonts = [...fonts];
             if (existingOverrideFontId) {
-                const existingFont = nextFonts.find(f => f.id === existingOverrideFontId);
+                const existingFont = nextFonts.find(f => f && f.id === existingOverrideFontId);
                 // Only remove if it was a language specific font (avoid removing system refs if that case existed)
                 if (existingFont && existingFont.isLangSpecific) {
-                    nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+                    nextFonts = nextFonts.filter(f => f && f.id !== existingOverrideFontId);
                 }
             }
 
@@ -1146,7 +1147,7 @@ export const TypoProvider = ({ children }) => {
 
             const existingOverrideFontId = prev.primaryFontOverrides?.[langId];
             if (existingOverrideFontId) {
-                nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+                nextFonts = nextFonts.filter(f => f && f.id !== existingOverrideFontId);
             }
 
             nextFonts.push(newFont);
@@ -1207,7 +1208,7 @@ export const TypoProvider = ({ children }) => {
                 const existingOverride = nextPrimaryOverrides[langId];
 
                 if (existingOverride) {
-                    nextFonts = nextFonts.filter(f => f.id !== existingOverride);
+                    nextFonts = nextFonts.filter(f => f && f.id !== existingOverride);
                 }
 
                 nextFonts.push(newFont);
@@ -1249,7 +1250,7 @@ export const TypoProvider = ({ children }) => {
 
             if (existingOverride) {
                 // If there was already an override, remove it
-                nextFonts = nextFonts.filter(f => f.id !== existingOverride);
+                nextFonts = nextFonts.filter(f => f && f.id !== existingOverride);
             }
 
             // 3. Add New Font
@@ -1312,7 +1313,7 @@ export const TypoProvider = ({ children }) => {
 
             const existingOverrideFontId = prev.primaryFontOverrides?.[langId];
             if (existingOverrideFontId) {
-                nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+                nextFonts = nextFonts.filter(f => f && f.id !== existingOverrideFontId);
             }
 
             nextFonts.push(newFont);
@@ -1385,7 +1386,7 @@ export const TypoProvider = ({ children }) => {
                 if (oldFont && (oldFont.isLangSpecific || oldFont.isClone) && existingOverrideFontId !== targetFontId) {
                     // Check if anyone ELSE uses this old font before deleting? 
                     // To stay safe and simple, we only delete if it was a lang-specific clone.
-                    nextFonts = nextFonts.filter(f => f.id !== existingOverrideFontId);
+                    nextFonts = nextFonts.filter(f => f && f.id !== existingOverrideFontId);
                 }
             }
 
@@ -1744,7 +1745,6 @@ export const TypoProvider = ({ children }) => {
         updateStyleState(styleId, prev => {
             const nextFonts = [...(prev.fonts || [])];
             let isRootMapped = false;
-            let targetLangId = null;
 
             // Check Fallback Overrides
             const nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
@@ -1787,7 +1787,7 @@ export const TypoProvider = ({ children }) => {
             if (fontIndex !== -1) {
                 // DECISION: Should we Delete or Promote?
                 const fontToRemove = nextFonts[fontIndex];
-                const primaryFont = nextFonts.find(f => f.type === 'primary' && !f.isPrimaryOverride);
+                const primaryFont = nextFonts.find(f => f && f.type === 'primary' && !f.isPrimaryOverride);
 
                 // Check if it is a clone of the Primary Font
                 const isPrimaryClone = primaryFont && (
@@ -2120,7 +2120,7 @@ export const TypoProvider = ({ children }) => {
         const styleId = activeFontStyleId;
         updateStyleState(styleId, prev => {
             const fonts = prev.fonts || [];
-            const targetFont = fonts.find(f => f.id === fontId);
+            const targetFont = fonts.find(f => f && f.id === fontId);
 
             // If font not found, just return
             if (!targetFont) return prev;
@@ -2130,6 +2130,7 @@ export const TypoProvider = ({ children }) => {
 
             // Scan for clones/derived fonts to also remove
             fonts.forEach(f => {
+                if (!f) return;
                 if (idsToRemove.has(f.id)) return;
 
                 // Check if this is a derived font (lang specific, override, clone)
@@ -2250,6 +2251,7 @@ export const TypoProvider = ({ children }) => {
             // Reassign types based on new position
             // Index 0 is always Primary, others are Fallback
             const finalFonts = newFonts.map((font, index) => {
+                if (!font) return font;
                 const nextType = index === 0 ? 'primary' : 'fallback';
 
                 // Check if we need to swap color for this font
@@ -2996,7 +2998,7 @@ export const TypoProvider = ({ children }) => {
         updateStyleState(styleId, prev => ({
             ...prev,
             fonts: prev.fonts.map(f =>
-                f.id === fontId && f.type === 'fallback'
+                f && f.id === fontId && f.type === 'fallback'
                     ? {
                         ...f,
                         baseFontSize: undefined,
@@ -3068,7 +3070,7 @@ export const TypoProvider = ({ children }) => {
             showFallbackColors,
             showAlignmentGuides,
             showBrowserGuides,
-            appName: 'localize-type',
+            appName: 'fallback-style',
             DEFAULT_PALETTE
         });
     }, [
@@ -3126,6 +3128,7 @@ export const TypoProvider = ({ children }) => {
             if (!style) return createEmptyStyleState();
 
             const newFonts = await Promise.all((style.fonts || []).map(async (font) => {
+                if (!font) return null; // Safety check for corrupted state
                 let fontObject = null;
                 let fontUrl = null;
                 let metadata = {
@@ -3163,7 +3166,7 @@ export const TypoProvider = ({ children }) => {
             return {
                 ...createEmptyStyleState(),
                 ...style,
-                fonts: newFonts
+                fonts: newFonts.filter(Boolean)
             };
         };
 
@@ -3277,7 +3280,7 @@ export const TypoProvider = ({ children }) => {
                 showAlignmentGuides,
                 showBrowserGuides,
                 showFallbackOrder,
-                appName: 'localize-type',
+                appName: 'fallback-style',
                 DEFAULT_PALETTE
             };
 
@@ -3409,8 +3412,7 @@ export const TypoProvider = ({ children }) => {
             restoreConfiguration,
             assignFontToMultipleLanguages,
 
-            // NEW: Multi-font system
-            fontStyles,
+
             fonts,
             setFonts,
             updateFontColor,

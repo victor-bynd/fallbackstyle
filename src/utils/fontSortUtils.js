@@ -7,9 +7,9 @@ languages.forEach((l, i) => languageOrderMap.set(l.id, i));
 export const isSystemFont = (font) => !font.fontObject;
 
 export const groupAndSortFonts = (fonts, fallbackOverridesMap, primaryOverridesMap) => {
-    const primary = (fonts || []).find(f => f.type === 'primary' && !f.isPrimaryOverride);
-    const allFallback = (fonts || []).filter(f => f.type === 'fallback' && !f.isPrimaryOverride);
-    const primaryOverrides = (fonts || []).filter(f => f.isPrimaryOverride || (f.type === 'primary' && f.id !== 'primary'));
+    const primary = (fonts || []).find(f => f && f.type === 'primary' && !f.isPrimaryOverride);
+    const allFallback = (fonts || []).filter(f => f && f.type === 'fallback' && !f.isPrimaryOverride);
+    const primaryOverrides = (fonts || []).filter(f => f && (f.isPrimaryOverride || (f.type === 'primary' && f.id !== 'primary')));
 
     // --- Process Primary Overrides (Standalone) ---
     const primaryOverridesList = [];

@@ -1,10 +1,10 @@
-# Localize Type
+# Fallback Style
 
 **A powerful web-based tool for stress-testing and fine-tuning font stacks across global languages.**
 
-Localize Type helps designers and developers gain granular control over typography when "brand fonts" need to share the stage with system or fallback fonts for localized content.
+Fallback Style helps designers and developers gain granular control over typography when "brand fonts" need to share the stage with system or fallback fonts for localized content.
 
-## Why Localize Type?
+## Why Fallback Style?
 
 Typography is often designed with a single primary language in mind. However, when your application scales to support global languages (Greek, Cyrillic, Thai, Arabic, CJK, etc.), your carefully chosen "Brand Font" may drop characters it doesn't support.
 
@@ -14,7 +14,7 @@ This forces the browser to rely on **Fallback Fonts**, which often leads to:
 - **"Tofu" & Missing Glyphs:** Without a proper strategy, users see empty boxes (□) instead of text.
 - **Baseline Alignment Issues:** Mixing fonts often breaks the visual rhythm of your text.
 
-**Localize Type** solves this by letting you:
+**Fallback Style** solves this by letting you:
 1.  **Visualize** exactly where your primary font fails and fallback fonts take over.
 2.  **Tune** the fallback fonts (scale, weight, line-height) to match your primary font perfectly.
 3.  **Export** production-ready CSS to ensure your live site looks exactly like your design.
@@ -23,36 +23,38 @@ This forces the browser to rely on **Fallback Fonts**, which often leads to:
 
 ## Key Features
 
-### 1. Smart Font Stacking
+### 1. Header & Type Scale Manager
+- **Visual Typography System:** Define and preview your entire type scale (H1-H6 + Body) in one view.
+- **Detached Styles:** Unlink specific headers (e.g., H1) from the global system to give them unique fonts, weights, or line-heights while keeping other elements consistent.
+- **Live Preview:** See changes instantly across all enabled languages.
+
+### 2. Smart Font Stacking & Mapping
 - **Drag & Drop:** Upload your primary font (`.ttf`, `.otf`, `.woff`, `.woff2`) and any number of custom fallback fonts.
+- **Strict Language Mapping:** Explicitly assign specific fonts to specific languages (e.g., "Use *Noto Sans JP* for Japanese, *Inter* for everything else").
 - **Priority Management:** Drag to reorder fonts in the stack to control the fallback cascade priority.
-- **System Fonts:** Automatically handles standard system fallbacks if custom fonts aren't provided.
+- **System Fonts:** Automatically handles standard system fallbacks (sans-serif, serif, monospace) if custom fonts aren't provided.
 
-### 2. Multi-Language Simulation
-- **Instant Preview:** View your type stack across **15+ locales** simultaneously, including:
-  - **Latin:** English, Lithuanian, Vietnamese
-  - **Scripts:** Greek, Cyrillic (Russian)
-  - **RTL:** Arabic, Persian
-  - **Indic:** Hindi, Bengali, Kannada, Telugu, Tamil, etc.
-  - **East Asian:** Chinese (Simp/Trad), Japanese, Korean, Thai
-- **Per-Character Inspection:** See exactly which font is rendering every single character.
-
-### 3. Granular Typography Controls
-Localize Type offers three levels of control to handle every edge case:
-
-*   **Global Level:** Set the baseline weight, size (REM/PX), line-height, and letter-spacing for the entire project.
-*   **Font Level:** Adjust a specific fallback font to match your brand font.
-    *   *Example:* "Roboto looks 10% smaller than my custom font, so I'll scale it up by 110%."
-*   **Language Level:** Override settings for a specific locale.
-    *   *Example:* "Thai needs 150% line-height to avoid clipping, but English is fine at 120%."
+### 3. Metric Overrides & CSS Properties
+- **`size-adjust` logic:** Visually scale fallback fonts to match the x-height of your primary font without changing the CSS `font-size`.
+- **`ascent-override`, `descent-override`, `line-gap-override`:** Fine-tune the vertical metrics of any font to prevent layout shifts and clipping, especially in languages with tall glyphs (Thai, Arabic).
+- **Letter Spacing & Line Height:** Override these per-font or per-language to ensure perfect rhythm.
 
 ### 4. Advanced Visualization Tools
-- **Color-Coded Fallbacks:** Toggle color highlighting to instantly see which font is rendering which part of the text.
-- **Visual Alignment Guides:** Overlay metric lines (Baseline, x-Height, Cap-Height, Ascender, Descender) to verify vertical alignment between different fonts.
-- **Browser Render Inspection:** Verify line-box behavior to prevent unexpected layout shifts.
+- **Type Grid Overlay:** A generated grid based on your primary font's metrics (Baseline, x-Height, Cap-Height) to visually verify alignment across different scripts.
+- **Color Guide:** Toggle color highlighting to instantly see which font is rendering which part of the text (Primary vs Fallback vs System).
+- **Linebox View:** Visualize the browser's calculated line-box to debug vertical rhythm issues.
 
-### 5. Production Workflow
-- **Export to CSS:** Generate clean, production-ready CSS code including `@font-face` definitions and your tuned `adjust-font-size` settings.
+### 5. Font Comparison Mode
+- **Side-by-Side:** Compare up to 3 different fonts directly against each other.
+- **Overlay View:** Overlay multiple fonts on top of each other to spot subtle differences in weight, width, and metrics.
+
+### 6. Interactive Type Playground
+- **Edit Text:** Click any language card to edit the text and paste real production content.
+- **Case Switching:** Instantly toggle between Sentence Case, Title Case, UPPERCASE, and lowercase to stress-test your type.
+- **Search & Filter:** Quickly find languages by name, region, or script.
+
+### 7. Production Workflow
+- **Export to CSS:** Generate clean, production-ready CSS code including `@font-face` definitions with all your metric overrides (`size-adjust`, etc.) baked in.
 - **Save Configuration:** Export your entire workspace state to a JSON file (versioned and backward-compatible) to share with teammates or resume work later.
 
 ---

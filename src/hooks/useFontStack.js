@@ -43,12 +43,13 @@ export const useFontStack = () => {
             if (typeof val === 'string') excludedFontIds.add(val);
         });
 
-        const primaryFont = fonts.find(f => f.type === 'primary');
+        const primaryFont = fonts.find(f => f && f.type === 'primary');
         const pNameNormalized = normalizeFontName(primaryFont?.fileName || primaryFont?.name);
 
         // Filter out fallback fonts that are used as overrides in ANY language
         // AND ensure we don't duplicate the primary font in the fallback stack (same ID or same Name)
         const fallbackFonts = fonts.filter(f =>
+            f &&
             f.type === 'fallback' &&
             !f.isPrimaryOverride &&
             !f.hidden &&
@@ -85,12 +86,12 @@ export const useFontStack = () => {
             // Handle both string (Legacy/Direct) and object (Granular) overrides
             const mappedFonts = [];
             if (typeof overrideFontId === 'string') {
-                const f = fonts.find(f => f.id === overrideFontId);
+                const f = fonts.find(f => f && f.id === overrideFontId);
                 if (f) mappedFonts.push(f);
             } else if (typeof overrideFontId === 'object' && overrideFontId !== null) {
                 // Values are the Clone IDs
                 Object.values(overrideFontId).forEach(id => {
-                    const f = fonts.find(f => f.id === id);
+                    const f = fonts.find(f => f && f.id === id);
                     if (f) mappedFonts.push(f);
                 });
             }

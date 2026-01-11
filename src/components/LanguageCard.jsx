@@ -15,37 +15,28 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
     const {
         primaryLanguages,
 
-        fontStyles,
         headerStyles,
         textOverrides,
         setTextOverride,
-        missingColor,
         addLanguageSpecificFallbackFont,
         getFontsForStyle,
         getPrimaryFontFromStyle,
         getEffectiveFontSettingsForStyle,
         setFallbackFontOverrideForStyle,
-        clearFallbackFontOverrideForStyle,
         getPrimaryFontOverrideForStyle,
         getFallbackFontOverrideForStyle,
         removeConfiguredLanguage,
-        clearPrimaryFontOverride,
-        fontObject,
         headerFontStyleMap,
         activeFontStyleId,
         resetTextOverride,
-        systemFallbackOverrides,
         mapLanguageToFont,
         unmapLanguage
     } = useTypo();
 
     const {
         viewMode,
-        textCase,
-        colors,
         activeConfigTab,
         setActiveConfigTab,
-        showFallbackColors,
         showBrowserGuides,
         showAlignmentGuides,
         showFallbackOrder
@@ -99,12 +90,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         handleCloseMenu();
     };
 
-    const getCurrentFallbackFontIdForStyle = (styleId) => {
-        const id = getFallbackFontOverrideForStyle(styleId, language.id);
-        if (!id || id === 'legacy') return id;
-        const font = getFontsForStyle(styleId).find(f => f.id === id);
-        return (font && font.hidden) ? null : id;
-    };
+
 
     // Determine the content to render: Override > Sample Sentence
     const contentToRender = textOverrides[language.id] || language.sampleSentence;
@@ -186,6 +172,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         const uniqueFonts = new Map();
 
         fonts.forEach(f => {
+            if (!f) return;
             // Identifier for the font file/entity
             const signature = f.fileName || f.name;
             if (!signature) return;
@@ -262,11 +249,11 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         let foundFont = null;
 
         if (typeof fallbackOverrideFontId === 'string') {
-            foundFont = fonts.find(f => f.id === fallbackOverrideFontId);
+            foundFont = fonts.find(f => f && f.id === fallbackOverrideFontId);
         } else if (typeof fallbackOverrideFontId === 'object') {
             // Pick the first one for the color indicator/badge logic
             const firstId = Object.values(fallbackOverrideFontId)[0];
-            foundFont = fonts.find(f => f.id === firstId);
+            foundFont = fonts.find(f => f && f.id === firstId);
         }
 
         if (foundFont && foundFont.hidden) return null;
@@ -364,7 +351,11 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
     if (!mainViewEffectiveFont) {
         const mainViewPrimaryOverrideId = getPrimaryFontOverrideForStyle(mainViewStyleId, language.id);
         if (mainViewPrimaryOverrideId) {
-            mainViewEffectiveFont = mainViewAllFonts.find(f => f.id === mainViewPrimaryOverrideId);
+            console.log('[LanguageCard] Override ID:', mainViewPrimaryOverrideId, 'Fonts:', mainViewAllFonts);
+            mainViewEffectiveFont = mainViewAllFonts.find(f => {
+                if (!f) console.error('[LanguageCard] Found undefined font in mainViewAllFonts!');
+                return f && f.id === mainViewPrimaryOverrideId;
+            });
         }
     }
 
@@ -396,8 +387,8 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                 }
             }}
             className={`
-                bg-white border rounded-xl transition-all duration-300
-                ${configDropdownOpen ? 'z-50 relative' : 'z-0'}
+                bg-white border rounded-xl transition-all duration-300 relative
+                ${configDropdownOpen ? 'z-50' : 'z-0'}
                 ${isActive
                     ? 'border-indigo-500 ring-2 ring-indigo-500/10 shadow-lg'
                     : 'border-gray-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)]'
@@ -453,7 +444,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                         dir={language.dir || 'ltr'}
                         style={{
                             fontSize: `${mainViewFontSize}px`,
-                            lineHeight: mainViewLineHeight,
+                            lineHeight: mainViewNumericLineHeight,
                             position: 'relative' // Needed for absolute positioning of overlay
                         }}
                     >

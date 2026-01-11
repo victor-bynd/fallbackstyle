@@ -23,9 +23,9 @@ export const resetWorker = () => {
 };
 
 export const safeParseFontFile = async (file, timeoutMs = 3000) => {
-    return new Promise(async (resolve, reject) => {
+    const buffer = await file.arrayBuffer();
+    return new Promise((resolve, reject) => {
         try {
-            const buffer = await file.arrayBuffer();
             const worker = getWorker();
 
             // Unique ID for this request (simple random string)

@@ -57,7 +57,9 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         updateLanguageSpecificSetting,
         gridColumns,
         setViewMode
-    } = useTypo();
+    } = useTypo() || {}; // Safety: protect against null context
+
+    if (!fonts) return null; // Safety: fail fast if fonts missing
 
 
     const [mappingFontId, setMappingFontId] = useState(null);
@@ -104,7 +106,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
         // Check for duplicates
         const existingFontNames = new Set(
-            (fonts || []).map(f => normalizeFontName(f.fileName || f.name))
+            (fonts || []).map(f => f && normalizeFontName(f.fileName || f.name))
         );
 
         const uniqueFiles = [];
@@ -183,7 +185,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         if (mappingFontId && langId) {
             // Check if this is an existing font that should just be linked
             // (like system fonts or existing fallbacks)
-            const existingFont = fonts.find(f => f.id === mappingFontId);
+            const existingFont = fonts.find(f => f && f.id === mappingFontId);
 
             if (existingFont) {
                 // If it's a primary font being mapped -> Create a Primary Override
@@ -229,14 +231,14 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
         fonts.forEach(f => {
             if (!f) return;
-            const key = (f.fileName || f.name || f.id).toLowerCase();
+            const key = (f.fileName || f.name || f.id || '').toLowerCase();
             if (!nameToAllIds.has(key)) nameToAllIds.set(key, []);
             nameToAllIds.get(key).push(f.id);
         });
 
         fonts.forEach(f => {
             if (!f) return;
-            const key = (f.fileName || f.name || f.id).toLowerCase();
+            const key = (f.fileName || f.name || f.id || '').toLowerCase();
             universalIdsMap[f.id] = nameToAllIds.get(key);
         });
 
@@ -245,6 +247,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
         // Calculate Global Fallbacks (Unassigned/Inheritable)
         const validFallbacks = fonts.filter(f =>
+            f &&
             f.type === 'fallback' &&
             f.fontObject &&
             !f.isClone &&
@@ -253,6 +256,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
         // Include clones for Mapped/Targeted list
         const allFallbacks = fonts.filter(f =>
+            f &&
             f.type === 'fallback' &&
             f.fontObject
         );
@@ -316,7 +320,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                     });
 
                     return fontLangs.some(langId => {
-                        const langData = languagesData.find(l => l.id === langId);
+                        const langData = languagesData.find(l => l && l.id === langId);
                         return getLanguageGroup(langData) === selectedGroup;
                     });
                 });
@@ -402,7 +406,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
             overrideFontId = fallbackFontOverrides[activeTab][p.id];
         }
 
-        const overrideFont = fonts.find(f => f.id === overrideFontId);
+        const overrideFont = fonts.find(f => f && f.id === overrideFontId);
 
         // UNIFIED LIST GENERATION
         // We want to render the "Global Stack" order, but swapping in overrides where they exist.
@@ -432,7 +436,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
             }
 
             if (overrideId) {
-                const override = fonts.find(f => f.id === overrideId);
+                const override = fonts.find(f => f && f.id === overrideId);
                 if (override) {
                     overriddenOriginalIds.add(baseFont.id); // Track it
                     return override;
@@ -453,7 +457,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 // 3. Any other "orphan" mappings
                 const isAlreadyIncluded = unifiedUploadedFonts.some(uf => uf.id === overrideId);
                 if (!isAlreadyIncluded) {
-                    const overrideFont = fonts.find(f => f.id === overrideId);
+                    const overrideFont = fonts.find(f => f && f.id === overrideId);
                     if (overrideFont) {
                         extraMappedFonts.push(overrideFont);
                     }
@@ -463,7 +467,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
             // Handle single legacy mapping or direct mapping (Map Font modal)
             overriddenOriginalIds.add(rawOverrides);
 
-            const f = fonts.find(font => font.id === rawOverrides);
+            const f = fonts.find(font => font && font.id === rawOverrides);
             if (f) {
                 const isAlreadyIncluded = unifiedUploadedFonts.some(uf => uf.id === f.id);
                 if (!isAlreadyIncluded) {
@@ -578,7 +582,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 {primary && (
                     <FontCard
                         font={primary}
-                        isActive={activeFont === primary.id}
+                        isActive={activeFont === (primary ? primary.id : null)}
                         globalWeight={weight}
                         globalLineHeight={lineHeight}
                         setGlobalLineHeight={setLineHeight}
@@ -696,7 +700,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                 setHighlitLanguageId={setHighlitLanguageId}
                                 activeTab={activeTab}
                                 readOnly={readOnly}
-                                consolidatedIds={consolidatedIdsMap?.[font.id]}
+                                consolidatedIds={font && font.id ? consolidatedIdsMap?.[font.id] : []}
                             />
                         ))}
                     </div>

@@ -18,21 +18,40 @@ const MetricGuidesOverlay = ({
         if (!showAlignmentGuides || !fontObject) return {};
 
         const upm = fontObject.unitsPerEm;
-        const ascender = (ascentOverride !== undefined && ascentOverride !== '') ? Number(ascentOverride) : fontObject.ascender;
-        const descender = (descentOverride !== undefined && descentOverride !== '') ? Number(descentOverride) : fontObject.descender;
-        const xHeight = fontObject.tables?.os2?.sxHeight || 0;
-        const capHeight = fontObject.tables?.os2?.sCapHeight || 0;
 
-        const contentHeightUnits = ascender - descender;
+        // PRIORITIZE HHEA metrics as browsers (especially Chrome/Safari on Mac) often favor them.
+        // Fallback to OS/2, then root properties.
+        const hhea = fontObject.tables?.hhea;
+        const os2 = fontObject.tables?.os2;
 
-        // Use overriden line gap if provided, or fallback to font metrics
-        const lineGap = (lineGapOverride !== undefined && lineGapOverride !== '')
-            ? Number(lineGapOverride)
-            : (fontObject.tables?.os2?.sTypoLineGap ?? fontObject.hhea?.lineGap ?? 0);
+        let ascender = fontObject.ascender;
+        let descender = fontObject.descender;
+        let lineGap = 0;
+
+        // helper to check if valid number
+        const isValid = (n) => n !== undefined && n !== null;
+
+        if (isValid(hhea?.ascender)) {
+            ascender = hhea.ascender;
+            descender = hhea.descender;
+            lineGap = hhea.lineGap || 0;
+        } else if (isValid(os2?.sTypoAscender)) {
+            ascender = os2.sTypoAscender;
+            descender = os2.sTypoDescender;
+            lineGap = os2.sTypoLineGap || 0;
+        }
+
+        // Apply overrides if present (these take absolute precedence)
+        if (ascentOverride !== undefined && ascentOverride !== '') ascender = Number(ascentOverride);
+        if (descentOverride !== undefined && descentOverride !== '') descender = Number(descentOverride);
+        if (lineGapOverride !== undefined && lineGapOverride !== '') lineGap = Number(lineGapOverride);
+
+        const xHeight = os2?.sxHeight || 0;
+        const capHeight = os2?.sCapHeight || 0;
+
+        const contentHeightUnits = ascender - descender; // descender is usually negative
 
         // Calculate total height based on line height multiplier
-        // Browser centering for numeric line-height is based on (ascent - descent + lineGap)
-        // actually for numeric line-height = 1.2, totalHeightUnits = upm * 1.2
         const totalHeightUnits = upm * lineHeight;
 
         // Prevent division by zero
@@ -46,7 +65,11 @@ const MetricGuidesOverlay = ({
         const dashLen = 4 * scale;
         const dashArrayUnits = `${dashLen} ${dashLen}`;
 
+        // Center the content area within the line box
+        // Ideally: (totalHeight - contentHeight) / 2 is the top leading
         const halfLeadingUnits = (totalHeightUnits - contentHeightUnits) / 2;
+        
+        // Baseline is at top + halfLeading + ascender
         const baselineYUnits = halfLeadingUnits + ascender;
 
         const guideLines = [
@@ -75,7 +98,7 @@ const MetricGuidesOverlay = ({
             backgroundRepeat: 'repeat',
             backgroundPosition: '0 0'
         };
-    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx]);
+    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride, lineGapOverride]);
 
     // Browser Guides (Line Box View)
     const browserGuideStyle = useMemo(() => showBrowserGuides ? {

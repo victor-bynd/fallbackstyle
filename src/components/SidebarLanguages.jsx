@@ -92,7 +92,7 @@ const SidebarLanguages = ({
 
                 const allIds = [...getIds(langPrimary), ...getIds(langFallback)];
                 const hasMatch = allIds.some(fid => {
-                    const f = fonts.find(font => font.id === fid);
+                    const f = fonts.find(font => font && font.id === fid);
                     return f && (f.fileName || f.name) && fontFilter.includes(f.fileName || f.name);
                 });
 
@@ -116,25 +116,9 @@ const SidebarLanguages = ({
         <div className="w-64 flex flex-col h-full border-r border-gray-100 bg-white overflow-hidden">
             {/* Fixed Header Section */}
             <div className="p-4 pb-2 border-b border-gray-50 bg-white shrink-0">
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex flex-col">
-                        <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                            LANGUAGES
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-400 mt-0.5">
-                            <span>
-                                <span className="text-slate-400">
-                                    {isSearchOpen ? 'SEARCHING' : 'COUNTRY–REGION'}
-                                </span>
-                                <span className="text-slate-600"> {displayedCount}</span>
-                                {displayedCount < totalCount && (
-                                    <>
-                                        <span className="text-slate-300"> / </span>
-                                        <span className="text-slate-400">{totalCount}</span>
-                                    </>
-                                )}
-                            </span>
-                        </div>
+                <div className="flex items-center justify-between">
+                    <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                        LANGUAGES
                     </div>
                     <div className="flex items-center gap-1">
                         <button
@@ -146,9 +130,9 @@ const SidebarLanguages = ({
                                     setIsSearchOpen(true);
                                 }
                             }}
-                            className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${isSearchOpen
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isSearchOpen
                                 ? 'bg-indigo-50 text-indigo-600'
-                                : 'bg-white text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                                : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'
                                 }`}
                             title={isSearchOpen ? "Close Search" : "Search Languages"}
                         >
@@ -164,10 +148,10 @@ const SidebarLanguages = ({
                         </button>
                         <button
                             onClick={onManageLanguages}
-                            className="w-7 h-7 flex items-center justify-center rounded-md bg-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
                             title="Manage Languages"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
                                 <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
                                 <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
                             </svg>
@@ -175,48 +159,65 @@ const SidebarLanguages = ({
                     </div>
                 </div>
 
-                {isSearchOpen ? (
-                    <div className="relative mb-2">
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by name..."
-                            className="w-full h-8 px-3 py-1 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                                </svg>
-                            </button>
+                <div className="text-[10px] font-bold text-slate-400 mt-0.5 mb-4">
+                    <span>
+                        <span className="text-slate-400">
+                            {isSearchOpen ? 'SEARCHING' : 'COUNTRY–REGION'}
+                        </span>
+                        <span className="text-slate-600"> {displayedCount}</span>
+                        {displayedCount < totalCount && (
+                            <>
+                                <span className="text-slate-300"> / </span>
+                                <span className="text-slate-400">{totalCount}</span>
+                            </>
                         )}
-                    </div>
-                ) : (
-                    <LanguageGroupFilter
-                        selectedGroup={selectedGroup}
-                        onSelectGroup={(group) => {
-                            onSelectGroup(group);
-                            setActiveConfigTab('ALL');
-                            if (setHighlitLanguageId) setHighlitLanguageId(null);
-                        }}
-                        supportedLanguages={supportedLanguages}
-                        mappedLanguages={languages?.filter(l => mappedLanguageIds?.includes(l.id))}
-                        configuredLanguages={configuredLanguages}
-                        primaryFontOverrides={primaryFontOverrides}
-                        fallbackFontOverrides={fallbackFontOverrides}
-                        onAddLanguage={onAddLanguage}
-                    />
-                )}
+                    </span>
+                </div>
 
-            </div>
+                {
+                    isSearchOpen ? (
+                        <div className="relative mb-2">
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by name..."
+                                className="w-full h-8 px-3 py-1 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <LanguageGroupFilter
+                            selectedGroup={selectedGroup}
+                            onSelectGroup={(group) => {
+                                onSelectGroup(group);
+                                setActiveConfigTab('ALL');
+                                if (setHighlitLanguageId) setHighlitLanguageId(null);
+                            }}
+                            supportedLanguages={supportedLanguages}
+                            mappedLanguages={languages?.filter(l => mappedLanguageIds?.includes(l.id))}
+                            configuredLanguages={configuredLanguages}
+                            primaryFontOverrides={primaryFontOverrides}
+                            fallbackFontOverrides={fallbackFontOverrides}
+                            onAddLanguage={onAddLanguage}
+                        />
+                    )
+                }
+
+            </div >
 
             {/* Scrollable List Section */}
-            <div className="flex-1 overflow-y-auto min-h-0 p-4 pt-2 custom-scrollbar">
+            < div className="flex-1 overflow-y-auto min-h-0 p-4 pt-2 custom-scrollbar" >
                 <SidebarLanguageList
                     activeTab={activeConfigTab}
                     setActiveTab={setActiveConfigTab}
@@ -238,10 +239,10 @@ const SidebarLanguages = ({
                     fontFilter={fontFilter} // Pass down
                     fonts={fonts} // Pass fonts for resolution
                 />
-            </div>
+            </div >
 
             {/* Settings Footer */}
-            <div className="p-2 border-t border-gray-100 bg-white" ref={settingsRef}>
+            < div className="p-2 border-t border-gray-100 bg-white" ref={settingsRef} >
                 <div className="relative">
                     {showSettings && (
                         <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 origin-bottom-left z-50">
@@ -315,8 +316,8 @@ const SidebarLanguages = ({
                         <div className="text-xs font-semibold">Settings</div>
                     </button>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

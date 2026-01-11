@@ -199,7 +199,7 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
     };
 
     const handleOpenLanguagePicker = (fontId) => {
-        const font = fonts.find(f => f.id === fontId);
+        const font = fonts.find(f => f && f.id === fontId);
         if (font) {
             if (scrollContainerRef.current) {
                 scrollPositionRef.current = scrollContainerRef.current.scrollTop;

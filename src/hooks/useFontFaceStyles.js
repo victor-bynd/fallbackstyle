@@ -10,7 +10,7 @@ export const useFontFaceStyles = () => {
                 const style = fontStyles?.[styleId];
                 if (!style) return '';
 
-                const primary = style.fonts?.find(f => f.type === 'primary');
+                const primary = (style.fonts || []).find(f => f && f.type === 'primary');
                 // Resolve primary settings (handles group if applicable, though primarily for base props)
                 const primarySettings = primary ? getEffectiveFontSettingsForStyle(styleId, primary.id) : null;
 
@@ -51,7 +51,7 @@ export const useFontFaceStyles = () => {
                     : '';
 
                 const fallbackRules = (style.fonts || [])
-                    .filter(f => (f.type === 'fallback' || f.type === 'primary') && (f.fontUrl || f.name))
+                    .filter(f => f && (f.type === 'fallback' || f.type === 'primary') && (f.fontUrl || f.name))
                     .map(font => {
                         const settings = getEffectiveFontSettingsForStyle(styleId, font.id);
 
@@ -110,7 +110,7 @@ export const useFontFaceStyles = () => {
                         // Recovery: If fontUrl is missing, try to find a matching font in the stack that HAS a url
                         let activeUrl = font.fontUrl;
                         if (!activeUrl && font.name) {
-                            const sibling = (style.fonts || []).find(f => f.fontUrl && (f.name === font.name || f.fileName === font.fileName));
+                            const sibling = (style.fonts || []).find(f => f && f.fontUrl && (f.name === font.name || f.fileName === font.fileName));
                             if (sibling) activeUrl = sibling.fontUrl;
                             // Warn if recovery needed
                             if (activeUrl) console.warn(`[useFontFaceStyles] Recovered URL for font ${font.id} from sibling ${sibling.id}`);

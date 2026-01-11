@@ -10,7 +10,7 @@ const FontComparisonSelectorModal = ({ isOpen, onClose, onCompare }) => {
     // Filter out system fallbacks if needed, or just show everything.
     // Usually users want to compare their uploaded fonts or major system fonts.
     // Let's list all valid fonts.
-    const validFonts = fonts.filter(f => !f.hidden);
+    const validFonts = fonts.filter(f => f && !f.hidden);
 
     const handleToggle = (fontId) => {
         setSelectedFonts(prev => {

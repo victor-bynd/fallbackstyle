@@ -27,7 +27,7 @@ export const ConfigService = {
             showAlignmentGuides,
             showBrowserGuides,
             showFallbackOrder,
-            appName = 'localize-type',
+            appName = 'fallback-style',
             DEFAULT_PALETTE
         } = state;
 

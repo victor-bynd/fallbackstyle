@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useTypo } from '../context/useTypo';
 import { useUI } from '../context/UIContext';
 import { useFontStack } from './useFontStack';
@@ -9,7 +8,6 @@ export const useTextRenderer = () => {
         getFontsForStyle,
         getPrimaryFontFromStyle,
         getPrimaryFontOverrideForStyle,
-        getFallbackFontOverrideForStyle,
         getEffectiveFontSettingsForStyle,
         systemFallbackOverrides,
         missingColor
@@ -31,9 +29,7 @@ export const useTextRenderer = () => {
         primaryFont = null,      // Custom font to use as primary (from props/loop)
         fontSize = null,        // Custom font size override
         lineHeight = null,      // Custom line height override
-        color = null,           // Custom color override
-        inheritLineHeight = false, // If true, won't set explicit LH (for header inheritance)
-        inheritFontSize = false   // If true, won't set explicit Font Size (for header inheritance)
+        color = null           // Custom color override
     }) => {
         if (!content) return null;
 

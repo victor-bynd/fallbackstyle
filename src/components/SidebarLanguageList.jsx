@@ -70,7 +70,7 @@ const SidebarLanguageList = ({
 
                 const allIds = [...getIds(langPrimary), ...getIds(langFallback)];
                 const hasMatch = allIds.some(fid => {
-                    const f = fonts.find(font => font.id === fid);
+                    const f = fonts.find(font => font && font.id === fid);
                     return f && (f.fileName || f.name) && fontFilter.includes(f.fileName || f.name);
                 });
 
