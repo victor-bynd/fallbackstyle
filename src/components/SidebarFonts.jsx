@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import FontManagerModal from './FontManagerModal';
-import { useTypo } from '../context/useTypo';
 import { useUI } from '../context/UIContext';
 import FontCards from './FontCards';
 import OverridesManager from './OverridesManager';
@@ -25,7 +24,7 @@ const SidebarFonts = ({ selectedGroup, highlitLanguageId, setHighlitLanguageId, 
 
                     <InfoTooltip content="Manage Fonts: Upload and configure available fonts.">
                         <button
-                            onClick={() => setShowFontModal(true)}
+                            onClick={() => setShowFontManager(true)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-all active:scale-95"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">

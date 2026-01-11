@@ -15,7 +15,7 @@ import FontCard from './FontCard';
 
 const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHighlitLanguageId, readOnly = false }) => {
     const {
-        fonts,
+        fonts: rawFonts,
         activeFont,
         setActiveFont,
         updateFontWeight,
@@ -59,7 +59,8 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         setViewMode
     } = useTypo() || {}; // Safety: protect against null context
 
-    if (!fonts) return null; // Safety: fail fast if fonts missing
+    const fonts = rawFonts || []; // Safety: ensure fonts is always an array to avoid conditional hook execution if we returned early
+
 
 
     const [mappingFontId, setMappingFontId] = useState(null);

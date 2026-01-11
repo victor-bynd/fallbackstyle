@@ -1762,7 +1762,6 @@ export const TypoProvider = ({ children }) => {
                             if (origId === fontId) {
                                 // Maps to itself -> Root Mapped (Direct Upload)
                                 isRootMapped = true;
-                                targetLangId = langId;
                             }
                             delete val[origId];
                         }
@@ -1770,7 +1769,6 @@ export const TypoProvider = ({ children }) => {
                 } else if (val === fontId) {
                     // Legacy string format: Assume direct target
                     isRootMapped = true;
-                    targetLangId = langId;
                     delete nextFallbackOverrides[langId];
                 }
             });
@@ -1781,7 +1779,6 @@ export const TypoProvider = ({ children }) => {
             Object.keys(nextPrimaryOverrides).forEach(langId => {
                 if (nextPrimaryOverrides[langId] === fontId) {
                     wasPrimaryOverride = true;
-                    targetLangId = langId;
                     delete nextPrimaryOverrides[langId];
                 }
             });

@@ -1,0 +1,349 @@
+
+> fallback-style@0.1.2 lint
+> eslint .
+
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/App.jsx
+    2:27  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                 no-unused-vars
+  227:9   error  'visibleCount' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  228:9   error  'totalCount' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+  801:25  error  '__APP_VERSION__' is not defined                                                              no-undef
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/AddLanguageModal.jsx
+  8:49  error  'configuredLanguages' is assigned a value but never used  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/BufferedInput.jsx
+   1:38  error    'useRef' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+  45:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  43 |         // Otherwise (not focused, or values genuinely differ), sync up.
+  44 |         // We use string conversion to ensure controlled input behavior
+> 45 |         setLocalValue(value === undefined || value === null ? '' : value);
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  46 |     }, [value, isFocused]); // Removed localValue from dependency to avoid loops, though strict equality check handles it.
+  47 |
+  48 |     const handleChange = (e) => {  react-hooks/set-state-in-effect
+  46:8   warning  React Hook useEffect has a missing dependency: 'localValue'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/ExportCSSModal.jsx
+  13:9  error  'getFallbackFontOverrideForStyle' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  14:9  error  'colors' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                           no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/FontCard.jsx
+   20:5    error    'onRemoveOverride' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+   21:5    error    'onSelectLanguage' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+   30:5    error    'fontScales' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+   31:5    error    'lineHeight' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+   33:5    error    'setActiveFont' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   42:58   error    'letterSpacing' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+   42:140  error    'linkFontToLanguage' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+   42:226  error    'clearPrimaryFontOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+   42:252  error    'clearFallbackFontOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   42:355  error    'unmapLanguage' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+   46:12   error    'showAllTags' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+   46:25   error    'setShowAllTags' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+   47:12   error    'tagsLimit' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   47:23   error    'setTagsLimit' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+   48:11   error    'tagsContainerRef' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+   59:13   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  57 |         if (!activeConfigTab || activeConfigTab === 'ALL') {
+  58 |             if (onSetScope) onSetScope('ALL');
+> 59 |             setInternalScope('ALL');
+     |             ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  60 |         }
+  61 |         // Additional sync logic handled by parent or activeConfigTab effect below
+  62 |     }, [activeConfigTab, onSetScope]);                                                                                                                                                                                                                                 react-hooks/set-state-in-effect
+   65:11   error    'setEditScope' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+   71:34   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `font`, but the source dependencies were [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages, consolidatedIds]. Inferred less specific property than source.
+
+   69 |     const idsToCheck = consolidatedIds || [font.id];
+   70 |
+>  71 |     const languageTags = useMemo(() => {
+      |                                  ^^^^^^^
+>  72 |         const tags = [];
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  73 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |         return [...new Set(tags)].filter(t => t && t !== 'undefined');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |     }, [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages, consolidatedIds]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  101 |
+  102 |     // Helper to determine if a language has an active override on this card
+  103 |     const getOverrideState = (langId) => {  react-hooks/preserve-manual-memoization
+  100:8    warning  React Hook useMemo has a missing dependency: 'idsToCheck'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+  262:8    warning  React Hook useEffect has a missing dependency: 'font.isClone'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  342:11   error    'showTabs' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/FontCards.jsx
+    1:37  error    'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                            no-unused-vars
+    4:10  error    'useUI' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                no-unused-vars
+   28:9   error    'clearPrimaryFontOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                    no-unused-vars
+   29:9   error    'clearFallbackFontOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                   no-unused-vars
+   54:9   error    'primaryLanguages' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                            no-unused-vars
+   57:9   error    'updateLanguageSpecificSetting' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                               no-unused-vars
+   58:9   error    'gridColumns' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                 no-unused-vars
+   59:9   error    'setViewMode' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                 no-unused-vars
+   65:47  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render                                                                 react-hooks/rules-of-hooks
+   90:53  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   91:43  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+   92:26  error    React Hook "useRef" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?    react-hooks/rules-of-hooks
+  224:9   error    React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  364:19  error    'pName' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                       no-unused-vars
+  494:15  error    'primaryName' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                 no-unused-vars
+  556:8   warning  React Hook useMemo has a missing dependency: 'normalizeFontName'. Either include it or remove the dependency array                                                                          react-hooks/exhaustive-deps
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/FontComparisonView.jsx
+  22:13  error  'showFallbackColors' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  94:11  error  'lineHeightPx' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u        no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/FontLanguageModal.jsx
+  2:10  error  'parseFontFile' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/FontManagerModal.jsx
+  33:9  error  'updateFallbackFontOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u      no-unused-vars
+  34:9  error  'addLanguageSpecificPrimaryFont' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/FontUploader.jsx
+   15:9   error  'addFallbackFonts' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                 no-unused-vars
+   16:9   error  'addLanguageSpecificFallbackFont' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  167:15  error  'existingFontNames' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/HeaderPreviewRow.jsx
+  10:9   error  'primaryLanguages' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u     no-unused-vars
+  44:43  error  'effectiveLineHeight' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/LandingPage.jsx
+    1:28  error  'useMemo' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                   no-unused-vars
+    1:37  error  'useCallback' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                               no-unused-vars
+   54:9   error  'addLanguageSpecificFallbackFont' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   55:9   error  'addFallbackFonts' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                 no-unused-vars
+   79:11  error  'handleReset' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                      no-unused-vars
+  423:19  error  '__APP_VERSION__' is not defined                                                                                 no-undef
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/MetricGuidesOverlay.jsx
+  47:70  error  'lineGap' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/OverridesManager.jsx
+  11:9  error  'resetGlobalFallbackScaleForStyle' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u       no-unused-vars
+  12:9  error  'resetAllFallbackFontOverridesForStyle' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  13:9  error  'resetAllLineHeightOverridesForStyle' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+  14:9  error  'clearPrimaryFontOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u               no-unused-vars
+  15:9  error  'resetSystemFallbackOverride' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/SideBar.jsx
+  8:13  error  'fontObject' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/SidebarFonts.jsx
+   3:10  error  'useTypo' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  28:44  error  'setShowFontModal' is not defined                                               no-undef
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/SidebarLanguageList.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/components/SidebarLanguages.jsx
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `fontFilter`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |             react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `primaryFontOverrides`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |   react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `fallbackFontOverrides`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |  react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `fonts`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |                  react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `fontFilter`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |             react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `primaryFontOverrides`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |   react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `fallbackFontOverrides`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |  react-hooks/preserve-manual-memoization
+   60:42  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `fonts`, but the source dependencies were [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]. Inferred different dependency than source.
+
+   58 |     }, [isSearchOpen]);
+   59 |
+>  60 |     const displayedCount = React.useMemo(() => {
+      |                                          ^^^^^^^
+>  61 |         if (!configuredLanguages) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  62 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         }).length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     const totalCount = configuredLanguages?.length || 0;
+  114 |                  react-hooks/preserve-manual-memoization
+  111:8   warning  React Hook React.useMemo has missing dependencies: 'fallbackFontOverrides', 'fontFilter', 'fonts', and 'primaryFontOverrides'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/context/TypoContext.jsx
+  1765:33  error    'targetLangId' is not defined                                                                                                                                                                                                                                                                no-undef
+  1773:21  error    'targetLangId' is not defined                                                                                                                                                                                                                                                                no-undef
+  1784:21  error    'targetLangId' is not defined                                                                                                                                                                                                                                                                no-undef
+  3078:22  error    '__APP_VERSION__' is not defined                                                                                                                                                                                                                                                             no-undef
+  3184:8   warning  React Hook useCallback has missing dependencies: 'setActiveConfigTab', 'setColors', 'setGridColumns', 'setShowAlignmentGuides', 'setShowBrowserGuides', 'setShowFallbackColors', 'setTextCase', and 'setViewMode'. Either include them or remove the dependency array                        react-hooks/exhaustive-deps
+  3260:8   warning  React Hook useEffect has missing dependencies: 'setActiveConfigTab', 'setColors', 'setGridColumns', 'setShowAlignmentGuides', 'setShowBrowserGuides', 'setShowFallbackColors', 'setShowFallbackOrder', 'setTextCase', and 'setViewMode'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  3355:8   warning  React Hook useEffect has a missing dependency: 'showFallbackOrder'. Either include it or remove the dependency array                                                                                                                                                                         react-hooks/exhaustive-deps
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/context/UIContext.test.jsx
+  4:17  error  'useContext' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/victortolosa/Documents/GitHub/fallbackstyle/src/tests/ReproductionStartWithFonts.test.jsx
+    1:18  error    'screen' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                  no-unused-vars
+    1:26  error    'act' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                     no-unused-vars
+   23:9   error    'loadFont' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                       no-unused-vars
+   24:9   error    'batchAddFontsAndMappings' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                       no-unused-vars
+   25:9   error    'addPrimaryLanguageOverrides' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                    no-unused-vars
+   26:9   error    'togglePrimaryLanguage' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                          no-unused-vars
+   40:8   warning  React Hook useEffect has a missing dependency: 'onState'. Either include it or remove the dependency array. If 'onState' changes too often, find the parent component that defines it and wrap that definition in useCallback                  react-hooks/exhaustive-deps
+   54:13  error    'currentState' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                   no-unused-vars
+   68:15  error    'primaryFontData' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                no-unused-vars
+   75:15  error    'fallbackFontData' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                               no-unused-vars
+  100:8   warning  React Hook useEffect has missing dependencies: 'context' and 'onCheck'. Either include them or remove the dependency array. If 'onCheck' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+✖ 101 problems (91 errors, 10 warnings)
+
