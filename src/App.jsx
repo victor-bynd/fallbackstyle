@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTypo } from './context/useTypo';
 import { useUI } from './context/UIContext';
+import Schema from './components/Schema';
 import LandingPage from './components/LandingPage';
 import SideBar from './components/SideBar';
 import LanguageCard from './components/LanguageCard';
@@ -64,7 +65,8 @@ const MainContent = ({
 
     resetApp,
     isSessionLoading,
-    fonts // Added for filtering
+    fonts, // Added for filtering
+    fontStyles
   } = useTypo();
 
   const {
@@ -622,6 +624,7 @@ const MainContent = ({
               <div className="fixed top-4 right-8 md:top-4 md:right-10 z-40" ref={listSettingsRef} onClick={(e) => e.stopPropagation()}>
                 <button
                   /* UI: Settings / Config Button */
+                  aria-label="Settings and View Configuration"
                   onClick={() => setShowListSettings(!showListSettings)}
                   className={`
                     p-2 rounded-md transition-all duration-200 flex items-center justify-center gap-2 w-[34px] h-[34px] border
@@ -957,6 +960,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <Schema />
       <div className="flex min-h-screen w-full">
         {/* LEFT SIDEBAR: Show only when NOT in header mode and NOT on landing page */}
         {sidebarMode !== 'headers' && !isLandingPage && (

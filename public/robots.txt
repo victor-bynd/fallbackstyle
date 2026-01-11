@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fallback.style/sitemap.xml

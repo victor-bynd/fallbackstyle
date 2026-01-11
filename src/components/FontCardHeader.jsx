@@ -24,9 +24,9 @@ const FontCardHeader = ({
     return (
         <div className="flex gap-3 items-start">
             <div className={`flex-1 min-w-0 ${(onResetOverride || isPrimary) ? 'pr-8' : ''}`}>
-                <div className="font-mono text-[13px] font-bold text-slate-800 truncate mb-1">
+                <h4 className="font-mono text-[13px] font-bold text-slate-800 truncate mb-1">
                     {displayName}
-                </div>
+                </h4>
                 <div className="flex items-center gap-3 text-[11px] text-slate-500">
                     {(!(!font.fontObject && !font.fileName)) && (
                         <div className="relative w-3.5 h-3.5 flex-shrink-0 rounded-full overflow-hidden border border-slate-200">

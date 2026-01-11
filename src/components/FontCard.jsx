@@ -140,7 +140,8 @@ const FontCardContent = ({
                 'lineGapOverride',
                 'ascentOverride',
                 'descentOverride',
-                'fontSizeAdjust'
+                'fontSizeAdjust',
+                'baseFontSize'
             ];
 
             // RESOLVE BASE FONT for comparison
@@ -228,18 +229,37 @@ const FontCardContent = ({
             return;
         }
 
-        // If a specific language is active, check if this card has a tab for it
+        // If a specific language is active
         if (languageTags.includes(activeConfigTab)) {
-            if (showMergedView && activeConfigTab === singleLang) {
+            // Explicit match (Override already exists or Primary Language explicit tag)
+            if (showMergedView && activeConfigTab === singleLang && !font.isPrimaryOverride && !font.isClone) {
                 onSetScope('ALL');
             } else {
                 onSetScope(activeConfigTab);
             }
         } else {
-            // Default to ALL if no match
-            onSetScope('ALL');
+            // Implicit Scope Detection:
+            // If the active tab/language uses this font implicitly (inheritance), we allow setting the scope to it.
+            // This enables "Write-on-Modify" (Forking) for the Primary Font.
+
+            let isImplicitlyLinked = false;
+
+            // Check if this is the Global Primary Font
+            // We allow scoping to the active language regardless of whether an override ALREADY exists or not.
+            // This ensures that:
+            // 1. If no override exists, we fork/clone (Implicit).
+            // 2. If override WAS just created (during drag), we STAY scoped to it (don't revert to ALL).
+            if (font.type === 'primary' && !font.isPrimaryOverride) {
+                isImplicitlyLinked = true;
+            }
+
+            if (isImplicitlyLinked) {
+                onSetScope(activeConfigTab);
+            } else {
+                onSetScope('ALL');
+            }
         }
-    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, showMergedView, singleLang]);
+    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, showMergedView, singleLang, font.type, font.isPrimaryOverride, primaryFontOverrides]);
 
     const scopeFontId = useMemo(() => {
         if (editScope === 'ALL') return font.id;

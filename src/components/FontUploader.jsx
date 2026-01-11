@@ -406,17 +406,19 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                     staticWeight: item.metadata.staticWeight ?? null
                 };
 
-                fontObjectsToRegister.push(fontData);
-
-                if (index === 0) return; // Skip primary for mapping loop
+                if (index > 0) {
+                    fontObjectsToRegister.push(fontData);
+                }
 
                 const Mapping = mappings[item.file.name];
-                if (Mapping === 'auto' || (Array.isArray(Mapping) && Mapping.length === 0)) {
+                if ((Mapping === 'auto' || (Array.isArray(Mapping) && Mapping.length === 0)) && index > 0) {
+                    // Only treat as auto-font if it's not the primary (primary is handled via loadFont)
+                    // And actually, if primary has NO mapping, we don't need to do anything special here as loadFont does it.
                     autoFonts.push(item);
                 } else if (Array.isArray(Mapping)) {
                     Mapping.forEach(langId => {
                         if (langId === 'auto') {
-                            autoFonts.push(item);
+                            if (index > 0) autoFonts.push(item);
                         } else {
                             languageMappings[langId] = item.file.name;
                             languageIdsToConfigure.add(langId);

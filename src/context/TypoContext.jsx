@@ -687,7 +687,11 @@ export const TypoProvider = ({ children }) => {
                 finalScale = parentFont.scale;
             } else {
                 // Style-level default
-                finalScale = style.fontScales?.fallback ?? 100;
+                if (font.isPrimaryOverride) {
+                    finalScale = style.fontScales?.active ?? 100;
+                } else {
+                    finalScale = style.fontScales?.fallback ?? 100;
+                }
             }
         }
 
