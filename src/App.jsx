@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useTypo } from './context/useTypo';
 import { useUI } from './context/UIContext';
 import LandingPage from './components/LandingPage';
@@ -794,6 +794,9 @@ const MainContent = ({
                         </button>
                       </div>
                     </div>
+                    <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-300 text-center tracking-widest uppercase">
+                      v{__APP_VERSION__}
+                    </div>
                   </div>
                 )}
               </div>
@@ -849,63 +852,75 @@ const MainContent = ({
                 </AnimatePresence>
               )}
             </div>
-          </div>
+          </div >
         )
       )}
 
 
-      {showComparisonSelector && (
-        <FontComparisonSelectorModal
-          isOpen={showComparisonSelector}
-          onClose={() => setShowComparisonSelector(false)}
-          onCompare={handleStartComparison}
-        />
-      )}
+      {
+        showComparisonSelector && (
+          <FontComparisonSelectorModal
+            isOpen={showComparisonSelector}
+            onClose={() => setShowComparisonSelector(false)}
+            onCompare={handleStartComparison}
+          />
+        )
+      }
 
-      {showLanguageModal && (
-        <AddLanguageModal
-          onClose={() => setShowLanguageModal(false)}
-          onConfirm={(langId, fontId) => {
-            addConfiguredLanguage(langId);
-            if (fontId && fontId !== 'inherit') addLanguageSpecificPrimaryFontFromId(fontId, langId);
-            setActiveConfigTab(langId);
-            setShowLanguageModal(false);
-          }}
-          configuredLanguages={configuredLanguages}
-          filterGroup={addLanguageGroupFilter}
-        />
-      )}
+      {
+        showLanguageModal && (
+          <AddLanguageModal
+            onClose={() => setShowLanguageModal(false)}
+            onConfirm={(langId, fontId) => {
+              addConfiguredLanguage(langId);
+              if (fontId && fontId !== 'inherit') addLanguageSpecificPrimaryFontFromId(fontId, langId);
+              setActiveConfigTab(langId);
+              setShowLanguageModal(false);
+            }}
+            configuredLanguages={configuredLanguages}
+            filterGroup={addLanguageGroupFilter}
+          />
+        )
+      }
 
-      {missingFonts && pendingFonts.length === 0 && (
-        <MissingFontsModal missingFonts={missingFonts} existingFiles={existingFiles} onResolve={handleResolve} onCancel={cancelImport} />
-      )}
+      {
+        missingFonts && pendingFonts.length === 0 && (
+          <MissingFontsModal missingFonts={missingFonts} existingFiles={existingFiles} onResolve={handleResolve} onCancel={cancelImport} />
+        )
+      }
 
-      {pendingFonts.length > 0 && (
-        <FontLanguageModal
-          pendingFonts={pendingFonts}
-          initialMappings={parsedMappings}
-          onConfirm={handleMappingsConfirm}
-          onCancel={() => { setPendingFonts([]); setPendingFileMap(null); cancelImport(); }}
-        />
-      )}
+      {
+        pendingFonts.length > 0 && (
+          <FontLanguageModal
+            pendingFonts={pendingFonts}
+            initialMappings={parsedMappings}
+            onConfirm={handleMappingsConfirm}
+            onCancel={() => { setPendingFonts([]); setPendingFileMap(null); cancelImport(); }}
+          />
+        )
+      }
 
-      {activeConfigModal && activeConfigModal !== 'export-css' && (
-        <ConfigActionsModal
-          mode={activeConfigModal}
-          onClose={() => setActiveConfigModal(null)}
-          onImport={handleImport}
-          onExport={handleExport}
-        />
-      )}
+      {
+        activeConfigModal && activeConfigModal !== 'export-css' && (
+          <ConfigActionsModal
+            mode={activeConfigModal}
+            onClose={() => setActiveConfigModal(null)}
+            onImport={handleImport}
+            onExport={handleExport}
+          />
+        )
+      }
 
-      {activeConfigModal === 'export-css' && (
-        <ExportCSSModal
-          onClose={() => setActiveConfigModal(null)}
-        />
-      )}
+      {
+        activeConfigModal === 'export-css' && (
+          <ExportCSSModal
+            onClose={() => setActiveConfigModal(null)}
+          />
+        )
+      }
 
 
-    </div>
+    </div >
   );
 };
 

@@ -413,11 +413,15 @@ const LandingPage = ({ importConfig }) => {
                 </svg>
             </button>
 
+
             <ResetConfirmModal
                 isOpen={showResetModal}
                 onClose={() => setShowResetModal(false)}
-                onConfirm={handleReset}
             />
+
+            <div className="absolute bottom-4 left-6 text-xs font-bold text-slate-300 select-none pointer-events-none">
+                v{__APP_VERSION__}
+            </div>
         </div >
 
     );

@@ -3071,6 +3071,7 @@ export const TypoProvider = ({ children }) => {
             showAlignmentGuides,
             showBrowserGuides,
             appName: 'fallback-style',
+            version: __APP_VERSION__,
             DEFAULT_PALETTE
         });
     }, [
