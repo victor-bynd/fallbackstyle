@@ -5,6 +5,7 @@ import languagesData from '../data/languages.json';
 import { getLanguageGroup } from '../utils/languageUtils';
 import LanguageGroupFilter from './LanguageGroupFilter';
 import SidebarLanguageList from './SidebarLanguageList';
+import pkg from '../../package.json';
 
 const SidebarLanguages = ({
     selectedGroup,
@@ -298,6 +299,11 @@ const SidebarLanguages = ({
                                     </svg>
                                     Reset App State
                                 </button>
+                            </div>
+                            <div className="border-t border-gray-100 py-1.5 bg-slate-50 text-center">
+                                <span className="text-[10px] font-medium text-slate-400">
+                                    v{pkg.version}
+                                </span>
                             </div>
                         </div>
                     )}

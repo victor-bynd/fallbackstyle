@@ -10,7 +10,15 @@ const FontComparisonSelectorModal = ({ isOpen, onClose, onCompare }) => {
     // Filter out system fallbacks if needed, or just show everything.
     // Usually users want to compare their uploaded fonts or major system fonts.
     // Let's list all valid fonts.
-    const validFonts = fonts.filter(f => f && !f.hidden);
+    const validFonts = fonts.filter(f => {
+        if (!f || f.hidden) return false;
+        // Filter out internal/language-specific fonts to avoid duplicates
+        if (f.isLangSpecific) return false;
+        if (f.isPrimaryOverride) return false;
+        if (f.isClone) return false;
+        if (typeof f.id === 'string' && f.id.startsWith('lang-')) return false;
+        return true;
+    });
 
     const handleToggle = (fontId) => {
         setSelectedFonts(prev => {

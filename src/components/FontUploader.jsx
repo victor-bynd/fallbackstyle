@@ -393,7 +393,8 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
 
             // 1. Process All Fonts
             orderedFonts.forEach((item, index) => {
-                if (index === 0) return;
+                // if (index === 0) return; // FIX: Don't skip primary font for language gathering
+
                 const fontData = {
                     id: `uploaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     type: 'fallback',
@@ -413,20 +414,29 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                 const Mapping = mappings[item.file.name];
                 if ((Mapping === 'auto' || (Array.isArray(Mapping) && Mapping.length === 0)) && index > 0) {
                     // Only treat as auto-font if it's not the primary (primary is handled via loadFont)
-                    // And actually, if primary has NO mapping, we don't need to do anything special here as loadFont does it.
                     autoFonts.push(item);
                 } else if (Array.isArray(Mapping)) {
                     Mapping.forEach(langId => {
                         if (langId === 'auto') {
                             if (index > 0) autoFonts.push(item);
                         } else {
-                            languageMappings[langId] = item.file.name;
+                            // Always add to configure set (so it shows up in sidebar)
                             languageIdsToConfigure.add(langId);
+
+                            // Only map override if NOT primary
+                            if (index > 0) {
+                                languageMappings[langId] = item.file.name;
+                            }
                         }
                     });
                 } else if (Mapping && Mapping !== 'auto') {
-                    languageMappings[Mapping] = item.file.name;
+                    // Always add to configure set
                     languageIdsToConfigure.add(Mapping);
+
+                    // Only map override if NOT primary
+                    if (index > 0) {
+                        languageMappings[Mapping] = item.file.name;
+                    }
                 }
             });
 
