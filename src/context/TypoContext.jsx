@@ -2657,7 +2657,17 @@ export const TypoProvider = ({ children }) => {
 
             // 2. APPLY NEW MAPPING
             if (isTargetPrimary) {
-                nextPrimaryOverrides[langId] = fontId;
+                // If we are mapping to the MAIN Primary Font (not a clone), we should NOT add an override entry.
+                // This acts as a "Reset to Default" for the primary mapping.
+                // Find the main primary font
+                const mainPrimaryFont = fonts.find(f => f.type === 'primary' && !f.isPrimaryOverride);
+
+                if (mainPrimaryFont && fontId === mainPrimaryFont.id) {
+                    // Mapping to Global Primary -> Do NOT add override.
+                    // (We already deleted old override above).
+                } else {
+                    nextPrimaryOverrides[langId] = fontId;
+                }
             } else {
                 nextFallbackOverrides[langId] = fontId;
             }
@@ -2996,9 +3006,9 @@ export const TypoProvider = ({ children }) => {
 
 
     const resetFallbackFontOverridesForStyle = (styleId, fontId) => {
-        updateStyleState(styleId, prev => ({
-            ...prev,
-            fonts: prev.fonts.map(f =>
+        updateStyleState(styleId, prev => {
+            // 1. Perform Reset
+            const nextFontsInitial = prev.fonts.map(f =>
                 f && f.id === fontId && f.type === 'fallback'
                     ? {
                         ...f,
@@ -3008,11 +3018,91 @@ export const TypoProvider = ({ children }) => {
                         letterSpacing: undefined,
                         weightOverride: undefined,
                         fontSizeAdjust: undefined,
-                        sizeAdjust: undefined
+                        sizeAdjust: undefined,
+                        lineGapOverride: undefined,
+                        ascentOverride: undefined,
+                        descentOverride: undefined
                     }
                     : f
-            )
-        }));
+            );
+
+            // 2. Check for Cleanup
+            // Find the font we just reset
+            const resetFont = nextFontsInitial.find(f => f.id === fontId);
+
+            // Should we clean it up?
+            // Only if it is a CLONE / LangSpecific primary override
+            // And has NO other properties set.
+            let shouldDelete = false;
+
+            if (resetFont && (resetFont.isClone || resetFont.isLangSpecific)) {
+                // Find Parent for comparison to ensure we don't count inherited/copied values as "Overrides"
+                const parentFont = prev.fonts.find(f => f.id === resetFont.parentId)
+                    || (resetFont.type === 'primary' ? prev.fonts.find(f => f.type === 'primary' && !f.isPrimaryOverride) : null);
+
+                // Check if any property is still set and DIFFERENT from parent
+                const stylingProps = [
+                    'baseFontSize', 'scale', 'lineHeight', 'letterSpacing',
+                    'weightOverride', 'fontSizeAdjust', 'sizeAdjust',
+                    'lineGapOverride', 'ascentOverride', 'descentOverride', 'color'
+                ];
+
+                const hasSignificantProps = stylingProps.some(k => {
+                    const val = resetFont[k];
+                    // If undefined/null, it's not an override
+                    if (val === undefined || val === null) return false;
+
+                    // If value exists, check if it matches parent
+                    if (parentFont) {
+                        const parentVal = parentFont[k];
+                        // If values match, it's NOT a significant override (just a copy)
+                        if (val === parentVal) return false;
+                    }
+
+                    // If parent not found or value differs, it IS significant
+                    return true;
+                });
+
+                if (!hasSignificantProps) {
+                    shouldDelete = true;
+                }
+            }
+
+            if (!shouldDelete) {
+                return {
+                    ...prev,
+                    fonts: nextFontsInitial
+                };
+            }
+
+            // 3. Perform Cleanup
+            const finalFonts = nextFontsInitial.filter(f => f.id !== fontId);
+
+            let nextPrimaryOverrides = { ...(prev.primaryFontOverrides || {}) };
+            // Find keys pointing to this fontId and remove them
+            Object.keys(nextPrimaryOverrides).forEach(key => {
+                if (nextPrimaryOverrides[key] === fontId) {
+                    delete nextPrimaryOverrides[key];
+                }
+            });
+
+            let nextFallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+            Object.keys(nextFallbackOverrides).forEach(key => {
+                if (nextFallbackOverrides[key] === fontId) {
+                    delete nextFallbackOverrides[key];
+                }
+            });
+
+            // Also check if this removal makes a language "unconfigured"
+            // For now, satisfy "font swap cleanup".
+
+            return {
+                ...prev,
+                fonts: finalFonts,
+                primaryFontOverrides: nextPrimaryOverrides,
+                fallbackFontOverrides: nextFallbackOverrides
+            };
+        });
     };
 
 

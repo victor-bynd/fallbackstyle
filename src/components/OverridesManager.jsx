@@ -248,7 +248,7 @@ const OverridesManager = ({ iconMode = false }) => {
 
 
         // --- LANGUAGE SECTIONS ---
-        Object.entries(primaryFontOverrides || {}).forEach(([langId, fontId]) => {
+        Object.entries(style.primaryFontOverrides || {}).forEach(([langId, fontId]) => {
             if (!visibleSet.has(langId)) return;
             const langName = languages.find(l => l.id === langId)?.name || 'Unknown';
             const font = fonts.find(f => f && f.id === fontId);
@@ -264,6 +264,7 @@ const OverridesManager = ({ iconMode = false }) => {
 
             if (font) {
                 const changes = [];
+                if (font.baseFontSize !== undefined) changes.push({ label: 'Base Size', value: `${font.baseFontSize}px` });
                 if (font.weightOverride !== undefined) changes.push({ label: 'Weight', value: font.weightOverride });
                 if (font.scale !== undefined) changes.push({ label: 'Scale', value: `${font.scale}%` });
                 if (font.lineHeight !== undefined) changes.push({ label: 'L-Height', value: font.lineHeight });
@@ -306,6 +307,7 @@ const OverridesManager = ({ iconMode = false }) => {
                     });
 
                     const changes = [];
+                    if (font.baseFontSize !== undefined) changes.push({ label: 'Base Size', value: `${font.baseFontSize}px` });
                     if (font.scale !== undefined) changes.push({ label: 'Size', value: `${font.scale}%` });
                     if (font.lineHeight !== undefined) changes.push({ label: 'L-Height', value: font.lineHeight });
                     if (font.letterSpacing !== undefined) changes.push({ label: 'L-Spacing', value: `${font.letterSpacing}px` });
