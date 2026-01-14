@@ -470,6 +470,22 @@ export const TypoProvider = ({ children }) => {
         });
     };
 
+    // New: Individual Hidden Persistence
+    const [hiddenLanguageIds, setHiddenLanguageIds] = useState([]);
+
+    const toggleLanguageHidden = (langId) => {
+        setHiddenLanguageIds(prev => {
+            if (prev.includes(langId)) {
+                return prev.filter(id => id !== langId);
+            }
+            return [...prev, langId];
+        });
+    };
+
+    const unhideAllLanguages = () => {
+        setHiddenLanguageIds([]);
+    };
+
 
 
     const showAllLanguages = () => {
@@ -2062,10 +2078,10 @@ export const TypoProvider = ({ children }) => {
                 configuredLanguages: nextConfigured,
                 fonts: nextFonts,
                 primaryFontOverrides: nextPrimaryOverrides,
-                fallbackFontOverrides: nextFallbackOverrides
             };
         });
-        setLanguageVisibility(langId, false);
+        // Remove from hidden list if present, to ensure clean state if re-added
+        setHiddenLanguageIds(prev => prev.filter(id => id !== langId));
     };
 
     const toggleLanguageVisibility = (langId) => {
@@ -3653,6 +3669,11 @@ export const TypoProvider = ({ children }) => {
             toggleAlignmentGuides: () => setShowAlignmentGuides(prev => !prev),
             showBrowserGuides,
             toggleBrowserGuides: () => setShowBrowserGuides(prev => !prev),
+
+            // Individual Visibility
+            hiddenLanguageIds,
+            toggleLanguageHidden,
+            unhideAllLanguages,
 
         }}>
             {children}

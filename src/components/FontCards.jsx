@@ -427,7 +427,8 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         const rawOverrides = fallbackFontOverrides[activeTab] || {};
         const overriddenOriginalIds = new Set(); // Re-introduced definition
 
-        const unifiedUploadedFonts = baseGlobalFonts.map(baseFont => {
+        const unifiedUploadedFonts = [];
+        baseGlobalFonts.forEach(baseFont => {
             // Check for override
             let overrideId = null;
             if (typeof rawOverrides === 'string') {
@@ -440,10 +441,10 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 const override = fonts.find(f => f && f.id === overrideId);
                 if (override) {
                     overriddenOriginalIds.add(baseFont.id); // Track it
-                    return override;
+                    unifiedUploadedFonts.push(override);
                 }
             }
-            return baseFont;
+            // If no override, we do nothing (it will naturally fall into inheritedFallbacks)
         });
 
         const extraMappedFonts = [];
@@ -713,7 +714,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                             <>
                                 <div className="flex items-center gap-2 px-1">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        {isAllTab ? 'Targeted Fonts' : 'Targeted Font'}
+                                        Mapped Fonts
                                     </span>
                                     <InfoTooltip
                                         content={

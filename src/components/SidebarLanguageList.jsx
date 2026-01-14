@@ -17,10 +17,12 @@ const SidebarLanguageList = ({
     searchQuery,
     expandedGroups,
     setExpandedGroups,
+    primaryFontOverrides, // New
+    fallbackFontOverrides, // New
+    hiddenLanguageIds, // New
+    onToggleHidden, // New
     fontFilter, // New prop
-    fonts, // New prop
-    primaryFontOverrides, // New prop
-    fallbackFontOverrides // New prop
+    fonts // Restored prop
 }) => {
     // const [expandedGroups, setExpandedGroups] = useState({}); // Lifted to App
 
@@ -219,7 +221,10 @@ const SidebarLanguageList = ({
                     <div key={groupKey} className="flex flex-col gap-1">
                         {/* Group Header */}
                         <button
-                            onClick={() => toggleGroup(groupKey)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleGroup(groupKey);
+                            }}
                             className={`flex items-center justify-between w-full px-1 py-1 group/header transition-colors ${isExpanded ? 'text-slate-800' : 'text-slate-400'}`}
                         >
                             <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -258,7 +263,8 @@ const SidebarLanguageList = ({
                                             <div key={lang.id} className="group relative flex items-center">
                                                 <button
                                                     id={`sidebar-lang-${lang.id}`}
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         isSidebarInteraction.current = true; // Mark interaction source
 
 
@@ -272,14 +278,14 @@ const SidebarLanguageList = ({
                                                     }}
                                                     className={`
                                                     w-full text-left px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border
-                                                    flex items-center justify-between
+                                                    flex items-center justify-between group/item
                                                     ${isActive
                                                             ? 'bg-indigo-50 border-indigo-200 text-indigo-600 ring-1 ring-indigo-500/10 shadow-sm'
                                                             : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-600'
                                                         }
                                                 `}
                                                 >
-                                                    <span className="flex items-center gap-1.5 min-w-0">
+                                                    <span className={`flex items-center gap-1.5 min-w-0 ${hiddenLanguageIds?.includes(lang.id) ? 'opacity-50' : ''}`}>
                                                         <span className="truncate">
                                                             {formatLanguageName(lang.name)}
                                                         </span>
@@ -289,6 +295,32 @@ const SidebarLanguageList = ({
                                                             </svg>
                                                         )}
                                                     </span>
+
+                                                    {/* Visibility Toggle */}
+                                                    <div
+                                                        role="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onToggleHidden?.(lang.id);
+                                                        }}
+                                                        className={`
+                                                            w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200/50 text-slate-400 hover:text-slate-600 transition-all
+                                                            ${hiddenLanguageIds?.includes(lang.id) ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}
+                                                        `}
+                                                        title={hiddenLanguageIds?.includes(lang.id) ? "Show Language" : "Hide Language"}
+                                                    >
+                                                        {hiddenLanguageIds?.includes(lang.id) ? (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-slate-400">
+                                                                <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.185A10.004 10.004 0 009.999 3a9.956 9.956 0 00-4.744 1.194L3.28 2.22zM7.752 6.69l1.092 1.092a2.5 2.5 0 013.374 3.373l1.091 1.092a4 4 0 00-5.557-5.557z" clipRule="evenodd" />
+                                                                <path d="M10.748 13.403l-4.618-4.618a2.5 2.5 0 004.618 4.618z" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                                                                <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                                                                <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.185A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
                                                 </button>
                                             </div>
                                         );

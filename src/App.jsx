@@ -66,7 +66,8 @@ const MainContent = ({
     resetApp,
     isSessionLoading,
     fonts, // Added for filtering
-    fontStyles
+    fontStyles,
+    hiddenLanguageIds, // New
   } = useTypo();
 
   const {
@@ -221,8 +222,13 @@ const MainContent = ({
       });
     }
 
+    // 6. Filter Hidden Languages (Main View only)
+    if (hiddenLanguageIds && hiddenLanguageIds.length > 0) {
+      visible = visible.filter(l => !hiddenLanguageIds.includes(l.id));
+    }
+
     return visible;
-  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides]);
+  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hiddenLanguageIds]);
 
   const visibleCount = visibleLanguagesList.length;
   const totalCount = supportedLanguages.length;

@@ -241,7 +241,7 @@ const LandingPage = ({ importConfig }) => {
     if (step === 'languages') {
         return (
             <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
-                <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4 md:p-8 animate-in zoom-in-95 duration-300">
+                <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4 md:p-8">
                     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col overflow-hidden h-full max-h-[800px]">
                         {/* Header */}
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -417,6 +417,7 @@ const LandingPage = ({ importConfig }) => {
             <ResetConfirmModal
                 isOpen={showResetModal}
                 onClose={() => setShowResetModal(false)}
+                onConfirm={handleReset}
             />
 
             <div className="absolute bottom-4 left-6 text-xs font-bold text-slate-300 select-none pointer-events-none">

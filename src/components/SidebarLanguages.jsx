@@ -32,7 +32,10 @@ const SidebarLanguages = ({
         supportedLanguages,
         languages,
         primaryLanguages, // New
-        fonts // Needed for font filter check
+        fonts, // Needed for font filter check
+        hiddenLanguageIds,
+        unhideAllLanguages,
+        toggleLanguageHidden
     } = useTypo();
 
     const { activeConfigTab, setActiveConfigTab } = useUI();
@@ -64,6 +67,7 @@ const SidebarLanguages = ({
         // If searching, count is total matching
         if (searchQuery) { // searchQuery comes from props
             return configuredLanguages.filter(langId => {
+                if (hiddenLanguageIds.includes(langId)) return false; // Filter hidden
                 const lang = languagesData.find(l => l.id === langId);
                 if (!lang) return false;
                 return lang.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -71,6 +75,8 @@ const SidebarLanguages = ({
         }
 
         return configuredLanguages.filter(langId => {
+            if (hiddenLanguageIds.includes(langId)) return false; // Filter hidden
+
             const lang = languagesData.find(l => l.id === langId);
             if (!lang) return false;
 
@@ -109,9 +115,16 @@ const SidebarLanguages = ({
             if (selectedGroup === 'UNMAPPED') return !isTargeted && !isPrimary;
             return group === selectedGroup;
         }).length;
-    }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups]);
+    }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups, hiddenLanguageIds, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides]);
 
-    const totalCount = configuredLanguages?.length || 0;
+    const totalCount = (configuredLanguages?.length || 0) - (hiddenLanguageIds?.length || 0);
+
+    const hasCollapsedGroups = expandedGroups && Object.values(expandedGroups).some(v => v === false);
+
+    const handleShowAll = () => {
+        unhideAllLanguages();
+        setExpandedGroups({});
+    };
 
     return (
         <div className="w-64 flex flex-col h-full border-r border-gray-100 bg-white overflow-hidden">
@@ -160,7 +173,7 @@ const SidebarLanguages = ({
                     </div>
                 </div>
 
-                <div className="text-[10px] font-bold text-slate-400 mt-0.5 mb-4">
+                <div className="text-[10px] font-bold text-slate-400 mt-0.5 mb-4 flex items-center h-5 relative">
                     <span>
                         <span className="text-slate-400">
                             {isSearchOpen ? 'SEARCHING' : 'COUNTRY–REGION'}
@@ -173,6 +186,14 @@ const SidebarLanguages = ({
                             </>
                         )}
                     </span>
+                    {(hiddenLanguageIds?.length > 0 || hasCollapsedGroups) && (
+                        <button
+                            onClick={handleShowAll}
+                            className="absolute right-0 text-[9px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold tracking-wider transition-colors"
+                        >
+                            SHOW ALL {hiddenLanguageIds?.length > 0 ? `(${hiddenLanguageIds.length})` : ''}
+                        </button>
+                    )}
                 </div>
 
                 {
@@ -218,7 +239,13 @@ const SidebarLanguages = ({
             </div >
 
             {/* Scrollable List Section */}
-            < div className="flex-1 overflow-y-auto min-h-0 p-4 pt-2 custom-scrollbar" >
+            < div
+                className="flex-1 overflow-y-auto min-h-0 p-4 pt-2 custom-scrollbar"
+                onClick={() => {
+                    if (setHighlitLanguageId) setHighlitLanguageId(null);
+                    setActiveConfigTab('ALL');
+                }}
+            >
                 <SidebarLanguageList
                     activeTab={activeConfigTab}
                     setActiveTab={setActiveConfigTab}
@@ -239,6 +266,8 @@ const SidebarLanguages = ({
                     setExpandedGroups={setExpandedGroups}
                     fontFilter={fontFilter} // Pass down
                     fonts={fonts} // Pass fonts for resolution
+                    hiddenLanguageIds={hiddenLanguageIds}
+                    onToggleHidden={toggleLanguageHidden}
                 />
             </div >
 
