@@ -1,16 +1,19 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { TypoProvider } from './context/TypoContext'
-import { UIProvider } from './context/UIContext'
+import { BrowserRouter } from 'react-router-dom'
+import { TypoProvider } from './shared/context/TypoContext'
+import { UIProvider } from './shared/context/UIContext'
 import './index.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <UIProvider>
-      <TypoProvider>
-        <App />
-      </TypoProvider>
-    </UIProvider>
+    <BrowserRouter>
+      <UIProvider>
+        <TypoProvider>
+          <App />
+        </TypoProvider>
+      </UIProvider>
+    </BrowserRouter>
   </StrictMode>,
 )

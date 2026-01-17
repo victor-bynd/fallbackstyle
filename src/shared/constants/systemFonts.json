@@ -1,0 +1,94 @@
+[
+  {
+    "id": "arial",
+    "name": "Arial",
+    "fullName": "Arial",
+    "postscriptName": "ArialMT",
+    "category": "sans-serif",
+    "filename": "ARIAL.TTF",
+    "metrics": {
+      "unitsPerEm": 2048,
+      "ascent": 1854,
+      "descent": -434,
+      "lineGap": 67,
+      "xHeight": 1062,
+      "capHeight": 1467
+    },
+    "normalized": {
+      "ascent": 0.9052734375,
+      "descent": 0.2119140625,
+      "lineGap": 0.03271484375,
+      "xHeight": 0.5185546875,
+      "capHeight": 0.71630859375
+    }
+  },
+  {
+    "id": "roboto-variablefont-wdth-wght",
+    "name": "Roboto",
+    "fullName": "Roboto Regular",
+    "postscriptName": "Roboto-Regular",
+    "category": "sans-serif",
+    "filename": "Roboto-VariableFont_wdth,wght.ttf",
+    "metrics": {
+      "unitsPerEm": 2048,
+      "ascent": 1900,
+      "descent": -500,
+      "lineGap": 102,
+      "xHeight": 1082,
+      "capHeight": 1456
+    },
+    "normalized": {
+      "ascent": 0.927734375,
+      "descent": 0.244140625,
+      "lineGap": 0.0498046875,
+      "xHeight": 0.5283203125,
+      "capHeight": 0.7109375
+    }
+  },
+  {
+    "id": "sf-pro",
+    "name": "SF Pro",
+    "fullName": "SF Pro",
+    "postscriptName": "SFPro-Regular",
+    "category": "sans-serif",
+    "filename": "SF-Pro.ttf",
+    "metrics": {
+      "unitsPerEm": 2048,
+      "ascent": 1950,
+      "descent": -494,
+      "lineGap": 0,
+      "xHeight": 1040,
+      "capHeight": 1443
+    },
+    "normalized": {
+      "ascent": 0.9521484375,
+      "descent": 0.2412109375,
+      "lineGap": 0,
+      "xHeight": 0.5078125,
+      "capHeight": 0.70458984375
+    }
+  },
+  {
+    "id": "segoeui-vf",
+    "name": "Segoe UI Variable",
+    "fullName": "Segoe UI Variable",
+    "postscriptName": "SegoeUIVariable",
+    "category": "sans-serif",
+    "filename": "SegoeUI-VF.ttf",
+    "metrics": {
+      "unitsPerEm": 2048,
+      "ascent": 2210,
+      "descent": -514,
+      "lineGap": 269,
+      "xHeight": 1024,
+      "capHeight": 1434
+    },
+    "normalized": {
+      "ascent": 1.0791015625,
+      "descent": 0.2509765625,
+      "lineGap": 0.13134765625,
+      "xHeight": 0.5,
+      "capHeight": 0.7001953125
+    }
+  }
+]
