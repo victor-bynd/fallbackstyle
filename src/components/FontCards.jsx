@@ -25,8 +25,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         resetFallbackFontOverrides,
         addFallbackFonts,
         addStrictlyMappedFonts,
-        unmapFont,
-        // Unused overrides removed
+
         weight,
         fontScales,
         lineHeight,
@@ -46,8 +45,6 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         systemFallbackOverrides,
         updateSystemFallbackOverride,
         resetSystemFallbackOverride,
-        missingColor,
-        setMissingColor,
 
         normalizeFontName,
         // Unused variable removed
@@ -65,21 +62,13 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
     const isInheritedSystemGroup = activeTab !== 'primary' && activeTab !== 'ALL' && Object.keys(langOverrides).length === 0;
 
     const effectiveFallbackFont = langOverrides.type || fallbackFont;
-    const effectiveMissingColor = langOverrides.missingColor || missingColor;
+    // Unused variables removed
 
     const handleSystemFallbackChange = (type) => {
         if (activeTab === 'primary' || activeTab === 'ALL') {
             setFallbackFont(type);
         } else {
             updateSystemFallbackOverride(activeTab, 'type', type);
-        }
-    };
-
-    const handleMissingColorChange = (color) => {
-        if (activeTab === 'primary' || activeTab === 'ALL') {
-            setMissingColor(color);
-        } else {
-            updateSystemFallbackOverride(activeTab, 'missingColor', color);
         }
     };
 
@@ -591,7 +580,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                         toggleFontVisibility={toggleFontVisibility}
                         isInherited={isInheritedPrimary}
                         onOverride={() => addLanguageSpecificPrimaryFont(activeTab)}
-                        onResetOverride={(isLanguageSpecificView && primary.id !== globalPrimary.id) ? () => unmapFont(primary.id) : null}
+                        onResetOverride={null}
                         onSelectLanguage={setActiveConfigTab}
                         setHighlitLanguageId={setHighlitLanguageId}
                         activeTab={activeTab}
@@ -806,7 +795,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                     onOverride={isInheritedMapped ? () => addLanguageSpecificFont(font.id, activeTab) : null}
                                     onMap={null} // Remove Map button
                                     // Enable deletion (unmap/remove clone) in language-specific view
-                                    onResetOverride={(!isAllTab && activeTab !== 'primary') ? unmapFont : null}
+                                    onResetOverride={null}
                                     onSelectLanguage={setActiveConfigTab}
                                     setHighlitLanguageId={setHighlitLanguageId}
                                     highlitLanguageId={highlitLanguageId}
@@ -841,16 +830,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 px-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Fonts</span>
-                        <div className="relative w-3.5 h-3.5 rounded-full border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="absolute inset-0" style={{ backgroundColor: effectiveMissingColor }}></div>
-                            <input
-                                type="color"
-                                value={effectiveMissingColor}
-                                onChange={(e) => handleMissingColorChange(e.target.value)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                disabled={readOnly}
-                            />
-                        </div>
+
                         <div className="h-px flex-1 bg-slate-100"></div>
 
                         {!isAllTab && activeTab !== 'primary' && !isInheritedSystemGroup && !readOnly && (
@@ -890,8 +870,9 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                         onSelectLanguage={setActiveConfigTab}
                                         activeTab={activeTab}
                                         isInherited={!isAllTab && activeTab !== 'primary' && !readOnly && !isOverridden}
+                                        suppressInheritedOverlay={isInheritedSystemGroup}
                                         onOverride={() => addLanguageSpecificFont(font.id, activeTab)}
-                                        onResetOverride={(!isAllTab && activeTab !== 'primary') ? unmapFont : null}
+                                        onResetOverride={null}
                                         setHighlitLanguageId={setHighlitLanguageId}
                                     />
                                 );

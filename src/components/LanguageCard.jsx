@@ -378,18 +378,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         (mainViewSettings.descentOverride !== undefined && mainViewSettings.descentOverride !== '')
     );
 
-    const metricsPrimaryMissing = useMemo(() => {
-        const textToCheck = languageCharacters[language.id] || contentToRender;
-        const charsToCheck = textToCheck.replace(/\s/g, '').split('');
 
-        if (!metricsPrimaryFontObject) return charsToCheck.length;
-
-        return charsToCheck.filter(char => {
-            return metricsPrimaryFontObject.charToGlyphIndex(char) === 0;
-        }).length;
-    }, [language.id, contentToRender, metricsPrimaryFontObject]);
-
-    const primaryFullyCovers = metricsPrimaryMissing === 0;
 
     // FIX: If any fallback font has overrides, we must force 'normal' line-height.
     // We removed the (!primaryFullyCovers) check because we want to ensure that if the user

@@ -112,9 +112,11 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
 
     // Reconstruct style settings
     const combinedStyle = {
-        fontFamily: !isGlobalPrimary && primaryFont
-            ? `'FallbackFont-${styleIdForTag}-${primaryFont.id}'`
-            : `UploadedFont-${styleIdForTag}`,
+        fontFamily: (primaryFont?.hidden)
+            ? undefined
+            : (!isGlobalPrimary && primaryFont
+                ? `'FallbackFont-${styleIdForTag}-${primaryFont.id}'`
+                : `UploadedFont-${styleIdForTag}`),
         color: primaryFont?.color || colors.primary,
         fontSize: `${finalSizePx}px`,
         fontWeight: primarySettings.weight || 400,

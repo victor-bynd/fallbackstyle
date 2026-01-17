@@ -2988,9 +2988,7 @@ export const TypoProvider = ({ children }) => {
 
     const getFontColor = (fontId) => {
         const font = fonts.find(f => f.id === fontId);
-        if (font && !font.fontObject && !font.fileName) {
-            return missingColor;
-        }
+
 
         // Handle Inheritance
         if (font && (font.color === undefined || font.color === null)) {
@@ -3213,6 +3211,7 @@ export const TypoProvider = ({ children }) => {
 
             showBrowserGuides,
             showFallbackOrder,
+            hiddenLanguageIds,
             appName: 'fallback-style',
             version: __APP_VERSION__,
             DEFAULT_PALETTE
@@ -3235,7 +3234,8 @@ export const TypoProvider = ({ children }) => {
         showBrowserGuides,
         // Duplicate dependency removed
 
-        showFallbackOrder
+        showFallbackOrder,
+        hiddenLanguageIds
     ]);
 
     const restoreConfiguration = useCallback(async (rawConfig, fontFilesMap = {}) => {
@@ -3249,6 +3249,12 @@ export const TypoProvider = ({ children }) => {
         setActiveFontStyleId(config.activeFontStyleId || 'primary');
         if (config.activeConfigTab) {
             setActiveConfigTab(config.activeConfigTab);
+        }
+
+        if (config.hiddenLanguageIds && Array.isArray(config.hiddenLanguageIds)) {
+            setHiddenLanguageIds(config.hiddenLanguageIds);
+        } else {
+            setHiddenLanguageIds([]);
         }
 
         setHeaderStyles(config.headerStyles || DEFAULT_HEADER_STYLES);

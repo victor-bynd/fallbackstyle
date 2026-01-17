@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useTypo } from './context/useTypo';
 import { useUI } from './context/UIContext';
 import Schema from './components/Schema';
@@ -836,7 +836,7 @@ const MainContent = ({
               ) : (
                 <AnimatePresence initial={false}>
                   {visibleLanguagesList.map(lang => (
-                    <motion.div
+                    <Motion.div
                       key={lang.id}
                       className="h-full"
                       style={{ zIndex: activeMenuId === lang.id ? 50 : 1 }}
@@ -855,7 +855,7 @@ const MainContent = ({
                         onToggleMenu={(isOpen) => setActiveMenuId(isOpen ? lang.id : null)}
                         setHighlitLanguageId={setHighlitLanguageId}
                       />
-                    </motion.div>
+                    </Motion.div>
                   ))}
                 </AnimatePresence>
               )}

@@ -15,6 +15,9 @@ export const useFontFaceStyles = () => {
                 const primarySettings = primary ? getEffectiveFontSettingsForStyle(styleId, primary.id) : null;
 
 
+
+
+
                 // Override properties are floats (0-1), convert to %
                 const primaryLineGapOverride = (primarySettings && primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '')
                     ? `line-gap-override: ${primarySettings.lineGapOverride * 100}%;`
@@ -36,7 +39,7 @@ export const useFontFaceStyles = () => {
                     ? `size-adjust: ${primarySettings.scale}%;`
                     : '';
 
-                const primaryRule = (primary?.fontUrl || primary?.name)
+                const primaryRule = !primary?.hidden && (primary?.fontUrl || primary?.name)
                     ? `
           @font-face {
             font-family: 'UploadedFont-${styleId}';
@@ -51,7 +54,13 @@ export const useFontFaceStyles = () => {
                     : '';
 
                 const fallbackRules = (style.fonts || [])
-                    .filter(f => f && (f.type === 'fallback' || f.type === 'primary') && (f.fontUrl || f.name))
+                    .filter(f => {
+                        if (!f || !f.fontUrl && !f.name) return false;
+                        if (f.type !== 'fallback' && f.type !== 'primary') return false;
+                        if (f.hidden) return false;
+                        if (f.isPrimaryOverride && primary?.hidden) return false;
+                        return true;
+                    })
                     .map(font => {
                         const settings = getEffectiveFontSettingsForStyle(styleId, font.id);
 
@@ -172,10 +181,7 @@ export const useFontFaceStyles = () => {
                 }).join('');
 
                 return `${primaryRule}${fallbackRules}${systemFallbackRules}`;
-            })
-
-        console.log('[useFontFaceStyles] Generated CSS:', styles);
-        return styles;
+            });
     }, [fontStyles, getEffectiveFontSettingsForStyle]);
 
     return fontFaceStyles;

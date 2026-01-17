@@ -89,8 +89,8 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
     // If it's 'normal', we might want a numeric fallback or just let browser handle,
     // but for Grid alignment we need a number.
     // Let's interpret 'normal' as 1.2 for grid calculation purposes if we can't derive it.
-    const rawLineHeight = activeStyle?.lineHeight;
-    const lineHeightMultiplier = (rawLineHeight === 'normal' || !rawLineHeight) ? 1.2 : parseFloat(rawLineHeight);
+
+
 
     // Calculate exact pixel line height for consistent grid
     // lineHeightPx unused

@@ -26,8 +26,7 @@ const LanguageCardHeader = ({
     addLanguageSpecificFallbackFont,
     onStartEdit,
     onRemove,
-    onUnmap,
-    useNormalLineHeight
+    onUnmap
 }) => {
     return (
         <div className="bg-slate-50/50 px-5 py-3 border-b border-gray-100 flex flex-wrap gap-y-2 justify-between items-center backdrop-blur-sm relative z-30 rounded-t-xl">
@@ -69,17 +68,7 @@ const LanguageCardHeader = ({
                     )}
                 </div>
 
-                {/* Font Indicators - Controlled by showFallbackOrder */}
-                {useNormalLineHeight && (
-                    <InfoTooltip content={TOOLTIPS.LINE_HEIGHT_LOCKED}>
-                        <div className="flex items-center gap-1 text-[10px] font-mono border px-2 py-0.5 rounded-md whitespace-nowrap bg-amber-50 text-amber-600 border-amber-100 cursor-help">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                                <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
-                            </svg>
-                            <span>LH: Normal</span>
-                        </div>
-                    </InfoTooltip>
-                )}
+
 
                 {showFallbackOrder && (
                     <div className="flex items-center gap-1.5 overflow-hidden pt-1">
