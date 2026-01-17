@@ -30,8 +30,7 @@ const FontManagerModal = ({ onClose }) => {
         languages,
         fallbackFontOverrides,
         primaryFontOverrides,
-        updateFallbackFontOverride,
-        addLanguageSpecificPrimaryFont,
+        // Unused context values removed
         toggleFontGlobalStatus,
         normalizeFontName,
         assignFontToMultipleLanguages,

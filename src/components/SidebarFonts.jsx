@@ -4,6 +4,7 @@ import { useUI } from '../context/UIContext';
 import FontCards from './FontCards';
 import OverridesManager from './OverridesManager';
 import InfoTooltip from './InfoTooltip';
+import { TOOLTIPS } from '../constants/tooltips';
 
 
 const SidebarFonts = ({ selectedGroup, highlitLanguageId, setHighlitLanguageId, fontFilter, setFontFilter }) => {
@@ -18,11 +19,11 @@ const SidebarFonts = ({ selectedGroup, highlitLanguageId, setHighlitLanguageId, 
                     FONT STACK
                 </div>
                 <div className="flex items-center gap-2">
-                    <InfoTooltip content="Override Manager: Audit and reset scale, weight, and metric adjustments.">
+                    <InfoTooltip content={TOOLTIPS.OVERRIDE_MANAGER}>
                         <OverridesManager iconMode={true} />
                     </InfoTooltip>
 
-                    <InfoTooltip content="Manage Fonts: Upload and configure available fonts.">
+                    <InfoTooltip content={TOOLTIPS.MANAGE_FONTS}>
                         <button
                             onClick={() => setShowFontManager(true)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-all active:scale-95"

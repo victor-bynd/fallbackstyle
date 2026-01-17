@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { useTypo } from '../context/useTypo';
 import FontUploader from './FontUploader';
 import LanguageList from './LanguageList';
@@ -51,8 +51,7 @@ const LandingPage = ({ importConfig }) => {
         loadFont,
         batchAddConfiguredLanguages,
         batchAddFontsAndMappings,
-        addLanguageSpecificFallbackFont,
-        addFallbackFonts,
+        // Unused context values removed
         fontObject,
         togglePrimaryLanguage
     } = useTypo();

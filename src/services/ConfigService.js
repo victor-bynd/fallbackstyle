@@ -28,7 +28,8 @@ export const ConfigService = {
             showBrowserGuides,
             showFallbackOrder,
             appName = 'fallback-style',
-            DEFAULT_PALETTE
+            DEFAULT_PALETTE,
+            hiddenLanguageIds
         } = state;
 
         // Create a deep clean copy of fontStyles that removes non-serializable fontObjects
@@ -64,7 +65,8 @@ export const ConfigService = {
             showFallbackColors,
             showAlignmentGuides,
             showBrowserGuides,
-            showFallbackOrder
+            showFallbackOrder,
+            hiddenLanguageIds
         };
 
         return {

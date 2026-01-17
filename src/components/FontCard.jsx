@@ -1,7 +1,8 @@
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 import { useUI } from '../context/UIContext';
+import { useFontStack } from '../hooks/useFontStack';
 import { buildWeightSelectOptions, resolveWeightToAvailableOption } from '../utils/weightUtils';
 import FontCardHeader from './FontCardHeader';
 import FontCardTabs from './FontCardTabs';
@@ -17,8 +18,9 @@ const FontCardContent = ({
     getEffectiveFontSettings,
     updateFallbackFontOverride,
     updateFontWeight,
-    onRemoveOverride,
-    onSelectLanguage,
+    // duplicate removed
+    // unused onRemoveOverride removed
+    // unused onSelectLanguage removed
     activeTab,
     isInherited = false,
     onOverride,
@@ -26,47 +28,56 @@ const FontCardContent = ({
     onMap,
     setHighlitLanguageId,
     readOnly = false,
+    // unused fontScales removed
+    // duplicate removed
+    // unused lineHeight removed
 
-    fontScales,
-    lineHeight,
-
-    setActiveFont,
+    // unused setActiveFont removed
     consolidatedIds = null,
 
     // NEW PROPS
     scope,
     onSetScope,
     isReference = false,
-    highlitLanguageId
+    highlitLanguageId,
+    suppressInheritedOverlay = false
 }) => {
-    const { primaryFontOverrides, fallbackFontOverrides, letterSpacing, setLetterSpacing, primaryLanguages, updateLanguageSpecificSetting, linkFontToLanguage, fonts, baseRem: contextBaseRem, setBaseRem, toggleFontVisibility, clearPrimaryFontOverride, clearFallbackFontOverride, addLanguageSpecificFont, addLanguageSpecificPrimaryFont, mapLanguageToFont, unmapLanguage } = useTypo();
+    const {
+        primaryLanguages,
+        primaryFontOverrides,
+        fallbackFontOverrides,
+        setLetterSpacing,
+        setBaseRem,
+        // weightOptions removed - calculated locally
+        addLanguageSpecificFont,
+        addLanguageSpecificPrimaryFont,
+        updateLanguageSpecificSetting, // Added this
+        fonts, // Kept as it's used later
+        baseRem: contextBaseRem, // Kept as it's used later
+        toggleFontVisibility, // Kept as it's used later
+        mapLanguageToFont // Kept as it's used later
+    } = useTypo();
     const { activeConfigTab, setActiveConfigTab } = useUI();
+    const { buildFallbackFontStackForStyle } = useFontStack();
     const baseRem = contextBaseRem || 16;
     const [showAdvanced, setShowAdvanced] = useState(false);
-    const [showAllTags, setShowAllTags] = useState(false);
-    const [tagsLimit, setTagsLimit] = useState(11);
-    const tagsContainerRef = useRef(null);
+    // unused state removed
 
 
-    // Use passed scope if available, or manage internally (default to ALL)
-    // This supports both controlled and uncontrolled usage
-    const [internalScope, setInternalScope] = useState('ALL');
-
-    // Sync internal state with activeConfigTab if uncontrolled or hybrid
+    // Internal state management removed as component is controlled
     useEffect(() => {
         if (!activeConfigTab || activeConfigTab === 'ALL') {
             if (onSetScope) onSetScope('ALL');
-            setInternalScope('ALL');
         }
         // Additional sync logic handled by parent or activeConfigTab effect below
     }, [activeConfigTab, onSetScope]);
 
-    const editScope = scope !== undefined ? scope : internalScope;
-    const setEditScope = onSetScope || setInternalScope;
+    const editScope = scope !== undefined ? scope : 'ALL';
+    // unused setEditScope removed
 
 
 
-    const idsToCheck = consolidatedIds || [font.id];
+    const idsToCheck = useMemo(() => consolidatedIds || [font.id], [consolidatedIds, font.id]);
 
     const languageTags = useMemo(() => {
         const tags = [];
@@ -97,7 +108,7 @@ const FontCardContent = ({
         });
 
         return [...new Set(tags)].filter(t => t && t !== 'undefined');
-    }, [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages, consolidatedIds]);
+    }, [idsToCheck, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages]);
 
     // Helper to determine if a language has an active override on this card
     const getOverrideState = (langId) => {
@@ -193,10 +204,7 @@ const FontCardContent = ({
         return !idsToCheck.includes(targetId);
     };
 
-    const singleLang = languageTags.length === 1 ? languageTags[0] : null;
-    const singleLangHasOverride = singleLang ? getOverrideState(singleLang) : false;
-    // Show merged view if there is exactly one language AND it has no active override
-    const showMergedView = singleLang && !singleLangHasOverride;
+    // MERGED VIEW REMOVED - We now always want to see "GLOBAL" if any language is mapped.
 
     // Sync editScope with activeConfigTab (Global Selection)
     useEffect(() => {
@@ -208,20 +216,12 @@ const FontCardContent = ({
         if (activeConfigTab === 'primary') {
             // Find if this card has a tag for the specifically highlighted primary language
             if (highlitLanguageId && languageTags.includes(highlitLanguageId)) {
-                if (showMergedView && highlitLanguageId === singleLang) {
-                    onSetScope('ALL');
-                } else {
-                    onSetScope(highlitLanguageId);
-                }
+                onSetScope(highlitLanguageId);
             } else {
                 // Otherwise find the first primary language tag this card has
                 const firstPrimary = languageTags.find(tag => primaryLanguages.includes(tag));
                 if (firstPrimary) {
-                    if (showMergedView && firstPrimary === singleLang) {
-                        onSetScope('ALL');
-                    } else {
-                        onSetScope(firstPrimary);
-                    }
+                    onSetScope(firstPrimary);
                 } else {
                     onSetScope('ALL');
                 }
@@ -232,11 +232,7 @@ const FontCardContent = ({
         // If a specific language is active
         if (languageTags.includes(activeConfigTab)) {
             // Explicit match (Override already exists or Primary Language explicit tag)
-            if (showMergedView && activeConfigTab === singleLang && !font.isPrimaryOverride && !font.isClone) {
-                onSetScope('ALL');
-            } else {
-                onSetScope(activeConfigTab);
-            }
+            onSetScope(activeConfigTab);
         } else {
             // Implicit Scope Detection:
             // If the active tab/language uses this font implicitly (inheritance), we allow setting the scope to it.
@@ -259,7 +255,7 @@ const FontCardContent = ({
                 onSetScope('ALL');
             }
         }
-    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, showMergedView, singleLang, font.type, font.isPrimaryOverride, primaryFontOverrides]);
+    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, font.type, font.isPrimaryOverride, primaryFontOverrides, font.isClone]);
 
     const scopeFontId = useMemo(() => {
         if (editScope === 'ALL') return font.id;
@@ -335,11 +331,28 @@ const FontCardContent = ({
     const effectiveWeight = scopeFontSettings?.weight ?? 400;
     const weightOptions = buildWeightSelectOptions(scopeFont);
     const resolvedWeight = resolveWeightToAvailableOption(scopeFont, effectiveWeight);
+    const isLineHeightLocked = useMemo(() => {
+        if (editScope === 'ALL') return false;
+
+        // Check if any fallback font for this scope (language) has metric overrides
+        // We use 'primary' style as the default context context for checking fallbacks relative to the primary font card
+        const stack = buildFallbackFontStackForStyle('primary', editScope);
+
+        return stack.some(f => {
+            const s = f.settings;
+            return s && (
+                (s.lineGapOverride !== undefined && s.lineGapOverride !== '') ||
+                (s.ascentOverride !== undefined && s.ascentOverride !== '') ||
+                (s.descentOverride !== undefined && s.descentOverride !== '')
+            );
+        });
+    }, [editScope, buildFallbackFontStackForStyle]);
+    const effectiveReadOnly = readOnly && !isLineHeightLocked;
 
 
 
     // Determine available tabs
-    const showTabs = languageTags && languageTags.length > 0;
+    // unused showTabs removed
 
     // Sort tabs: Put currently selected scope first if possible, or just alphabetical?
     // User requested "All" then others.
@@ -372,7 +385,7 @@ const FontCardContent = ({
                     </div>
                 )}
                 {/* Inherited Overlay */}
-                {(isInherited || isScopeInherited) && (
+                {(isInherited || isScopeInherited) && !isLineHeightLocked && !suppressInheritedOverlay && (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[1px] transition-all gap-3 rounded-xl m-[1px]">
                         <span className="text-indigo-900/40 text-[10px] font-bold uppercase tracking-widest mb-1">
                             Inherited from Global
@@ -400,29 +413,49 @@ const FontCardContent = ({
                     </div>
                 )}
 
-                {isPrimary && !isInherited && (
-                    <>
-                    </>
-                )}
-
-                {(!isPrimary || font.isPrimaryOverride) && (
-                    <div className="absolute right-2 top-2 flex gap-2 items-center z-30">
-                        {onResetOverride && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onResetOverride(font.id); }}
-                                className="text-slate-400 hover:text-rose-500 transition-all p-1"
-                                title="Unmap font"
-                                type="button"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-                                </svg>
-                            </button>
+                {/* Top Right Controls (Hide/Unmap) */}
+                <div className="absolute right-2 top-2 flex gap-2 items-center z-30">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFontVisibility(font.id);
+                        }}
+                        className={`p-1 rounded-md transition-colors ${font.hidden
+                            ? 'text-red-500 hover:text-red-700 bg-red-50'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                            }`}
+                        title={font.hidden ? "Show Font" : "Hide Font"}
+                        type="button"
+                    >
+                        {font.hidden ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.185A10.004 10.004 0 009.999 3a9.956 9.956 0 00-4.744 1.194L3.28 2.22zM7.752 6.69l1.092 1.092a2.5 2.5 0 013.374 3.373l1.091 1.092a4 4 0 00-5.557-5.557z" clipRule="evenodd" />
+                                <path d="M10.748 13.93l2.523 2.523a9.987 9.987 0 01-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 010-1.186A10.007 10.007 0 012.839 6.02L6.07 9.252a4 4 0 004.678 4.678z" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                                <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            </svg>
                         )}
-                    </div>
-                )}
+                    </button>
+
+                    {/* Unmap / Reset Override Button */}
+                    {(!isPrimary || font.isPrimaryOverride) && onResetOverride && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onResetOverride(font.id); }}
+                            className="text-slate-400 hover:text-rose-500 transition-all p-1"
+                            title="Unmap font"
+                            type="button"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
 
                 <FontCardHeader
                     font={font}
@@ -431,17 +464,16 @@ const FontCardContent = ({
                     getFontColor={getFontColor}
                     updateFontColor={updateFontColor}
                     isInherited={isInherited}
-                    readOnly={readOnly}
+                    isLineHeightLocked={isLineHeightLocked}
+                    readOnly={effectiveReadOnly}
                 />
 
                 <FontCardTabs
                     languageTags={languageTags}
-                    showMergedView={showMergedView}
                     editScope={editScope}
                     onSetScope={onSetScope}
                     setActiveConfigTab={setActiveConfigTab}
                     setHighlitLanguageId={setHighlitLanguageId}
-                    singleLang={singleLang}
                     primaryLanguages={primaryLanguages}
                     idsToCheck={idsToCheck}
                     primaryFontOverrides={primaryFontOverrides}
@@ -454,14 +486,13 @@ const FontCardContent = ({
                     activeTab={activeTab}
                 />
 
-                <div className={`mt-2 pt-2 border-t border-slate-100 space-y-3 ${(isInherited || isScopeInherited) ? 'opacity-40 grayscale-[0.8] pointer-events-none' : ''}`} onClick={e => e.stopPropagation()}>
+                <div className={`mt-2 pt-2 border-t border-slate-100 space-y-3 ${((isInherited || isScopeInherited) && !isLineHeightLocked) ? 'opacity-40 grayscale-[0.8] pointer-events-none' : ''}`} onClick={e => e.stopPropagation()}>
                     <FontCardSettings
                         isPrimary={isPrimary}
                         font={font}
                         editScope={editScope}
                         baseRem={baseRem}
                         setBaseRem={setBaseRem}
-                        readOnly={readOnly}
                         scopeFont={scopeFont}
                         scopeFontId={scopeFontId}
                         globalLineHeight={globalLineHeight}
@@ -472,9 +503,10 @@ const FontCardContent = ({
                         isInherited={isInherited}
                         scopeFontSettings={scopeFontSettings}
                         isReference={isReference}
-                        toggleFontVisibility={toggleFontVisibility}
                         showAdvanced={showAdvanced}
                         setShowAdvanced={setShowAdvanced}
+                        isLineHeightLocked={isLineHeightLocked}
+                        readOnly={effectiveReadOnly}
                     />
                 </div>
             </div>
@@ -489,7 +521,7 @@ export const FontCard = (props) => {
     // 'langId' = Specific update (overrides/clones).
     const [editScope, setEditScope] = useState('ALL');
 
-    return <FontCardContent {...props} scope={editScope} onSetScope={setEditScope} isReference={false} highlitLanguageId={props.highlitLanguageId} />;
+    return <FontCardContent {...props} scope={editScope} onSetScope={setEditScope} isReference={false} highlitLanguageId={props.highlitLanguageId} suppressInheritedOverlay={props.suppressInheritedOverlay} />;
 };
 
 FontCard.propTypes = {

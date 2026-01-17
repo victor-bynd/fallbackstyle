@@ -585,7 +585,8 @@ export const TypoProvider = ({ children }) => {
                 name,
                 axes: metadata.axes,
                 isVariable: metadata.isVariable,
-                staticWeight: metadata.staticWeight ?? null
+                staticWeight: metadata.staticWeight ?? null,
+                lineHeight: 'normal'
             };
 
             const newFonts = (prev.fonts || []).some(f => f && f.type === 'primary')
@@ -842,7 +843,12 @@ export const TypoProvider = ({ children }) => {
             }
 
             const nextColor = DEFAULT_PALETTE[prev.length % DEFAULT_PALETTE.length];
-            const newFont = { ...fontData, color: fontData.color || nextColor };
+            // Ensure line-height 'normal' default
+            const newFont = {
+                ...fontData,
+                color: fontData.color || nextColor,
+                lineHeight: fontData.lineHeight !== undefined ? fontData.lineHeight : 'normal'
+            };
 
             // If adding a system font, append at the end
             if (isSystemFont(newFont)) {
@@ -894,7 +900,8 @@ export const TypoProvider = ({ children }) => {
             let currentLen = prev.length;
             const newFonts = uniqueFonts.map((f, i) => ({
                 ...f,
-                color: DEFAULT_PALETTE[(currentLen + i) % DEFAULT_PALETTE.length]
+                color: DEFAULT_PALETTE[(currentLen + i) % DEFAULT_PALETTE.length],
+                lineHeight: f.lineHeight !== undefined ? f.lineHeight : 'normal'
             }));
             return [...prev, ...newFonts];
         });
@@ -1458,6 +1465,17 @@ export const TypoProvider = ({ children }) => {
 
     // Granular update for a specific language (Auto-Clone if needed)
     const updateLanguageSpecificSetting = (originalFontId, langId, property, value) => {
+        // Auto-switch Global Line Height to Normal if Line Gap Override is used
+        if (property === 'lineGapOverride') {
+            const isOverrideActive = value !== '' && value !== undefined && value !== null;
+            if (isOverrideActive && lineHeight !== 'normal') {
+                console.log(`[TypoContext] Auto-switching Global Line Height to Normal due to Line Gap Override on Language Specific font: ${originalFontId} (${langId})`);
+                setPreviousLineHeight(lineHeight);
+                setLineHeight('normal');
+            }
+        }
+
+
         const styleId = activeFontStyleId;
         updateStyleState(styleId, prev => {
             const fonts = prev.fonts || [];
@@ -1936,6 +1954,10 @@ export const TypoProvider = ({ children }) => {
                         if (!newFont.color) {
                             newFont.color = DEFAULT_PALETTE[nextFonts.length % DEFAULT_PALETTE.length];
                         }
+                        // Ensure line-height 'normal' default
+                        if (newFont.lineHeight === undefined) {
+                            newFont.lineHeight = 'normal';
+                        }
                         nextFonts.push(newFont);
                     }
                 });
@@ -2407,6 +2429,18 @@ export const TypoProvider = ({ children }) => {
 
     // Update a fallback font's override settings
     const updateFallbackFontOverride = (fontId, field, value) => {
+        console.log(`[TypoContext] updateFallbackFontOverride called: fontId=${fontId}, field=${field}, value=${value}`);
+        // Auto-switch Global Line Height to Normal if Line Gap Override is used
+        if (field === 'lineGapOverride') {
+            const isOverrideActive = value !== '' && value !== undefined && value !== null;
+            if (isOverrideActive && lineHeight !== 'normal') {
+                console.log(`[TypoContext] Auto-switching Global Line Height to Normal due to Line Gap Override on font: ${fontId}`);
+                setPreviousLineHeight(lineHeight);
+                setLineHeight('normal');
+            }
+        }
+
+
         setFonts(prev => {
             const font = prev.find(f => f.id === fontId);
             if (font && font[field] === value) return prev;
@@ -2954,9 +2988,7 @@ export const TypoProvider = ({ children }) => {
 
     const getFontColor = (fontId) => {
         const font = fonts.find(f => f.id === fontId);
-        if (font && !font.fontObject && !font.fileName) {
-            return missingColor;
-        }
+
 
         // Handle Inheritance
         if (font && (font.color === undefined || font.color === null)) {
@@ -3176,7 +3208,10 @@ export const TypoProvider = ({ children }) => {
             colors,
             showFallbackColors,
             showAlignmentGuides,
+
             showBrowserGuides,
+            showFallbackOrder,
+            hiddenLanguageIds,
             appName: 'fallback-style',
             version: __APP_VERSION__,
             DEFAULT_PALETTE
@@ -3196,7 +3231,11 @@ export const TypoProvider = ({ children }) => {
         gridColumns,
         showFallbackColors,
         showAlignmentGuides,
-        showBrowserGuides
+        showBrowserGuides,
+        // Duplicate dependency removed
+
+        showFallbackOrder,
+        hiddenLanguageIds
     ]);
 
     const restoreConfiguration = useCallback(async (rawConfig, fontFilesMap = {}) => {
@@ -3210,6 +3249,12 @@ export const TypoProvider = ({ children }) => {
         setActiveFontStyleId(config.activeFontStyleId || 'primary');
         if (config.activeConfigTab) {
             setActiveConfigTab(config.activeConfigTab);
+        }
+
+        if (config.hiddenLanguageIds && Array.isArray(config.hiddenLanguageIds)) {
+            setHiddenLanguageIds(config.hiddenLanguageIds);
+        } else {
+            setHiddenLanguageIds([]);
         }
 
         setHeaderStyles(config.headerStyles || DEFAULT_HEADER_STYLES);
@@ -3284,7 +3329,17 @@ export const TypoProvider = ({ children }) => {
             primary: newPrimaryStyle
         });
 
-    }, [DEFAULT_HEADER_STYLES]);
+    }, [
+        DEFAULT_HEADER_STYLES,
+        setActiveConfigTab,
+        setColors,
+        setGridColumns,
+        setShowAlignmentGuides,
+        setShowBrowserGuides,
+        setShowFallbackColors,
+        setTextCase,
+        setViewMode
+    ]);
 
     // --- PERSISTENCE LOGIC START ---
 
@@ -3360,7 +3415,18 @@ export const TypoProvider = ({ children }) => {
         };
 
         loadState();
-    }, []);
+        // Added dependencies to silence lint warnings, though loadState is intended to run once on mount
+    }, [
+        setActiveConfigTab,
+        setColors,
+        setGridColumns,
+        setShowAlignmentGuides,
+        setShowBrowserGuides,
+        setShowFallbackColors,
+        setShowFallbackOrder,
+        setTextCase,
+        setViewMode
+    ]);
 
     // 2. Save State on Change
     useEffect(() => {
@@ -3470,7 +3536,8 @@ export const TypoProvider = ({ children }) => {
         gridColumns,
         showFallbackColors,
         showAlignmentGuides,
-        showBrowserGuides
+        showBrowserGuides,
+        showFallbackOrder
     ]);
 
     // --- PERSISTENCE LOGIC END ---

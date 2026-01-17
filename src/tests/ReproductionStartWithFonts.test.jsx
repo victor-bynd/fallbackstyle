@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import React, { useEffect } from 'react';
@@ -20,10 +20,6 @@ vi.mock('../services/PersistenceService', () => ({
 
 const TestComponent = ({ onState }) => {
     const {
-        loadFont,
-        batchAddFontsAndMappings,
-        addPrimaryLanguageOverrides,
-        togglePrimaryLanguage,
         fontObject,
         fonts,
         primaryFontOverrides,
@@ -37,7 +33,7 @@ const TestComponent = ({ onState }) => {
             fallbackFontOverrides,
             fontObject
         });
-    }, [fonts, primaryFontOverrides, fallbackFontOverrides, fontObject]);
+    }, [fonts, primaryFontOverrides, fallbackFontOverrides, fontObject, onState]);
 
     return (
         <div>Test Component</div>
@@ -49,55 +45,23 @@ const mockFont = {
     tables: { head: { style: 0 } }
 };
 
-describe('Start with Fonts Flow Reproduction', () => {
-    test('should not corrupt Global Primary Font when mapped explicitly', async () => {
-        let currentState = {};
-        const onState = (s) => { currentState = s; };
+// Removed incomplete test block
 
-        render(
-            <UIProvider>
-                <TypoProvider>
-                    <TestComponent onState={onState} />
-                </TypoProvider>
-            </UIProvider>
-        );
-
-        // Simulation of FontUploader logic
-
-        // 1. Load Primary Font
-        const primaryFontData = {
-            id: 'font-1',
-            fileName: 'Primary.ttf',
-            name: 'Primary.ttf',
-            color: '#000000'
-        };
-
-        const fallbackFontData = {
-            id: 'font-2',
-            fileName: 'Secondary.ttf',
-            name: 'Secondary.ttf'
-        };
-
-        // Access context methods via a wrapper or by mocking? 
-        // We can't access them directly outside of component.
-        // We need to trigger actions.
-
-        // Let's modify TestComponent to accept a "scenario" prop or expose methods?
-        // Easier: Just put the scenario inside the component in a useEffect or use a button.
-    });
-});
 
 // Refined Test Setup
 function ScenarioRunner({ scenario, onCheck }) {
     const context = useTypo();
 
+    const hasRun = React.useRef(false);
+
     useEffect(() => {
-        if (scenario) {
+        if (scenario && !hasRun.current) {
+            hasRun.current = true;
             scenario(context).then(() => {
                 onCheck(context);
             });
         }
-    }, [scenario]); // Run once scenario provided
+    }, [scenario, context, onCheck]); // Run once scenario provided
 
     return null;
 }
@@ -156,7 +120,12 @@ test('Start with Fonts Logic Flow', async () => {
     );
 
     // Wait for updates (simulating React ticks)
-    await new Promise(r => setTimeout(r, 200));
+    await waitFor(() => {
+        // Ensure finalContext is populated
+        expect(finalContext).toBeDefined();
+        expect(finalContext.fonts).toBeDefined();
+    });
+
 
     console.log('FONTS:', JSON.stringify(finalContext.fonts.map(f => ({ name: f.fileName, type: f.type, id: f.id }))));
 

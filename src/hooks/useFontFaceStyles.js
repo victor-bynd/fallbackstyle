@@ -15,6 +15,9 @@ export const useFontFaceStyles = () => {
                 const primarySettings = primary ? getEffectiveFontSettingsForStyle(styleId, primary.id) : null;
 
 
+
+
+
                 // Override properties are floats (0-1), convert to %
                 const primaryLineGapOverride = (primarySettings && primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '')
                     ? `line-gap-override: ${primarySettings.lineGapOverride * 100}%;`
@@ -36,11 +39,11 @@ export const useFontFaceStyles = () => {
                     ? `size-adjust: ${primarySettings.scale}%;`
                     : '';
 
-                const primaryRule = (primary?.fontUrl)
+                const primaryRule = !primary?.hidden && (primary?.fontUrl || primary?.name)
                     ? `
           @font-face {
             font-family: 'UploadedFont-${styleId}';
-            src: url('${primary.fontUrl}');
+            src: ${primary.fontUrl ? `url('${primary.fontUrl}')` : `local('${primary.name}')`};
             ${primarySizeAdjust}
             ${primaryVariationSettings}
             ${primaryLineGapOverride}
@@ -51,7 +54,13 @@ export const useFontFaceStyles = () => {
                     : '';
 
                 const fallbackRules = (style.fonts || [])
-                    .filter(f => f && (f.type === 'fallback' || f.type === 'primary') && (f.fontUrl || f.name))
+                    .filter(f => {
+                        if (!f || !f.fontUrl && !f.name) return false;
+                        if (f.type !== 'fallback' && f.type !== 'primary') return false;
+                        if (f.hidden) return false;
+                        if (f.isPrimaryOverride && primary?.hidden) return false;
+                        return true;
+                    })
                     .map(font => {
                         const settings = getEffectiveFontSettingsForStyle(styleId, font.id);
 
@@ -132,9 +141,47 @@ export const useFontFaceStyles = () => {
                     })
                     .join('');
 
-                return `${primaryRule}${fallbackRules}`;
-            })
-            .join('');
+                // NEW: Generate rules for System Fallback Overrides (Legacy)
+                // These are per-language overrides for the style.fallbackFont
+                const systemOverrides = style.systemFallbackOverrides || {};
+                const systemFallbackRules = Object.entries(systemOverrides).map(([langId, overrides]) => {
+                    const fontName = style.fallbackFont || 'sans-serif';
+                    // Skip generics to avoid invalid local() (though some browsers might tolerate it, it generally won't work for overrides)
+                    // Actually, for overrides to work, we MUST have a concrete font to wrap.
+                    // If the user hasn't set a concrete fallback font, they shouldn't be seeing advanced settings?
+                    // Assuming reasonable usage here.
+
+                    const sizeAdjust = (overrides.scale && overrides.scale !== 100)
+                        ? `size-adjust: ${overrides.scale}%;`
+                        : '';
+
+                    const lineGapOverride = (overrides.lineGapOverride !== undefined && overrides.lineGapOverride !== '')
+                        ? `line-gap-override: ${overrides.lineGapOverride * 100}%;`
+                        : '';
+                    const ascentOverride = (overrides.ascentOverride !== undefined && overrides.ascentOverride !== '')
+                        ? `ascent-override: ${overrides.ascentOverride * 100}%;`
+                        : '';
+                    const descentOverride = (overrides.descentOverride !== undefined && overrides.descentOverride !== '')
+                        ? `descent-override: ${overrides.descentOverride * 100}%;`
+                        : '';
+
+                    // For system/legacy fallbacks, we don't usually have variation settings support in this context yet
+                    // unless we added a way to specify them for the system font.
+
+                    return `
+            @font-face {
+              font-family: 'SystemFallback-${styleId}-${langId}';
+              src: local('${fontName}');
+              ${sizeAdjust}
+              ${lineGapOverride}
+              ${ascentOverride}
+              ${descentOverride}
+            }
+          `;
+                }).join('');
+
+                return `${primaryRule}${fallbackRules}${systemFallbackRules}`;
+            });
     }, [fontStyles, getEffectiveFontSettingsForStyle]);
 
     return fontFaceStyles;

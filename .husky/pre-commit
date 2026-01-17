@@ -1,2 +1,2 @@
 #!/bin/sh
-npm.cmd version patch --no-git-tag-version && git add package.json package-lock.json
+npm version patch --no-git-tag-version && git add package.json package-lock.json

@@ -1,7 +1,7 @@
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
-import { useUI } from '../context/UIContext';
+// Unused import removed
 
 import LanguageSingleSelectModal from './LanguageSingleSelectModal';
 import LanguageMultiSelectModal from './LanguageMultiSelectModal';
@@ -11,6 +11,7 @@ import InfoTooltip from './InfoTooltip';
 import { getLanguageGroup } from '../utils/languageUtils';
 import languagesData from '../data/languages.json';
 import FontCard from './FontCard';
+import { TOOLTIPS } from '../constants/tooltips';
 
 
 const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHighlitLanguageId, readOnly = false }) => {
@@ -24,9 +25,6 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         resetFallbackFontOverrides,
         addFallbackFonts,
         addStrictlyMappedFonts,
-        unmapFont,
-        clearPrimaryFontOverride,
-        clearFallbackFontOverride,
 
         weight,
         fontScales,
@@ -47,19 +45,14 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         systemFallbackOverrides,
         updateSystemFallbackOverride,
         resetSystemFallbackOverride,
-        missingColor,
-        setMissingColor,
 
         normalizeFontName,
-        primaryLanguages,
+        // Unused variable removed
         setFallbackFontOverride,
         linkFontToLanguage,
-        updateLanguageSpecificSetting,
-        gridColumns,
-        setViewMode
     } = useTypo() || {}; // Safety: protect against null context
 
-    const fonts = rawFonts || []; // Safety: ensure fonts is always an array to avoid conditional hook execution if we returned early
+    const fonts = useMemo(() => rawFonts || [], [rawFonts]);
 
 
 
@@ -69,21 +62,13 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
     const isInheritedSystemGroup = activeTab !== 'primary' && activeTab !== 'ALL' && Object.keys(langOverrides).length === 0;
 
     const effectiveFallbackFont = langOverrides.type || fallbackFont;
-    const effectiveMissingColor = langOverrides.missingColor || missingColor;
+    // Unused variables removed
 
     const handleSystemFallbackChange = (type) => {
         if (activeTab === 'primary' || activeTab === 'ALL') {
             setFallbackFont(type);
         } else {
             updateSystemFallbackOverride(activeTab, 'type', type);
-        }
-    };
-
-    const handleMissingColorChange = (color) => {
-        if (activeTab === 'primary' || activeTab === 'ALL') {
-            setMissingColor(color);
-        } else {
-            updateSystemFallbackOverride(activeTab, 'missingColor', color);
         }
     };
 
@@ -362,7 +347,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
             const seenUnmappedIds = new Set(); // Changed from Names to IDs
             const primaryId = p ? p.id : null;
-            const pName = p ? (p.fileName || p.name || "").toLowerCase() : null;
+            // Unused variable removed
 
             unmapped = unmapped.filter(f => {
                 // Filter out if matches Primary Font ID
@@ -493,7 +478,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         const targetedNames = new Set(fullUnifiedList.map(f => (f.fileName || f.name || "").toLowerCase()));
 
         // Get Primary Font Name (normalized)
-        const primaryName = p ? (p.fileName || p.name || "").toLowerCase() : null;
+        // Unused variable removed
 
         const seenInheritedNames = new Set();
         inheritedFallbacks = inheritedFallbacks.filter(f => {
@@ -555,7 +540,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
             consolidatedIdsMap: universalIdsMap, // Use universal map
             isLanguageSpecificList: true
         };
-    }, [fonts, activeTab, isAllTab, primaryFontOverrides, fallbackFontOverrides, selectedGroup]);
+    }, [fonts, activeTab, isAllTab, primaryFontOverrides, fallbackFontOverrides, selectedGroup, normalizeFontName]);
 
 
 
@@ -571,12 +556,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                     </span>
                     {!isAllTab && activeTab !== 'primary' && (
                         <InfoTooltip
-                            content={
-                                <span>
-                                    <strong className="block mb-2 text-indigo-300">Styling Overrides</strong>
-                                    Overriding the primary font here changes the default styling but enables cascading controls (like line-height and letter-spacing) for specific language fonts, bypassing standard inheritance limitations.
-                                </span>
-                            }
+                            content={TOOLTIPS.STYLING_OVERRIDES}
                         />
                     )}
                     <div className="h-px flex-1 bg-slate-100"></div>
@@ -600,7 +580,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                         toggleFontVisibility={toggleFontVisibility}
                         isInherited={isInheritedPrimary}
                         onOverride={() => addLanguageSpecificPrimaryFont(activeTab)}
-                        onResetOverride={(isLanguageSpecificView && primary.id !== globalPrimary.id) ? () => unmapFont(primary.id) : null}
+                        onResetOverride={null}
                         onSelectLanguage={setActiveConfigTab}
                         setHighlitLanguageId={setHighlitLanguageId}
                         activeTab={activeTab}
@@ -667,15 +647,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                 FALLBACK FONTS
                             </span>
                             <InfoTooltip
-                                content={
-                                    <span>
-                                        <strong className="block mb-2 text-indigo-300">Detargeting Fonts</strong>
-                                        Properties like `line - height` and `letter - spacing` apply to the entire element, meaning primary and fallback fonts share them. To style scripts independently, you must override the primary font or use separate elements (e.g., spans).
-                                        <br /><br />
-                                        <strong className="block mb-2 text-indigo-300">Browser Compatibility</strong>
-                                        Advanced `@font-face` metrics like `ascent - override`, `descent - override`, and `line - gap - override` are currently not supported in **Safari**. Use these with caution if your target audience uses macOS or iOS.
-                                    </span>
-                                }
+                                content={TOOLTIPS.DETARGETING_FONTS}
                             />
                             <div className="h-px flex-1 bg-slate-100"></div>
                         </div>
@@ -717,15 +689,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                         Mapped Fonts
                                     </span>
                                     <InfoTooltip
-                                        content={
-                                            <span>
-                                                <strong className="block mb-2 text-indigo-300">Styling Limitations</strong>
-                                                Properties like `line - height` and `letter - spacing` apply to the entire element, meaning primary and fallback fonts share them. To style scripts independently, you must use separate elements (e.g., spans).
-                                                <br /><br />
-                                                <strong className="block mb-2 text-indigo-300">Browser Compatibility</strong>
-                                                Advanced `@font-face` metrics like `ascent - override`, `descent - override`, and `line - gap - override` are currently not supported in **Safari**. Use these with caution if your target audience uses macOS or iOS.
-                                            </span>
-                                        }
+                                        content={TOOLTIPS.STYLING_LIMITATIONS}
                                     />
                                     <div className="h-px flex-1 bg-slate-100"></div>
                                 </div>
@@ -805,9 +769,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                             if (font.type === 'primary' || font.isPrimaryMap || isPrimaryClone) {
                                 return null;
                             }
-                            if (font.type === 'primary' || font.isPrimaryMap || isPrimaryClone) {
-                                return null;
-                            }
+                            // Duplicate block removed
 
                             // Detect if this font is physically 'linked' to the global stock (inherited)
                             // A font is inherited if it is NOT a clone (isLangSpecific is false)
@@ -833,7 +795,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                     onOverride={isInheritedMapped ? () => addLanguageSpecificFont(font.id, activeTab) : null}
                                     onMap={null} // Remove Map button
                                     // Enable deletion (unmap/remove clone) in language-specific view
-                                    onResetOverride={(!isAllTab && activeTab !== 'primary') ? unmapFont : null}
+                                    onResetOverride={null}
                                     onSelectLanguage={setActiveConfigTab}
                                     setHighlitLanguageId={setHighlitLanguageId}
                                     highlitLanguageId={highlitLanguageId}
@@ -868,16 +830,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 px-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Fonts</span>
-                        <div className="relative w-3.5 h-3.5 rounded-full border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="absolute inset-0" style={{ backgroundColor: effectiveMissingColor }}></div>
-                            <input
-                                type="color"
-                                value={effectiveMissingColor}
-                                onChange={(e) => handleMissingColorChange(e.target.value)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                disabled={readOnly}
-                            />
-                        </div>
+
                         <div className="h-px flex-1 bg-slate-100"></div>
 
                         {!isAllTab && activeTab !== 'primary' && !isInheritedSystemGroup && !readOnly && (
@@ -917,8 +870,9 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                         onSelectLanguage={setActiveConfigTab}
                                         activeTab={activeTab}
                                         isInherited={!isAllTab && activeTab !== 'primary' && !readOnly && !isOverridden}
+                                        suppressInheritedOverlay={isInheritedSystemGroup}
                                         onOverride={() => addLanguageSpecificFont(font.id, activeTab)}
-                                        onResetOverride={(!isAllTab && activeTab !== 'primary') ? unmapFont : null}
+                                        onResetOverride={null}
                                         setHighlitLanguageId={setHighlitLanguageId}
                                     />
                                 );

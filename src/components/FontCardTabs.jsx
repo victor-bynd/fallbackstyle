@@ -2,12 +2,10 @@ import PropTypes from 'prop-types';
 
 const FontCardTabs = ({
     languageTags,
-    showMergedView,
     editScope,
     onSetScope,
     setActiveConfigTab,
     setHighlitLanguageId,
-    singleLang,
     primaryLanguages,
     idsToCheck,
     primaryFontOverrides,
@@ -26,45 +24,25 @@ const FontCardTabs = ({
         <>
             {showTabs && (
                 <div className="flex items-center gap-1 mt-2 mb-0 overflow-x-auto no-scrollbar mask-linear-fade">
-                    {showMergedView ? (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSetScope('ALL');
-                                setActiveConfigTab('ALL');
-                                if (setHighlitLanguageId) setHighlitLanguageId(null);
-                            }}
-                            className={`
-                                px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2
-                                ${editScope === 'ALL'
-                                    ? 'text-indigo-600 border-indigo-600 bg-indigo-50/50'
-                                    : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
-                                }
-                            `}
-                        >
-                            {singleLang}
-                        </button>
-                    ) : (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSetScope('ALL');
-                                setActiveConfigTab('ALL');
-                                if (setHighlitLanguageId) setHighlitLanguageId(null);
-                            }}
-                            className={`
-                                px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2
-                                ${editScope === 'ALL'
-                                    ? 'text-indigo-600 border-indigo-600 bg-indigo-50/50'
-                                    : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
-                                }
-                            `}
-                        >
-                            GLOBAL
-                        </button>
-                    )}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSetScope('ALL');
+                            setActiveConfigTab('ALL');
+                            if (setHighlitLanguageId) setHighlitLanguageId(null);
+                        }}
+                        className={`
+                            px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2
+                            ${editScope === 'ALL'
+                                ? 'text-indigo-600 border-indigo-600 bg-indigo-50/50'
+                                : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
+                            }
+                        `}
+                    >
+                        GLOBAL
+                    </button>
 
-                    {!showMergedView && languageTags.map(langId => {
+                    {languageTags.map(langId => {
                         const isSelected = editScope === langId;
                         // Resolve Target Font Logic
                         const isPrimaryCard = font.type === 'primary' || font.isPrimaryOverride;
@@ -157,12 +135,10 @@ const FontCardTabs = ({
 
 FontCardTabs.propTypes = {
     languageTags: PropTypes.array,
-    showMergedView: PropTypes.bool,
     editScope: PropTypes.string.isRequired,
     onSetScope: PropTypes.func.isRequired,
     setActiveConfigTab: PropTypes.func.isRequired,
     setHighlitLanguageId: PropTypes.func,
-    singleLang: PropTypes.string,
     primaryLanguages: PropTypes.array,
     idsToCheck: PropTypes.array.isRequired,
     primaryFontOverrides: PropTypes.object,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 /**
@@ -42,8 +42,12 @@ const BufferedInput = ({
 
         // Otherwise (not focused, or values genuinely differ), sync up.
         // We use string conversion to ensure controlled input behavior
-        setLocalValue(value === undefined || value === null ? '' : value);
-    }, [value, isFocused]); // Removed localValue from dependency to avoid loops, though strict equality check handles it.
+        const nextVal = value === undefined || value === null ? '' : value;
+        if (localValue !== nextVal) {
+            // eslint-disable-next-line
+            setLocalValue(nextVal);
+        }
+    }, [value, isFocused, localValue]);
 
     const handleChange = (e) => {
         const newValue = e.target.value;

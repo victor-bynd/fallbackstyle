@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import languagesData from '../data/languages.json';
 import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES } from '../utils/languageUtils';
 
@@ -243,7 +243,7 @@ const SidebarLanguageList = ({
                         {/* Group Content */}
                         <AnimatePresence initial={false}>
                             {isExpanded && (
-                                <motion.div
+                                <Motion.div
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
@@ -325,7 +325,7 @@ const SidebarLanguageList = ({
                                             </div>
                                         );
                                     })}
-                                </motion.div>
+                                </Motion.div>
                             )}
                         </AnimatePresence>
                     </div>

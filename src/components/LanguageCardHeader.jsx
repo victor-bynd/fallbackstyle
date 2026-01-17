@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import InfoTooltip from './InfoTooltip';
 import LanguageActionMenu from './LanguageActionMenu';
+import { TOOLTIPS } from '../constants/tooltips';
 
 const LanguageCardHeader = ({
     language,
@@ -67,7 +68,8 @@ const LanguageCardHeader = ({
                     )}
                 </div>
 
-                {/* Font Indicators - Controlled by showFallbackOrder */}
+
+
                 {showFallbackOrder && (
                     <div className="flex items-center gap-1.5 overflow-hidden pt-1">
                         {/* Primary Font (Background) */}
@@ -183,7 +185,8 @@ LanguageCardHeader.propTypes = {
     addLanguageSpecificFallbackFont: PropTypes.func.isRequired,
     onStartEdit: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
-    onUnmap: PropTypes.func.isRequired
+    onUnmap: PropTypes.func.isRequired,
+    useNormalLineHeight: PropTypes.bool
 };
 
 export default LanguageCardHeader;

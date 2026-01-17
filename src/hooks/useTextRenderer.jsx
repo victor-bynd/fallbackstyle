@@ -61,8 +61,26 @@ export const useTextRenderer = () => {
             }
         }
 
-        const primaryFontObject = effectivePrimaryFont?.fontObject;
-        if (!primaryFontObject) return processedContent; // Return raw content if no primary font object (system font mode?)
+        const globalPrimary = getPrimaryFontFromStyle(styleId);
+        const isHidden = effectivePrimaryFont?.hidden ||
+            (effectivePrimaryFont?.isPrimaryOverride && globalPrimary?.hidden);
+
+
+
+        const primaryFontObject = !isHidden ? effectivePrimaryFont?.fontObject : null;
+        // If hidden, we treat it as if the font object text segmentation isn't needed for the primary, 
+        // essentially treating it as a "missing" or "skipped" font at the top level.
+        // However, we still need to process content.
+
+        // If hidden, we shouldn't return parsed content immediately unless we want to render fallbacks.
+        // The check for primaryFontObject below defaults to null return only if we have NO object.
+        // If we hid it, we act as if the primary font object is missing, triggering fallback logic?
+
+        // Actually if hidden, we just want to skip using the primary font family in the span.
+        // If primaryFontObject is null, original code returns processedContent (raw string).
+        // If hidden, we WANT usage of fallback fonts.
+        // So let's NOT return raw content if hidden, but ensure we proceed to render using fallbacks.
+
 
         const style = fontStyles?.[styleId];
         const baseFontSize = fontSize ?? style?.baseFontSize ?? 16;
@@ -85,9 +103,49 @@ export const useTextRenderer = () => {
         // Ensure we use the provided color if context doesn't have it or we want to force it
         const effectivePrimaryColor = color || primarySettings.color || colors.primary;
 
+        // Determine the correct font family alias
+        const isGlobalPrimary = effectivePrimaryFont?.type === 'primary' && !effectivePrimaryFont?.isPrimaryOverride;
+
+        let primaryFamily = 'sans-serif';
+        if (!isHidden && (effectivePrimaryFont?.fontUrl || effectivePrimaryFont?.name)) {
+            if (isGlobalPrimary) {
+                primaryFamily = `'UploadedFont-${styleId}'`;
+            } else {
+                // If it's a primary override, it was generated in the 'fallbackRules' loop with this ID
+                primaryFamily = `'FallbackFont-${styleId}-${effectivePrimaryFont.id}'`;
+            }
+        }
+
+        // --- OPTIMIZATION START ---
+        // Fast Path: If no visual debugging aids are needed, use native CSS rendering.
+        // This avoids creating thousands of DOM nodes for character segmentation.
+        const useFastPath = !showFallbackColors && !showBrowserGuides;
+
+        if (useFastPath) {
+            // Note: In Fast Path, we rely on the @font-face `size-adjust` (calculated in useFontFaceStyles)
+            // to handle scaling relative to the primary font.
+            // We do NOT support manual `baseFontSize` overrides for *specific* fallback fonts in this mode,
+            // as we can't switch the container's font-size mid-string without spans.
+
+            return (
+                <span style={{
+                    fontFamily: isHidden
+                        ? fallbackFontStackString
+                        : `${primaryFamily}, ${fallbackFontStackString}`,
+                    color: effectivePrimaryColor,
+                    verticalAlign: 'baseline',
+                    letterSpacing: `${primarySettings.letterSpacing}em`,
+                    // fontWeight: primarySettings.weight // Let CSS handle weight selection or use variation settings
+                }}>
+                    {processedContent}
+                </span>
+            );
+        }
+        // --- OPTIMIZATION END ---
+
         return processedContent.split('').map((char, index) => {
-            const glyphIndex = primaryFontObject.charToGlyphIndex(char);
-            const isMissing = glyphIndex === 0;
+            const glyphIndex = primaryFontObject ? primaryFontObject.charToGlyphIndex(char) : 0;
+            const isMissing = isHidden || glyphIndex === 0;
 
             if (isMissing && fallbackFontStack.length > 0) {
                 let usedFallback = null;
@@ -184,6 +242,7 @@ export const useTextRenderer = () => {
                 <span
                     key={index}
                     style={{
+                        fontFamily: primaryFamily,
                         color: finalColor,
                         verticalAlign: 'baseline',
                         letterSpacing: `${primarySettings.letterSpacing}em`,

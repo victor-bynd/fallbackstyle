@@ -11,7 +11,7 @@ const MetricGuidesOverlay = ({
     topOffset = '0px',
     ascentOverride,
     descentOverride,
-    lineGapOverride
+    // Duplicate prop removed
 }) => {
     // Memoized SVG Generation for Alignment Guides
     const alignmentStyle = useMemo(() => {
@@ -26,7 +26,8 @@ const MetricGuidesOverlay = ({
 
         let ascender = fontObject.ascender;
         let descender = fontObject.descender;
-        let lineGap = 0;
+        // lineGap removed
+
 
         // helper to check if valid number
         const isValid = (n) => n !== undefined && n !== null;
@@ -34,17 +35,26 @@ const MetricGuidesOverlay = ({
         if (isValid(hhea?.ascender)) {
             ascender = hhea.ascender;
             descender = hhea.descender;
-            lineGap = hhea.lineGap || 0;
+            // lineGap removed
+
         } else if (isValid(os2?.sTypoAscender)) {
             ascender = os2.sTypoAscender;
             descender = os2.sTypoDescender;
-            lineGap = os2.sTypoLineGap || 0;
+            // lineGap removed
+
         }
 
         // Apply overrides if present (these take absolute precedence)
-        if (ascentOverride !== undefined && ascentOverride !== '') ascender = Number(ascentOverride);
-        if (descentOverride !== undefined && descentOverride !== '') descender = Number(descentOverride);
-        if (lineGapOverride !== undefined && lineGapOverride !== '') lineGap = Number(lineGapOverride);
+        // Overrides are 0-1 ratios (e.g. 0.8), but font units are based on upm
+        if (ascentOverride !== undefined && ascentOverride !== '') {
+            ascender = Number(ascentOverride) * upm;
+        }
+        if (descentOverride !== undefined && descentOverride !== '') {
+            // descentOverride is a positive height magnitude (e.g. 0.2)
+            // in font tables, descent is a negative Y coordinate.
+            descender = -1 * Math.abs(Number(descentOverride) * upm);
+        }
+
 
         const xHeight = os2?.sxHeight || 0;
         const capHeight = os2?.sCapHeight || 0;
@@ -68,7 +78,7 @@ const MetricGuidesOverlay = ({
         // Center the content area within the line box
         // Ideally: (totalHeight - contentHeight) / 2 is the top leading
         const halfLeadingUnits = (totalHeightUnits - contentHeightUnits) / 2;
-        
+
         // Baseline is at top + halfLeading + ascender
         const baselineYUnits = halfLeadingUnits + ascender;
 
@@ -98,7 +108,7 @@ const MetricGuidesOverlay = ({
             backgroundRepeat: 'repeat',
             backgroundPosition: '0 0'
         };
-    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride, lineGapOverride]);
+    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride]);
 
     // Browser Guides (Line Box View)
     const browserGuideStyle = useMemo(() => showBrowserGuides ? {
