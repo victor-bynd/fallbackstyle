@@ -144,7 +144,9 @@ export const useTextRenderer = () => {
         // --- OPTIMIZATION END ---
 
         return processedContent.split('').map((char, index) => {
-            const glyphIndex = primaryFontObject ? primaryFontObject.charToGlyphIndex(char) : 0;
+            // Fix: If primaryFontObject is missing (e.g. System Font), assume character exists (index 1).
+            // Only use 0 (missing) if we have an object and it returns 0.
+            const glyphIndex = primaryFontObject ? primaryFontObject.charToGlyphIndex(char) : 1;
             const isMissing = isHidden || glyphIndex === 0;
 
             if (isMissing && fallbackFontStack.length > 0) {
