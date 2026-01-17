@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import MultiLanguageFallback from './pages/MultiLanguageFallback';
-import BrandFontFallback from './pages/BrandFontFallback';
+import LandingPage from './apps/landing/index';
+import MultiLanguageFallback from './apps/multi-language/index';
+import BrandFontFallback from './apps/brand-font/index';
 
 const App = () => {
   return (

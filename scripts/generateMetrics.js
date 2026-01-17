@@ -20,7 +20,6 @@ if (!fs.existsSync(outputDir)) {
 function measureGlyph(font, char) {
     const glyph = font.charToGlyph(char);
     if (glyph) {
-        const metrics = glyph.getMetrics();
         // yMax is often a good proxy for height if bounded correctly, but usually we look at the bounding box
         // For 'x', yMax ~ xHeight. For 'H', yMax ~ CapHeight.
         return glyph.yMax;
@@ -56,7 +55,7 @@ files.forEach(file => {
         const upem = font.unitsPerEm;
         const os2 = font.tables.os2;
         const hhea = font.tables.hhea;
-        const head = font.tables.head;
+        // head var unused
 
         // Preferred Metrics: hhea is usually what browsers use for layout unless overrides exist
         // But for "standard" metrics, we usually want sTypoAscender/Descender if available (OS/2) 
