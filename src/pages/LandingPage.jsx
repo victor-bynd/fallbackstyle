@@ -1,0 +1,125 @@
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+const LandingPage = () => {
+    return (
+        <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+                {/* Header Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="text-center mb-24"
+                >
+                    <div className="inline-block mb-6">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wider">
+                            Internal Tools
+                        </span>
+                    </div>
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-slate-900">
+                        Fallback Style
+                    </h1>
+                    <p className="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-light">
+                        Advanced typography tools for global brands and precise engineering.
+                    </p>
+                </motion.div>
+
+                <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {/* Tool 1: Multi-language Fallback */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                        className="group relative bg-white rounded-2xl p-8 border border-slate-200 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col h-full"
+                    >
+                        <div className="mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                                    </svg>
+                                </div>
+                                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wide">
+                                    Available
+                                </span>
+                            </div>
+
+                            <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">
+                                Multi-language Fallback
+                            </h3>
+                            <p className="text-slate-500 leading-relaxed text-base">
+                                Orchestrate typography across languages. Manage fallback chains, line-height overrides, and system font stacks for a consistent global design system.
+                            </p>
+                        </div>
+
+                        <div className="mt-auto">
+                            <Link
+                                to="/multi-language"
+                                className="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-bold text-white transition-all bg-indigo-600 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:scale-[0.98]"
+                            >
+                                Launch Tool
+                                <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </Link>
+                        </div>
+                    </motion.div>
+
+                    {/* Tool 2: Brand Font Fallback */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                        className="group relative bg-white rounded-2xl p-8 border border-slate-200 hover:border-emerald-200 transition-all hover:shadow-xl hover:shadow-emerald-500/5 flex flex-col h-full"
+                    >
+                        <div className="mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                    </svg>
+                                </div>
+                                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide">
+                                    New Feature
+                                </span>
+                            </div>
+
+                            <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-emerald-600 transition-colors">
+                                Brand Font Fallback
+                            </h3>
+                            <p className="text-slate-500 leading-relaxed text-base">
+                                Eliminate CLS and FOUT. Match fallback font metrics to your brand typeface for seamless loading and performance optimization.
+                            </p>
+                        </div>
+
+                        <div className="mt-auto">
+                            <Link
+                                to="/brand-font"
+                                className="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-bold text-slate-700 transition-all bg-white border border-slate-200 rounded-xl hover:border-emerald-500 hover:text-emerald-700 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 active:scale-[0.98]"
+                            >
+                                Open Tool
+                                <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </Link>
+                        </div>
+                    </motion.div>
+                </div>
+
+                <div className="mt-24 pt-8 border-t border-slate-200 text-center relative">
+                    <p className="text-slate-400 text-sm">
+                        © {new Date().getFullYear()} Fallback Style. All rights reserved.
+                    </p>
+                    <div className="absolute right-0 top-8 text-xs font-bold text-slate-300 select-none pointer-events-none">
+                        v{__APP_VERSION__}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default LandingPage;

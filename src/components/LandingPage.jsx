@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useTypo } from '../context/useTypo';
 import FontUploader from './FontUploader';
 import LanguageList from './LanguageList';
@@ -292,7 +293,18 @@ const LandingPage = ({ importConfig }) => {
 
     // Default: Initial Landing Options
     return (
-        <div className="h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
+        <div className="h-screen flex flex-col items-center justify-center p-4 bg-slate-50 relative">
+            {/* Back to Home Button */}
+            <Link
+                to="/"
+                className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 hover:text-indigo-600 bg-white border border-slate-200 rounded-lg hover:border-indigo-200 hover:shadow-sm transition-all shadow-sm"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Home
+            </Link>
+
             <div className="max-w-4xl w-full">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
@@ -419,9 +431,6 @@ const LandingPage = ({ importConfig }) => {
                 onConfirm={handleReset}
             />
 
-            <div className="absolute bottom-4 left-6 text-xs font-bold text-slate-300 select-none pointer-events-none">
-                v{__APP_VERSION__}
-            </div>
         </div >
 
     );
