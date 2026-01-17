@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import FontSwapModal from './FontSwapModal';
 import { useTypo } from '../context/useTypo';
 // Unused import removed
@@ -40,6 +40,30 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
     });
     // Swap Modal State
     const [swappingFontIndex, setSwappingFontIndex] = useState(null);
+
+    // Overlay Mode State
+    const [isOverlayMode, setIsOverlayMode] = useState(false);
+    const [fontLayerSettings, setFontLayerSettings] = useState({});
+
+    // Initialize font layer settings when fonts change
+    useEffect(() => {
+        setFontLayerSettings(prev => {
+            const newSettings = { ...prev };
+            // Colors for layers - cycling through a palette
+            const colors = ['#000000', '#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6']; // Black, Red, Blue, Green, Yellow, Purple
+
+            fontIds.forEach((id, index) => {
+                if (!newSettings[id]) {
+                    newSettings[id] = {
+                        color: colors[index % colors.length],
+                        opacity: 100,
+                        visible: true
+                    };
+                }
+            });
+            return newSettings;
+        });
+    }, [fontIds]);
 
     const selectedFonts = useMemo(() => {
         return fontIds.map(id => fonts.find(f => f.id === id)).filter(Boolean);
@@ -94,9 +118,6 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
 
     // Calculate exact pixel line height for consistent grid
     // lineHeightPx unused
-
-
-    const referenceFont = baselineSourceIndex !== null ? fonts.find(f => f.id === fontIds[baselineSourceIndex]) : fonts.find(f => f.id === fontIds[0]);
 
 
     return (
@@ -169,174 +190,364 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                     >
                         Type Grid
                     </button>
-                    <button
-                        onClick={() => toggleBrowserGuides()}
-                        className={`
-                             px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border
-                            ${showBrowserGuides
-                                ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
-                                : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:bg-slate-50'
-                            }
-                        `}
-                    >
-                        Linebox View
-                    </button>
+                    {/* View Modes Group */}
+                    <div className="flex items-center bg-slate-100 rounded-lg p-1 ml-2">
+                        <button
+                            onClick={() => setIsOverlayMode(false)}
+                            className={`
+                                px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all
+                                ${!isOverlayMode
+                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }
+                            `}
+                        >
+                            Grid View
+                        </button>
+                        <button
+                            onClick={() => setIsOverlayMode(true)}
+                            className={`
+                                px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all
+                                ${isOverlayMode
+                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }
+                            `}
+                        >
+                            Overlay
+                        </button>
+                    </div>
 
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50/50 relative pt-20 pb-8 px-8">
+            <div className="flex-1 overflow-visible bg-slate-50/50 relative pt-20 pb-8 px-8 flex flex-col h-full">
 
-                {/* CSS Grid for Layout */}
-                {/* items-baseline is CRITICAL: It ensures the first line of text aligns across columns */}
-                <div
-                    className="grid gap-8 relative z-10 w-full"
-                    style={{
-                        gridTemplateColumns: `repeat(${fontIds.length}, minmax(0, 1fr))`,
-                        alignItems: 'start'
-                    }}
-                >
-                    {fontIds.map((fontId, index) => {
-                        const font = fonts.find(f => f.id === fontId);
-                        if (!font) return null;
+                {!isOverlayMode ? (
+                    /* GRID VIEW */
+                    <div
+                        className="grid gap-8 relative z-10 w-full"
+                        style={{
+                            gridTemplateColumns: `repeat(${fontIds.length}, minmax(0, 1fr))`,
+                            alignItems: 'start'
+                        }}
+                    >
+                        {fontIds.map((fontId, index) => {
+                            const font = fonts.find(f => f.id === fontId);
+                            if (!font) return null;
 
-                        const settings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', font.id);
-                        const localNumericLineHeight = calculateNumericLineHeight(
-                            activeStyle?.lineHeight,
-                            font.fontObject,
-                            settings
-                        );
+                            const settings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', font.id);
 
-                        // If the global setting is normal, or if we have specific overrides, we want the CSS to potentially be 'normal'
-                        // so the browser respects the overrides.
-                        const hasOverrides = settings && (
-                            (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
-                            (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
-                            (settings.descentOverride !== undefined && settings.descentOverride !== '')
-                        );
+                            // If the global setting is normal, or if we have specific overrides, we want the CSS to potentially be 'normal'
+                            // so the browser respects the overrides.
+                            const hasOverrides = settings && (
+                                (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
+                                (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
+                                (settings.descentOverride !== undefined && settings.descentOverride !== '')
+                            );
 
-                        const cssLineHeight = (activeStyle?.lineHeight === 'normal' || hasOverrides)
-                            ? 'normal'
-                            : localNumericLineHeight;
+                            const cssLineHeight = (activeStyle?.lineHeight === 'normal' || hasOverrides)
+                                ? 'normal'
+                                : (typeof activeStyle?.lineHeight === 'number' ? activeStyle.lineHeight : 1.2);
 
-                        const fontNameDisplay = font.fileName?.replace(/\.[^/.]+$/, '') || font.name || 'Unnamed Font';
-                        const generatedFamily = font.fontUrl ? `CompareFont-${font.id}` : (font.name || 'sans-serif');
-
-                        // Determine if this font is the active baseline reference
-                        const isBaselineReference = index === baselineSourceIndex;
-                        // Fallback: If no baseline selected, use the first one as reference effectively for grid calculation? 
-                        // Actually, if baselineSourceIndex is null, we align 'start', so no vertical shifting happens.
-                        // But if we want to show grid, it should probably attach to *something*.
-                        // If align is 'start', all tops are equal. We can attach to the first valid font.
-                        // But let's stick to: If isBaselineReference is true, we attach grid.
-                        // If baselineSourceIndex is null, we can attach to index 0.
-                        const shouldRenderGrid = (baselineSourceIndex === null && index === 0) || isBaselineReference;
+                            // Calculate numeric line height for the grid (must match what CSS renders)
+                            const localNumericLineHeight = calculateNumericLineHeight(
+                                cssLineHeight,
+                                font.fontObject,
+                                settings
+                            );
 
 
-                        const fallbackStack = buildFallbackFontStackForStyle(activeFontStyleId || 'primary', selectedLanguageId);
-                        const fallbackStackString = fallbackStack.length > 0
-                            ? fallbackStack.map(f => f.fontFamily).join(', ')
-                            : 'sans-serif';
+                            const fontNameDisplay = font.fileName?.replace(/\.[^/.]+$/, '') || font.name || 'Unnamed Font';
+                            const generatedFamily = font.fontUrl ? `CompareFont-${font.id}` : (font.name || 'sans-serif');
 
-                        const fontColor = '#0f172a';
+                            // Determine if this font is the active baseline reference
+                            const isBaselineReference = index === baselineSourceIndex;
+                            const shouldRenderGrid = (baselineSourceIndex === null && index === 0) || isBaselineReference;
 
-                        return (
-                            <div key={`${font.id}-${index}`} className="relative group min-w-0">
 
-                                {/* Grid attached to reference font */}
-                                {shouldRenderGrid && (() => {
-                                    const referenceSettings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', referenceFont?.id);
-                                    const referenceLineHeight = calculateNumericLineHeight(
-                                        activeStyle?.lineHeight,
-                                        referenceFont?.fontObject,
-                                        referenceSettings
+                            const fallbackStack = buildFallbackFontStackForStyle(activeFontStyleId || 'primary', selectedLanguageId);
+                            const fallbackStackString = fallbackStack.length > 0
+                                ? fallbackStack.map(f => f.fontFamily).join(', ')
+                                : 'sans-serif';
+
+                            // Force black color for comparison view as requested
+                            const fontColor = '#000000';
+
+                            return (
+                                <div key={`${font.id}-${index}`} className="relative group min-w-0 flex flex-col h-full">
+
+                                    {/* Label - Absolute positioning to avoid affecting baseline flow */}
+                                    <div className="absolute -top-7 left-0 right-0 gap-2 px-0 flex items-center">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate" title={fontNameDisplay}>
+                                            {fontNameDisplay}
+                                        </span>
+
+
+                                        {font.fontObject ? (
+                                            <button
+                                                onClick={() => setBaselineSourceIndex(index)}
+                                                className={`
+                                                    px-1.5 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap transition-all border
+                                                    ${isBaselineReference
+                                                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                                                        : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'
+                                                    }
+                                                `}
+                                                title={isBaselineReference ? "Current Reference" : "Set as Reference Font"}
+                                            >
+                                                {isBaselineReference ? 'Reference' : 'Set Reference'}
+                                            </button>
+                                        ) : (
+                                            <div className="cursor-help" title="System fonts do not provide the metrics required for baseline alignment.">
+                                                <button
+                                                    disabled
+                                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap border bg-slate-50 text-slate-300 border-transparent cursor-not-allowed"
+                                                >
+                                                    Set Reference
+                                                </button>
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={() => setSwappingFontIndex(index)}
+                                            className="text-slate-300 hover:text-indigo-600 transition-colors ml-auto p-1"
+                                            title="Swap Font"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    {/* Main Card Box */}
+                                    <div className="border border-slate-200 rounded-lg p-4 flex-1 overflow-visible relative">
+                                        {/* Font Context Wrapper */}
+                                        <div style={{
+                                            fontSize: `${baseFontSize}px`,
+                                            lineHeight: cssLineHeight,
+                                            fontFamily: `"${generatedFamily}", ${fallbackStackString}`,
+                                            position: 'relative'
+                                        }}>
+                                            {/* Text Content */}
+                                            <div className="relative z-20 whitespace-pre-wrap break-words">
+                                                {renderText({
+                                                    content: sampleText,
+                                                    languageId: selectedLanguageId,
+                                                    styleId: activeFontStyleId || 'primary',
+                                                    primaryFont: font,
+                                                    fontSize: baseFontSize,
+                                                    lineHeight: cssLineHeight,
+                                                    color: fontColor
+                                                })}
+                                            </div>
+
+                                            {/* Grid attached to reference font */}
+                                            {shouldRenderGrid && (() => {
+                                                // For calculation, we use the reference font's metrics if we are the reference.
+                                                // Wait, if we are the reference, we use OUR metrics.
+                                                // The variable `referenceFont` defined outside is correct.
+                                                // BUT `localNumericLineHeight` above is for THIS font.
+                                                // If we are drawing the grid, we want to draw it based on THIS font's metrics (since we are the reference).
+                                                // So passing `fontObject` (which is `font.fontObject`) and `localNumericLineHeight` is correct.
+
+                                                return (
+                                                    <MetricGuidesOverlay
+                                                        fontObject={font.fontObject}
+                                                        fontSizePx={baseFontSize}
+                                                        lineHeight={localNumericLineHeight}
+                                                        showAlignmentGuides={showAlignmentGuides}
+                                                        showBrowserGuides={false}
+                                                        fullWidth={true}
+                                                        topOffset={0}
+                                                        ascentOverride={settings?.ascentOverride}
+                                                        descentOverride={settings?.descentOverride}
+                                                        lineGapOverride={settings?.lineGapOverride}
+                                                    />
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                ) : (
+                    /* OVERLAY VIEW */
+                    <div className="flex flex-row h-full gap-8">
+                        {/* Canvas Area - Just the scrollable container */}
+                        <div className="flex-1 bg-white rounded-lg shadow-sm border border-slate-200 p-8 overflow-auto relative">
+
+                            {/* Layers Container */}
+                            <div className="relative z-10 w-full">
+                                {/*  Reference Grid (only if reference is set) - Rendered BEHIND text */}
+                                {(() => {
+                                    if (baselineSourceIndex === null) return null;
+                                    const refFont = fonts.find((f, i) => f.id === fontIds[baselineSourceIndex]);
+                                    if (!refFont || !refFont.fontObject) return null;
+
+                                    const settings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', refFont.id);
+                                    const hasOverrides = settings && (
+                                        (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
+                                        (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
+                                        (settings.descentOverride !== undefined && settings.descentOverride !== '')
+                                    );
+                                    const cssLineHeight = (activeStyle?.lineHeight === 'normal' || hasOverrides)
+                                        ? 'normal'
+                                        : (typeof activeStyle?.lineHeight === 'number' ? activeStyle.lineHeight : 1.2);
+
+                                    const localNumericLineHeight = calculateNumericLineHeight(
+                                        cssLineHeight,
+                                        refFont.fontObject,
+                                        settings
                                     );
 
                                     return (
                                         <MetricGuidesOverlay
-                                            fontObject={referenceFont?.fontObject}
+                                            fontObject={refFont.fontObject}
                                             fontSizePx={baseFontSize}
-                                            lineHeight={referenceLineHeight}
+                                            lineHeight={localNumericLineHeight}
                                             showAlignmentGuides={showAlignmentGuides}
                                             showBrowserGuides={false}
                                             fullWidth={true}
-                                            topOffset="calc(1rem + 1px)"
-                                            ascentOverride={referenceSettings?.ascentOverride}
-                                            descentOverride={referenceSettings?.descentOverride}
-                                            lineGapOverride={referenceSettings?.lineGapOverride}
+                                            // No top offset needed because we are now inside the padded container at the correct structure level
+                                            topOffset={0}
+                                            ascentOverride={settings?.ascentOverride}
+                                            descentOverride={settings?.descentOverride}
+                                            lineGapOverride={settings?.lineGapOverride}
                                         />
-                                    );
+                                    )
                                 })()}
 
-                                {/* Label - Absolute positioning to avoid affecting baseline flow */}
-                                <div className="absolute -top-7 left-0 right-0 gap-2 px-0 flex items-center">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate" title={fontNameDisplay}>
-                                        {fontNameDisplay}
-                                    </span>
+                                {/* Font Layers */}
+                                {fontIds.map((fontId, index) => {
+                                    const font = fonts.find(f => f.id === fontId);
+                                    if (!font) return null;
 
+                                    const layerSettings = fontLayerSettings[fontId] || { color: '#000000', opacity: 100, visible: true };
+                                    if (!layerSettings.visible) return null;
 
-                                    {font.fontObject ? (
-                                        <button
-                                            onClick={() => setBaselineSourceIndex(index)}
-                                            className={`
-                                                px-1.5 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap transition-all border
-                                                ${isBaselineReference
-                                                    ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                                                    : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'
-                                                }
-                                            `}
-                                            title={isBaselineReference ? "Current Reference" : "Set as Reference Font"}
+                                    const settings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', font.id);
+                                    const hasOverrides = settings && (
+                                        (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
+                                        (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
+                                        (settings.descentOverride !== undefined && settings.descentOverride !== '')
+                                    );
+                                    const cssLineHeight = (activeStyle?.lineHeight === 'normal' || hasOverrides)
+                                        ? 'normal'
+                                        : (typeof activeStyle?.lineHeight === 'number' ? activeStyle.lineHeight : 1.2);
+
+                                    const generatedFamily = font.fontUrl ? `CompareFont-${font.id}` : (font.name || 'sans-serif');
+                                    const fallbackStack = buildFallbackFontStackForStyle(activeFontStyleId || 'primary', selectedLanguageId);
+                                    const fallbackStackString = fallbackStack.length > 0
+                                        ? fallbackStack.map(f => f.fontFamily).join(', ')
+                                        : 'sans-serif';
+
+                                    const isReferenceLayer = index === baselineSourceIndex;
+
+                                    return (
+                                        <div
+                                            key={`overlay-${font.id}`}
+                                            style={{
+                                                fontSize: `${baseFontSize}px`,
+                                                lineHeight: cssLineHeight,
+                                                fontFamily: `"${generatedFamily}", ${fallbackStackString}`,
+                                                color: layerSettings.color,
+                                                opacity: layerSettings.opacity / 100,
+
+                                                // Key Change: Reference layer is relative (in flow), others are absolute (on top)
+                                                position: isReferenceLayer ? 'relative' : 'absolute',
+                                                top: isReferenceLayer ? 'auto' : 0,
+                                                left: isReferenceLayer ? 'auto' : 0,
+                                                width: isReferenceLayer ? 'auto' : '100%',
+
+                                                mixBlendMode: 'multiply'
+                                            }}
+                                            className="whitespace-pre-wrap break-words"
                                         >
-                                            {isBaselineReference ? 'Reference' : 'Set Reference'}
-                                        </button>
-                                    ) : (
-                                        <div className="cursor-help" title="System fonts do not provide the metrics required for baseline alignment.">
-                                            <button
-                                                disabled
-                                                className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap border bg-slate-50 text-slate-300 border-transparent cursor-not-allowed"
-                                            >
-                                                Set Reference
-                                            </button>
+                                            {sampleText}
                                         </div>
-                                    )}
-                                    <button
-                                        onClick={() => setSwappingFontIndex(index)}
-                                        className="text-slate-300 hover:text-indigo-600 transition-colors ml-auto p-1"
-                                        title="Swap Font"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                {/* Text Container */}
-                                <div
-                                    className="relative whitespace-pre-wrap break-words z-10 border border-slate-200 rounded-lg p-4 h-full"
-                                    style={{
-                                        fontSize: `${baseFontSize}px`,
-                                        lineHeight: cssLineHeight,
-                                        fontFamily: `"${generatedFamily}", ${fallbackStackString}`,
-                                    }}
-                                >
-                                    {renderText({
-                                        content: sampleText,
-                                        languageId: selectedLanguageId,
-                                        styleId: activeFontStyleId || 'primary',
-                                        primaryFont: font,
-                                        fontSize: baseFontSize,
-                                        lineHeight: cssLineHeight,
-                                        color: fontColor
-                                    })}
-                                </div>
+                                    );
+                                })}
                             </div>
-                        )
-                    })}
-                </div>
+                        </div>
 
+                        {/* Controls Sidebar */}
+                        <div className="w-80 flex flex-col gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-200 overflow-y-auto">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2">Layers</h3>
+                            {fontIds.map((fontId, index) => {
+                                const font = fonts.find(f => f.id === fontId);
+                                if (!font) return null;
+                                const isRef = index === baselineSourceIndex;
+                                const settings = fontLayerSettings[fontId] || { color: '#000000', opacity: 100, visible: true };
+
+                                return (
+                                    <div key={`control-${fontId}`} className="p-3 bg-slate-50 rounded border border-slate-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={settings.visible}
+                                                    onChange={(e) => setFontLayerSettings(prev => ({
+                                                        ...prev,
+                                                        [fontId]: { ...prev[fontId], visible: e.target.checked }
+                                                    }))}
+                                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                                                />
+                                                <span className="font-semibold text-sm truncate" title={font.name}>{font.name || 'Unnamed'}</span>
+                                            </div>
+                                            {font.fontObject && (
+                                                <button
+                                                    onClick={() => setBaselineSourceIndex(index)}
+                                                    className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${isRef
+                                                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                                                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                                                        }`}
+                                                >
+                                                    {isRef ? 'Ref' : 'Set Ref'}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 items-center">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Color</span>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="color"
+                                                    value={settings.color}
+                                                    onChange={(e) => setFontLayerSettings(prev => ({
+                                                        ...prev,
+                                                        [fontId]: { ...prev[fontId], color: e.target.value }
+                                                    }))}
+                                                    className="w-6 h-6 rounded cursor-pointer border-none bg-transparent p-0"
+                                                />
+                                                <span className="text-[10px] text-slate-500 font-mono">{settings.color}</span>
+                                            </div>
+
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Opacity</span>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="100"
+                                                    value={settings.opacity}
+                                                    onChange={(e) => setFontLayerSettings(prev => ({
+                                                        ...prev,
+                                                        [fontId]: { ...prev[fontId], opacity: Number(e.target.value) }
+                                                    }))}
+                                                    className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                                />
+                                                <span className="text-[10px] text-slate-500 w-6 text-right">{settings.opacity}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
             {/* Swap Modal */}
             <FontSwapModal
