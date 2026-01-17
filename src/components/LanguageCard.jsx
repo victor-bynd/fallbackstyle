@@ -10,6 +10,7 @@ import LanguageEditPanel from './LanguageEditPanel';
 import { languageCharacters } from '../data/languageCharacters';
 import MetricGuidesOverlay from './MetricGuidesOverlay';
 import { calculateNumericLineHeight } from '../utils/fontUtils';
+import { TOOLTIPS } from '../constants/tooltips';
 
 const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHighlitLanguageId }) => {
     const {
@@ -80,9 +81,10 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
 
     const resolveStyleIdForHeader = (tag) => {
         const requested = getStyleIdForHeader(tag);
-        const requestedPrimary = getPrimaryFontFromStyle(requested);
-        if (requestedPrimary?.fontObject) return requested;
-        return 'primary';
+        // We used to fallback to 'primary' if the requested style didn't have a loaded primary font.
+        // However, this prevents viewing fallback configs for styles that rely on system primary fonts.
+        // We should just return the requested style.
+        return requested;
     };
 
     const handleUnmap = () => {
@@ -327,9 +329,9 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
     const supportHelpText = useMemo(() => {
         const isCJK = ['zh-Hans', 'zh-Hant', 'ja-JP', 'ko-KR'].includes(language.id);
         if (isCJK) {
-            return "Support for this language is determined by a representative sample of common characters due to its large character set. 100% means all common characters in our sample are present in the font.";
+            return TOOLTIPS.SUPPORT_CJK;
         }
-        return "Support is calculated against the full character set required for this language.";
+        return TOOLTIPS.SUPPORT_GENERAL;
     }, [language.id]);
 
     // if (!fontObject) return null; // Removed to allow system font mode
@@ -368,9 +370,53 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
     const mainViewFontSize = mainViewSettings?.baseFontSize || 16;
     const mainViewLineHeight = mainViewSettings?.lineHeight || 1.2;
 
+
+
+    const hasVerticalMetricOverrides = mainViewSettings && (
+        (mainViewSettings.lineGapOverride !== undefined && mainViewSettings.lineGapOverride !== '') ||
+        (mainViewSettings.ascentOverride !== undefined && mainViewSettings.ascentOverride !== '') ||
+        (mainViewSettings.descentOverride !== undefined && mainViewSettings.descentOverride !== '')
+    );
+
+    const metricsPrimaryMissing = useMemo(() => {
+        const textToCheck = languageCharacters[language.id] || contentToRender;
+        const charsToCheck = textToCheck.replace(/\s/g, '').split('');
+
+        if (!metricsPrimaryFontObject) return charsToCheck.length;
+
+        return charsToCheck.filter(char => {
+            return metricsPrimaryFontObject.charToGlyphIndex(char) === 0;
+        }).length;
+    }, [language.id, contentToRender, metricsPrimaryFontObject]);
+
+    const primaryFullyCovers = metricsPrimaryMissing === 0;
+
+    // FIX: If any fallback font has overrides, we must force 'normal' line-height.
+    // We removed the (!primaryFullyCovers) check because we want to ensure that if the user
+    // explicitly sets an override on a fallback, the system respects it even if we think
+    // the primary font covers everything (coverage check might be imperfect or text might change).
+    const hasFallbackMetricOverrides = metricsFallbackFontStack.some(f => {
+        const s = f.settings;
+        return s && (
+            (s.lineGapOverride !== undefined && s.lineGapOverride !== '') ||
+            (s.ascentOverride !== undefined && s.ascentOverride !== '') ||
+            (s.descentOverride !== undefined && s.descentOverride !== '')
+        );
+    });
+
+    const hasLineGapOverride = mainViewSettings && (mainViewSettings.lineGapOverride !== undefined && mainViewSettings.lineGapOverride !== '');
+
+    const useNormalLineHeight = (mainViewLineHeight === 'normal') ||
+        (!mainViewEffectiveFont?.fontObject && hasVerticalMetricOverrides) ||
+        hasLineGapOverride ||
+        hasFallbackMetricOverrides;
+
     const mainViewNumericLineHeight = useMemo(() => {
-        return calculateNumericLineHeight(mainViewLineHeight, mainViewEffectiveFont?.fontObject);
-    }, [mainViewLineHeight, mainViewEffectiveFont]);
+        // If we are forcing normal line height for rendering, we must also calculate the numeric value as 'normal'
+        // so that the metric guides overlay matches the actual rendered text height.
+        const effectiveLineHeight = useNormalLineHeight ? 'normal' : mainViewLineHeight;
+        return calculateNumericLineHeight(effectiveLineHeight, mainViewEffectiveFont?.fontObject, mainViewSettings);
+    }, [mainViewLineHeight, mainViewEffectiveFont, mainViewSettings, useNormalLineHeight]);
 
     return (
         <div
@@ -419,6 +465,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                 onStartEdit={handleStartEdit}
                 onRemove={() => removeConfiguredLanguage(language.id)}
                 onUnmap={handleUnmap}
+                useNormalLineHeight={useNormalLineHeight}
             />
 
             {isEditing && (
@@ -432,10 +479,6 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                 />
             )}
 
-
-
-
-
             {/* Set Base Font Size on Container */}
             <div className="p-6">
                 {/* Standard Body Text View (Fallback for 'simple', 'paragraph', or any non-header mode) */}
@@ -444,7 +487,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                         dir={language.dir || 'ltr'}
                         style={{
                             fontSize: `${mainViewFontSize}px`,
-                            lineHeight: mainViewNumericLineHeight,
+                            lineHeight: useNormalLineHeight ? 'normal' : mainViewNumericLineHeight,
                             position: 'relative' // Needed for absolute positioning of overlay
                         }}
                     >
@@ -497,7 +540,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

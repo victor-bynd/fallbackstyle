@@ -1,7 +1,8 @@
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTypo } from '../context/useTypo';
 import { useUI } from '../context/UIContext';
+import { useFontStack } from '../hooks/useFontStack';
 import { buildWeightSelectOptions, resolveWeightToAvailableOption } from '../utils/weightUtils';
 import FontCardHeader from './FontCardHeader';
 import FontCardTabs from './FontCardTabs';
@@ -17,8 +18,9 @@ const FontCardContent = ({
     getEffectiveFontSettings,
     updateFallbackFontOverride,
     updateFontWeight,
-    onRemoveOverride,
-    onSelectLanguage,
+    // duplicate removed
+    // unused onRemoveOverride removed
+    // unused onSelectLanguage removed
     activeTab,
     isInherited = false,
     onOverride,
@@ -26,11 +28,11 @@ const FontCardContent = ({
     onMap,
     setHighlitLanguageId,
     readOnly = false,
+    // unused fontScales removed
+    // duplicate removed
+    // unused lineHeight removed
 
-    fontScales,
-    lineHeight,
-
-    setActiveFont,
+    // unused setActiveFont removed
     consolidatedIds = null,
 
     // NEW PROPS
@@ -39,34 +41,46 @@ const FontCardContent = ({
     isReference = false,
     highlitLanguageId
 }) => {
-    const { primaryFontOverrides, fallbackFontOverrides, letterSpacing, setLetterSpacing, primaryLanguages, updateLanguageSpecificSetting, linkFontToLanguage, fonts, baseRem: contextBaseRem, setBaseRem, toggleFontVisibility, clearPrimaryFontOverride, clearFallbackFontOverride, addLanguageSpecificFont, addLanguageSpecificPrimaryFont, mapLanguageToFont, unmapLanguage } = useTypo();
+    const {
+        primaryLanguages,
+        primaryFontOverrides,
+        fallbackFontOverrides,
+        updateFallbackFontOverride: contextUpdateFallbackFontOverride, // Renamed to avoid conflict with prop
+        setGlobalLineHeight: contextSetGlobalLineHeight, // Renamed to avoid conflict with prop
+        setLetterSpacing,
+        getEffectiveFontSettings: contextGetEffectiveFontSettings, // Renamed to avoid conflict with prop
+        setBaseRem,
+        // weightOptions removed - calculated locally
+        updateFontWeight: contextUpdateFontWeight, // Renamed to avoid conflict with prop
+        addLanguageSpecificFont,
+        addLanguageSpecificPrimaryFont,
+        updateLanguageSpecificSetting, // Added this
+        fonts, // Kept as it's used later
+        baseRem: contextBaseRem, // Kept as it's used later
+        toggleFontVisibility, // Kept as it's used later
+        mapLanguageToFont // Kept as it's used later
+    } = useTypo();
     const { activeConfigTab, setActiveConfigTab } = useUI();
+    const { buildFallbackFontStackForStyle } = useFontStack();
     const baseRem = contextBaseRem || 16;
     const [showAdvanced, setShowAdvanced] = useState(false);
-    const [showAllTags, setShowAllTags] = useState(false);
-    const [tagsLimit, setTagsLimit] = useState(11);
-    const tagsContainerRef = useRef(null);
+    // unused state removed
 
 
-    // Use passed scope if available, or manage internally (default to ALL)
-    // This supports both controlled and uncontrolled usage
-    const [internalScope, setInternalScope] = useState('ALL');
-
-    // Sync internal state with activeConfigTab if uncontrolled or hybrid
+    // Internal state management removed as component is controlled
     useEffect(() => {
         if (!activeConfigTab || activeConfigTab === 'ALL') {
             if (onSetScope) onSetScope('ALL');
-            setInternalScope('ALL');
         }
         // Additional sync logic handled by parent or activeConfigTab effect below
     }, [activeConfigTab, onSetScope]);
 
-    const editScope = scope !== undefined ? scope : internalScope;
-    const setEditScope = onSetScope || setInternalScope;
+    const editScope = scope !== undefined ? scope : 'ALL';
+    // unused setEditScope removed
 
 
 
-    const idsToCheck = consolidatedIds || [font.id];
+    const idsToCheck = useMemo(() => consolidatedIds || [font.id], [consolidatedIds, font.id]);
 
     const languageTags = useMemo(() => {
         const tags = [];
@@ -97,7 +111,7 @@ const FontCardContent = ({
         });
 
         return [...new Set(tags)].filter(t => t && t !== 'undefined');
-    }, [font.id, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages, consolidatedIds]);
+    }, [idsToCheck, primaryFontOverrides, fallbackFontOverrides, font.type, font.isPrimaryOverride, primaryLanguages]);
 
     // Helper to determine if a language has an active override on this card
     const getOverrideState = (langId) => {
@@ -193,10 +207,7 @@ const FontCardContent = ({
         return !idsToCheck.includes(targetId);
     };
 
-    const singleLang = languageTags.length === 1 ? languageTags[0] : null;
-    const singleLangHasOverride = singleLang ? getOverrideState(singleLang) : false;
-    // Show merged view if there is exactly one language AND it has no active override
-    const showMergedView = singleLang && !singleLangHasOverride;
+    // MERGED VIEW REMOVED - We now always want to see "GLOBAL" if any language is mapped.
 
     // Sync editScope with activeConfigTab (Global Selection)
     useEffect(() => {
@@ -232,11 +243,7 @@ const FontCardContent = ({
         // If a specific language is active
         if (languageTags.includes(activeConfigTab)) {
             // Explicit match (Override already exists or Primary Language explicit tag)
-            if (showMergedView && activeConfigTab === singleLang && !font.isPrimaryOverride && !font.isClone) {
-                onSetScope('ALL');
-            } else {
-                onSetScope(activeConfigTab);
-            }
+            onSetScope(activeConfigTab);
         } else {
             // Implicit Scope Detection:
             // If the active tab/language uses this font implicitly (inheritance), we allow setting the scope to it.
@@ -259,7 +266,7 @@ const FontCardContent = ({
                 onSetScope('ALL');
             }
         }
-    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, showMergedView, singleLang, font.type, font.isPrimaryOverride, primaryFontOverrides]);
+    }, [activeConfigTab, highlitLanguageId, languageTags, primaryLanguages, onSetScope, font.type, font.isPrimaryOverride, primaryFontOverrides, font.isClone]);
 
     const scopeFontId = useMemo(() => {
         if (editScope === 'ALL') return font.id;
@@ -339,7 +346,7 @@ const FontCardContent = ({
 
 
     // Determine available tabs
-    const showTabs = languageTags && languageTags.length > 0;
+    // unused showTabs removed
 
     // Sort tabs: Put currently selected scope first if possible, or just alphabetical?
     // User requested "All" then others.
@@ -436,12 +443,10 @@ const FontCardContent = ({
 
                 <FontCardTabs
                     languageTags={languageTags}
-                    showMergedView={showMergedView}
                     editScope={editScope}
                     onSetScope={onSetScope}
                     setActiveConfigTab={setActiveConfigTab}
                     setHighlitLanguageId={setHighlitLanguageId}
-                    singleLang={singleLang}
                     primaryLanguages={primaryLanguages}
                     idsToCheck={idsToCheck}
                     primaryFontOverrides={primaryFontOverrides}
@@ -475,6 +480,22 @@ const FontCardContent = ({
                         toggleFontVisibility={toggleFontVisibility}
                         showAdvanced={showAdvanced}
                         setShowAdvanced={setShowAdvanced}
+                        isLineHeightLocked={(() => {
+                            if (editScope === 'ALL') return false;
+
+                            // Check if any fallback font for this scope (language) has metric overrides
+                            // We use 'primary' style as the default context context for checking fallbacks relative to the primary font card
+                            const stack = buildFallbackFontStackForStyle('primary', editScope);
+
+                            return stack.some(f => {
+                                const s = f.settings;
+                                return s && (
+                                    (s.lineGapOverride !== undefined && s.lineGapOverride !== '') ||
+                                    (s.ascentOverride !== undefined && s.ascentOverride !== '') ||
+                                    (s.descentOverride !== undefined && s.descentOverride !== '')
+                                );
+                            });
+                        })()}
                     />
                 </div>
             </div>

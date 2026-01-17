@@ -20,7 +20,8 @@ const FontCardSettings = ({
     isReference,
     toggleFontVisibility,
     showAdvanced,
-    setShowAdvanced
+    setShowAdvanced,
+    isLineHeightLocked
 }) => {
     // console.log('[FontCardSettings] Condition Check', { isPrimary, isPrimaryOverride: font.isPrimaryOverride, editScope });
     return (
@@ -83,7 +84,30 @@ const FontCardSettings = ({
             {(isPrimary || font.isPrimaryOverride) && (
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <span>Line Height</span>
+                        <div className="flex items-center gap-2">
+                            <span>Line Height</span>
+                            {/* Metric Override Lock Indicator */}
+                            {(() => {
+                                const hasMetricOverrides = (
+                                    (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '')
+                                ) || isLineHeightLocked;
+
+                                if (hasMetricOverrides) {
+                                    return (
+                                        <div className="group relative">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-amber-500 cursor-help">
+                                                <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                                            </svg>
+                                            <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-slate-50 text-[10px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal leading-relaxed">
+                                                Locked to 'normal' because {isLineHeightLocked ? 'a Fallback Font Override' : 'Line-Gap Override'} is active.
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </div>
+
                         <div className="flex gap-2 items-center">
                             {(() => {
                                 const lh = scopeFont.isPrimaryOverride
@@ -91,24 +115,34 @@ const FontCardSettings = ({
                                     : globalLineHeight;
                                 const isNormal = lh === 'normal';
 
-                                if (!isNormal) {
-                                    return (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleScopedUpdate('lineHeight', 'normal');
-                                            }}
-                                            className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors mr-1"
-                                            title="Reset to Normal"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                                                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.433l-.31-.31a7 7 0 00-11.712 3.138.75.75 0 001.449.39 5.5 5.5 0 019.201-2.466l.312.311H12.42a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    );
-                                }
-                                return null;
+                                const hasMetricOverrides = (
+                                    (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '')
+                                ) || isLineHeightLocked;
+
+                                // If locked, don't show the toggle button (it's forced normal anyway)
+                                if (hasMetricOverrides) return null;
+
+                                return (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Toggle: If normal -> set to default 1.2, else -> set to normal
+                                            handleScopedUpdate('lineHeight', isNormal ? 1.2 : 'normal');
+                                        }}
+                                        className={`
+                                            px-1.5 py-0.5 rounded text-[9px] font-bold border transition-colors
+                                            ${isNormal
+                                                ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+                                                : 'bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300'
+                                            }
+                                        `}
+                                        title={isNormal ? "Using Normal Line Height" : "Set to Normal"}
+                                    >
+                                        NORMAL
+                                    </button>
+                                );
                             })()}
+
                             <div className="flex items-center gap-1">
                                 <BufferedInput
                                     type="number"
@@ -120,10 +154,18 @@ const FontCardSettings = ({
                                         return Math.round(val * baseRem);
                                     })()}
                                     onChange={(e) => {
+                                        const hasMetricOverrides = (
+                                            (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '')
+                                        ) || isLineHeightLocked;
+                                        if (hasMetricOverrides) return; // Locked
+
                                         const px = parseFloat(e.target.value);
                                         if (!isNaN(px)) handleScopedUpdate('lineHeight', px / baseRem);
                                     }}
-                                    className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                    disabled={(() => {
+                                        return (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '') || isLineHeightLocked;
+                                    })()}
+                                    className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <span className="text-[9px]">px</span>
                             </div>
@@ -137,10 +179,18 @@ const FontCardSettings = ({
                                         return lh === 'normal' ? 120 : Math.round(lh * 100);
                                     })()}
                                     onChange={(e) => {
+                                        const hasMetricOverrides = (
+                                            (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '')
+                                        ) || isLineHeightLocked;
+                                        if (hasMetricOverrides) return; // Locked
+
                                         const val = parseFloat(e.target.value);
                                         if (!isNaN(val)) handleScopedUpdate('lineHeight', val / 100);
                                     }}
-                                    className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                    disabled={(() => {
+                                        return (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '') || isLineHeightLocked;
+                                    })()}
+                                    className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <span className="text-[9px]">%</span>
                             </div>
@@ -157,8 +207,16 @@ const FontCardSettings = ({
                             return lh === 'normal' ? 120 : lh * 100;
                         })()}
                         onChange={(e) => handleScopedUpdate('lineHeight', parseFloat(e.target.value) / 100)}
-                        disabled={isInherited && editScope !== 'ALL'}
-                        className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
+                        disabled={
+                            (isInherited && editScope !== 'ALL') ||
+                            (() => {
+                                return (scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '') || isLineHeightLocked;
+                            })()
+                        }
+                        className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${(isInherited && editScope !== 'ALL') ||
+                            ((scopeFontSettings?.lineGapOverride !== undefined && scopeFontSettings?.lineGapOverride !== '') || isLineHeightLocked)
+                            ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                            } accent-indigo-600`}
                     />
                 </div>
             )}
@@ -341,7 +399,7 @@ const FontCardSettings = ({
                                 <span>{field.replace('Override', '').replace(/([A-Z])/g, ' $1')}</span>
                                 <div className="flex items-center">
                                     {/* Reset Button for Advanced Settings */}
-                                    {Math.abs((scopeFont[field] || 0)) > 0.001 && (
+                                    {Math.abs((scopeFontSettings?.[field] || 0)) > 0.001 && (
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -356,13 +414,17 @@ const FontCardSettings = ({
                                         </button>
                                     )}
                                     <div className="flex items-center gap-1">
-                                        <input
+                                        <BufferedInput
                                             type="number"
                                             value={Math.round((scopeFontSettings?.[field] || 0) * 100)}
-                                            onChange={(e) => handleScopedUpdate(field, parseInt(e.target.value) / 100)}
-                                            className="w-12 bg-transparent text-right outline-none text-slate-600 font-mono border-b border-slate-200 focus:border-indigo-500"
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                if (isNaN(val)) return;
+                                                handleScopedUpdate(field, val / 100);
+                                            }}
+                                            className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
                                         />
-                                        <span className="text-slate-600 font-mono text-[9px]">%</span>
+                                        <span className="text-[9px]">%</span>
                                     </div>
                                 </div>
                             </div>
@@ -374,7 +436,7 @@ const FontCardSettings = ({
                                 value={(scopeFontSettings?.[field] || 0) * 100}
                                 onChange={(e) => handleScopedUpdate(field, parseInt(e.target.value) / 100)}
                                 disabled={isInherited && editScope !== 'ALL' || readOnly}
-                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' || readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-slate-400`}
+                                className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${isInherited && editScope !== 'ALL' || readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
                             />
                         </div>
                     ))}
@@ -403,7 +465,8 @@ FontCardSettings.propTypes = {
     isReference: PropTypes.bool,
     toggleFontVisibility: PropTypes.func,
     showAdvanced: PropTypes.bool,
-    setShowAdvanced: PropTypes.func
+    setShowAdvanced: PropTypes.func,
+    isLineHeightLocked: PropTypes.bool
 };
 
 export default FontCardSettings;

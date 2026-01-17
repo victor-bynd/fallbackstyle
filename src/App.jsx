@@ -230,8 +230,7 @@ const MainContent = ({
     return visible;
   }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hiddenLanguageIds]);
 
-  const visibleCount = visibleLanguagesList.length;
-  const totalCount = supportedLanguages.length;
+  // Unused variables removed
 
 
   const { importConfig, missingFonts, existingFiles, resolveMissingFonts, cancelImport, parsedMappings } = useConfigImport();

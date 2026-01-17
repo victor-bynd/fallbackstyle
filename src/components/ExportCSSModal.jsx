@@ -10,8 +10,7 @@ const ExportCSSModal = ({ onClose }) => {
         getFontsForStyle,
         getPrimaryFontFromStyle,
         getPrimaryFontOverrideForStyle,
-        getFallbackFontOverrideForStyle,
-        colors
+        // Unused variables removed
     } = useTypo();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
@@ -123,11 +122,33 @@ const ExportCSSModal = ({ onClose }) => {
 
                 const settings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary');
 
+                // Check for overrides in primary settings
+                const primaryHasOverrides = settings && (
+                    (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
+                    (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
+                    (settings.descentOverride !== undefined && settings.descentOverride !== '')
+                );
+
+                // Check for overrides in fallback stack
+                const fallbackHasOverrides = stack.some(f => {
+                    const s = f.settings;
+                    return s && (
+                        (s.lineGapOverride !== undefined && s.lineGapOverride !== '') ||
+                        (s.ascentOverride !== undefined && s.ascentOverride !== '') ||
+                        (s.descentOverride !== undefined && s.descentOverride !== '')
+                    );
+                });
+
+                const forceNormalLineHeight = primaryHasOverrides || fallbackHasOverrides;
+
                 css += `${selector} {\n`;
                 css += `  font-family: ${fontFamily};\n`;
-                if (styleId === 'primary' && settings) {
-                    // Base settings
-                    if (settings.lineHeight) css += `  line-height: ${settings.lineHeight};\n`;
+                if (styleId === 'primary') {
+                    if (forceNormalLineHeight) {
+                        css += `  line-height: normal;\n`;
+                    } else if (settings && settings.lineHeight) {
+                        css += `  line-height: ${settings.lineHeight};\n`;
+                    }
                 }
                 css += `}\n`;
             });

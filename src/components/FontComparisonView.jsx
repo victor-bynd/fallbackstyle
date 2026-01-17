@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import FontSwapModal from './FontSwapModal';
 import { useTypo } from '../context/useTypo';
-import { useUI } from '../context/UIContext';
+// Unused import removed
 import { useTextRenderer } from '../hooks/useTextRenderer';
 import { useFontStack } from '../hooks/useFontStack';
+import { calculateNumericLineHeight } from '../utils/fontUtils';
 import MetricGuidesOverlay from './MetricGuidesOverlay';
 
 const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
@@ -19,7 +20,8 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
         activeFontStyleId
     } = useTypo();
 
-    const { showFallbackColors } = useUI();
+    // Unused hook removedd
+
     const { renderText } = useTextRenderer();
     const { buildFallbackFontStackForStyle } = useFontStack();
 
@@ -91,7 +93,8 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
     const lineHeightMultiplier = (rawLineHeight === 'normal' || !rawLineHeight) ? 1.2 : parseFloat(rawLineHeight);
 
     // Calculate exact pixel line height for consistent grid
-    const lineHeightPx = baseFontSize * lineHeightMultiplier;
+    // lineHeightPx unused
+
 
     const referenceFont = baselineSourceIndex !== null ? fonts.find(f => f.id === fontIds[baselineSourceIndex]) : fonts.find(f => f.id === fontIds[0]);
 
@@ -198,6 +201,25 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                         const font = fonts.find(f => f.id === fontId);
                         if (!font) return null;
 
+                        const settings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', font.id);
+                        const localNumericLineHeight = calculateNumericLineHeight(
+                            activeStyle?.lineHeight,
+                            font.fontObject,
+                            settings
+                        );
+
+                        // If the global setting is normal, or if we have specific overrides, we want the CSS to potentially be 'normal'
+                        // so the browser respects the overrides.
+                        const hasOverrides = settings && (
+                            (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
+                            (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
+                            (settings.descentOverride !== undefined && settings.descentOverride !== '')
+                        );
+
+                        const cssLineHeight = (activeStyle?.lineHeight === 'normal' || hasOverrides)
+                            ? 'normal'
+                            : localNumericLineHeight;
+
                         const fontNameDisplay = font.fileName?.replace(/\.[^/.]+$/, '') || font.name || 'Unnamed Font';
                         const generatedFamily = font.fontUrl ? `CompareFont-${font.id}` : (font.name || 'sans-serif');
 
@@ -225,11 +247,17 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                                 {/* Grid attached to reference font */}
                                 {shouldRenderGrid && (() => {
                                     const referenceSettings = getEffectiveFontSettingsForStyle(activeFontStyleId || 'primary', referenceFont?.id);
+                                    const referenceLineHeight = calculateNumericLineHeight(
+                                        activeStyle?.lineHeight,
+                                        referenceFont?.fontObject,
+                                        referenceSettings
+                                    );
+
                                     return (
                                         <MetricGuidesOverlay
                                             fontObject={referenceFont?.fontObject}
                                             fontSizePx={baseFontSize}
-                                            lineHeight={lineHeightMultiplier}
+                                            lineHeight={referenceLineHeight}
                                             showAlignmentGuides={showAlignmentGuides}
                                             showBrowserGuides={false}
                                             fullWidth={true}
@@ -287,10 +315,10 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
 
                                 {/* Text Container */}
                                 <div
-                                    className="relative leading-none whitespace-pre-wrap break-words z-10 border border-slate-200 rounded-lg p-4 h-full"
+                                    className="relative whitespace-pre-wrap break-words z-10 border border-slate-200 rounded-lg p-4 h-full"
                                     style={{
                                         fontSize: `${baseFontSize}px`,
-                                        lineHeight: lineHeightMultiplier, // Use global line height
+                                        lineHeight: cssLineHeight,
                                         fontFamily: `"${generatedFamily}", ${fallbackStackString}`,
                                     }}
                                 >
@@ -300,7 +328,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                                         styleId: activeFontStyleId || 'primary',
                                         primaryFont: font,
                                         fontSize: baseFontSize,
-                                        lineHeight: lineHeightMultiplier,
+                                        lineHeight: cssLineHeight,
                                         color: fontColor
                                     })}
                                 </div>

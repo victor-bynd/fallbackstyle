@@ -209,4 +209,42 @@ describe('TypoContext', () => {
         expect(fonts[1].id).toBe(primaryFont.id);
         expect(fonts[1].color).toBe(fallbackColor);
     });
+
+    it('sets line-height to normal by default for new fonts', () => {
+        let contextValues;
+        render(
+            <UIProvider>
+                <TypoProvider>
+                    <TestConsumer onContext={(ctx) => (contextValues = ctx)} />
+                </TypoProvider>
+            </UIProvider>
+        );
+
+        // Create a mock font that DOES NOT have lineHeight set
+        const fontNoLh = {
+            id: 'font-no-lh',
+            name: 'Font No LH',
+            type: 'fallback'
+            // No lineHeight
+        };
+
+        act(() => {
+            // Use addFallbackFont as it should trigger the font addition logic
+            if (contextValues.addFallbackFont) {
+                contextValues.addFallbackFont(fontNoLh);
+            } else {
+                // Fallback if addFallbackFont is not available (though it should be per other tests)
+                // Checking if we can access batchAddFontsAndMappings from context is tricky if not exposed.
+                // But typically addFallbackFont is the consumer-facing API.
+                // If this fails, I'll need to check what is exposed.
+                throw new Error('addFallbackFont not available in context');
+            }
+        });
+
+        const fonts = contextValues.fontStyles.primary.fonts;
+        const addedFont = fonts.find(f => f.id === 'font-no-lh');
+
+        expect(addedFont).toBeDefined();
+        expect(addedFont.lineHeight).toBe('normal');
+    });
 });

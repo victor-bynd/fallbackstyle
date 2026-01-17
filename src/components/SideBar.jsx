@@ -1,11 +1,11 @@
-import { useTypo } from '../context/useTypo';
+// Unused import removed
 import React from 'react';
 import SidebarHeaderConfig from './SidebarHeaderConfig';
 import SidebarLanguages from './SidebarLanguages';
 import SidebarFonts from './SidebarFonts';
 
 const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, onAddLanguage, highlitLanguageId, setHighlitLanguageId, onManageLanguages, searchQuery, setSearchQuery, fontFilter, ...props }) => {
-    const { fontObject } = useTypo();
+    // Unused context value removed
 
     // Constraint removed: Sidebar should be visible if App decides to render it (e.g. ghost font state)
     // if (!fontObject) return null;

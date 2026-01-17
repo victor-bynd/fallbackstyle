@@ -74,12 +74,27 @@ export const useFontStack = () => {
             return null;
         };
 
+        const sysOverrides = style?.systemFallbackOverrides?.[languageId] || {};
+        const hasSysOverrides = (
+            sysOverrides.scale !== undefined ||
+            sysOverrides.lineGapOverride !== undefined ||
+            sysOverrides.ascentOverride !== undefined ||
+            sysOverrides.descentOverride !== undefined
+        );
+        const sysFontFamily = hasSysOverrides ? `'SystemFallback-${styleId}-${languageId}'` : fallbackFont;
+
         if (overrideFontId) {
             if (overrideFontId === 'legacy') {
                 return [{
-                    fontFamily: fallbackFont,
+                    fontFamily: sysFontFamily,
                     fontId: 'legacy',
-                    settings: { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing }
+                    settings: {
+                        baseFontSize,
+                        scale: fontScales.fallback,
+                        lineHeight: fallbackLineHeight,
+                        letterSpacing: fallbackLetterSpacing,
+                        ...sysOverrides
+                    }
                 }];
             }
 
@@ -104,14 +119,7 @@ export const useFontStack = () => {
                 mappedFonts.forEach(font => {
                     if (font.hidden) return;
                     const item = buildStackItem(font);
-                    if (font.name && !font.fontUrl) {
-                        overrideStack.push({
-                            fontFamily: font.name,
-                            fontId: font.id,
-                            fontObject: font.fontObject,
-                            settings: getEffectiveFontSettingsForStyle(styleId, font.id)
-                        });
-                    } else if (item) {
+                    if (item) {
                         overrideStack.push(item);
                     }
                 });
@@ -127,9 +135,15 @@ export const useFontStack = () => {
                 // 3. Add System Fallback
                 if (fallbackFont) {
                     overrideStack.push({
-                        fontFamily: fallbackFont,
+                        fontFamily: sysFontFamily,
                         fontId: 'legacy',
-                        settings: { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing }
+                        settings: {
+                            baseFontSize,
+                            scale: fontScales.fallback,
+                            lineHeight: fallbackLineHeight,
+                            letterSpacing: fallbackLetterSpacing,
+                            ...sysOverrides
+                        }
                     });
                 }
 
@@ -147,11 +161,17 @@ export const useFontStack = () => {
             if (item) fontStack.push(item);
         });
 
-        if (fallbackFont && !fontStack.some(f => f.fontFamily === fallbackFont)) {
+        if (fallbackFont && !fontStack.some(f => f.fontFamily === sysFontFamily || f.fontFamily === fallbackFont)) {
             fontStack.push({
-                fontFamily: fallbackFont,
+                fontFamily: sysFontFamily,
                 fontId: 'legacy',
-                settings: { baseFontSize, scale: fontScales.fallback, lineHeight: fallbackLineHeight, letterSpacing: fallbackLetterSpacing }
+                settings: {
+                    baseFontSize,
+                    scale: fontScales.fallback,
+                    lineHeight: fallbackLineHeight,
+                    letterSpacing: fallbackLetterSpacing,
+                    ...sysOverrides
+                }
             });
         }
 

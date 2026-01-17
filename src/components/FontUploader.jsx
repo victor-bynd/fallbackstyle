@@ -12,8 +12,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
         loadFont,
         batchAddConfiguredLanguages,
         batchAddFontsAndMappings,
-        addFallbackFonts,
-        addLanguageSpecificFallbackFont,
+        // Unused context values removed
         fonts,
         normalizeFontName,
         addPrimaryLanguageOverrides,
@@ -162,11 +161,6 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
         const processedFonts = [];
         let errorCount = 0;
 
-        // Create a set of existing font file names for quick lookup
-        // We look at the actual source filename if available, otherwise the font name
-        const existingFontNames = new Set(
-            (fontsRef.current || []).map(f => normalizeFontName(f.fileName || f.name))
-        );
         // Also verify if we are trying to add a font that is ALREADY pending (in case user drops twice before confirming)
         const pendingFontNames = new Set(
             pendingFontsRef.current.map(f => normalizeFontName(f.file.name))

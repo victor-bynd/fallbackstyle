@@ -5,7 +5,7 @@ import { parseFontFile, createFontUrl } from '../services/FontLoader';
 import LanguageList from './LanguageList';
 import FontSelectionModal from './FontSelectionModal';
 
-const AddLanguageModal = ({ onClose, onConfirm, configuredLanguages = [], filterGroup = null }) => {
+const AddLanguageModal = ({ onClose, onConfirm, filterGroup = null }) => {
     const { fonts, addFallbackFonts } = useTypo();
 
     // State

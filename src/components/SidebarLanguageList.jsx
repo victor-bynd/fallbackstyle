@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import languagesData from '../data/languages.json';
 import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES } from '../utils/languageUtils';
 

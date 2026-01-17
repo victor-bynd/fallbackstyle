@@ -7,7 +7,7 @@ import { calculateNumericLineHeight } from '../utils/fontUtils';
 
 const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
     const {
-        primaryLanguages,
+        // Unused variable removed
         fontStyles,
         // colors removed from here
         showAlignmentGuides,
@@ -41,7 +41,7 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
     const styleIdForTag = resolveStyleIdForHeader(tag);
 
     // Memoizing logic to determine fonts and settings
-    const { primaryFont, primarySettings, effectiveLineHeight, finalSizePx, isGlobalPrimary, numericLineHeight } = useMemo(() => {
+    const { primaryFont, primarySettings, finalSizePx, isGlobalPrimary, numericLineHeight, cssLineHeight } = useMemo(() => {
         const fonts = getFontsForStyle(styleIdForTag);
         const primaryOverrideId = getPrimaryFontOverrideForStyle(styleIdForTag, language.id);
         const currentFallbackFontId = getFallbackFontOverrideForStyle(styleIdForTag, language.id);
@@ -93,13 +93,20 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
 
         const numLineHeight = calculateNumericLineHeight(effLineHeight, pFont?.fontObject);
 
+        // Fix: Use explicit 'normal' for CSS if the effective setting is 'normal' or if we have overrides that might rely on it.
+        const cssIsNormal = effLineHeight === 'normal' ||
+            (typeof effLineHeight === 'string' && effLineHeight === 'normal');
+
+        const cssLineHeight = cssIsNormal ? 'normal' : numLineHeight;
+
         return {
             primaryFont: pFont,
             primarySettings: pSettings,
-            effectiveLineHeight: effLineHeight,
+            // Unused variable removed,
             finalSizePx: sizePx,
             isGlobalPrimary: isGlobal,
-            numericLineHeight: numLineHeight
+            numericLineHeight: numLineHeight,
+            cssLineHeight: cssLineHeight
         };
     }, [styleIdForTag, language.id, headerStyle, fontStyles, getFontsForStyle, getPrimaryFontOverrideForStyle, getFallbackFontOverrideForStyle, getEffectiveFontSettingsForStyle, tag]);
 
@@ -112,11 +119,7 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
         fontSize: `${finalSizePx}px`,
         fontWeight: primarySettings.weight || 400,
         fontVariationSettings: primaryFont?.isVariable ? `'wght' ${primarySettings.weight || 400}` : undefined,
-        lineHeight: ((primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '') ||
-            (primarySettings.ascentOverride !== undefined && primarySettings.ascentOverride !== '') ||
-            (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== ''))
-            ? numericLineHeight
-            : numericLineHeight,
+        lineHeight: cssLineHeight,
         letterSpacing: `${primarySettings.letterSpacing || 0}em`,
         position: 'relative'
     };

@@ -85,6 +85,44 @@ export const useTextRenderer = () => {
         // Ensure we use the provided color if context doesn't have it or we want to force it
         const effectivePrimaryColor = color || primarySettings.color || colors.primary;
 
+        // Determine the correct font family alias
+        const isGlobalPrimary = effectivePrimaryFont?.type === 'primary' && !effectivePrimaryFont?.isPrimaryOverride;
+
+        let primaryFamily = 'sans-serif';
+        if (effectivePrimaryFont?.fontUrl || effectivePrimaryFont?.name) {
+            if (isGlobalPrimary) {
+                primaryFamily = `'UploadedFont-${styleId}'`;
+            } else {
+                // If it's a primary override, it was generated in the 'fallbackRules' loop with this ID
+                primaryFamily = `'FallbackFont-${styleId}-${effectivePrimaryFont.id}'`;
+            }
+        }
+
+        // --- OPTIMIZATION START ---
+        // Fast Path: If no visual debugging aids are needed, use native CSS rendering.
+        // This avoids creating thousands of DOM nodes for character segmentation.
+        const useFastPath = !showFallbackColors && !showBrowserGuides;
+
+        if (useFastPath) {
+            // Note: In Fast Path, we rely on the @font-face `size-adjust` (calculated in useFontFaceStyles)
+            // to handle scaling relative to the primary font.
+            // We do NOT support manual `baseFontSize` overrides for *specific* fallback fonts in this mode,
+            // as we can't switch the container's font-size mid-string without spans.
+
+            return (
+                <span style={{
+                    fontFamily: `${primaryFamily}, ${fallbackFontStackString}`,
+                    color: effectivePrimaryColor,
+                    verticalAlign: 'baseline',
+                    letterSpacing: `${primarySettings.letterSpacing}em`,
+                    // fontWeight: primarySettings.weight // Let CSS handle weight selection or use variation settings
+                }}>
+                    {processedContent}
+                </span>
+            );
+        }
+        // --- OPTIMIZATION END ---
+
         return processedContent.split('').map((char, index) => {
             const glyphIndex = primaryFontObject.charToGlyphIndex(char);
             const isMissing = glyphIndex === 0;
@@ -184,6 +222,7 @@ export const useTextRenderer = () => {
                 <span
                     key={index}
                     style={{
+                        fontFamily: primaryFamily,
                         color: finalColor,
                         verticalAlign: 'baseline',
                         letterSpacing: `${primarySettings.letterSpacing}em`,

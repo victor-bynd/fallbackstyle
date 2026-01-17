@@ -1,5 +1,5 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
-import { parseFontFile, createFontUrl } from '../services/FontLoader';
+import React, { useState } from 'react';
+import { createFontUrl } from '../services/FontLoader';
 import { safeParseFontFile } from '../services/SafeFontLoader';
 import {
     DndContext,
@@ -58,9 +58,9 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
     const [pickingForFont, setPickingForFont] = useState(null);
     const [pickerSearchTerm, setPickerSearchTerm] = useState('');
 
-    const scrollContainerRef = useRef(null);
-    const scrollPositionRef = useRef(0);
-    const addFontInputRef = useRef(null);
+    const scrollContainerRef = React.useRef(null);
+    const scrollPositionRef = React.useRef(0);
+    const addFontInputRef = React.useRef(null);
 
     const handleAdditionalFonts = async (e) => {
         const files = Array.from(e.target.files || []);
@@ -116,7 +116,7 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
         e.target.value = '';
     };
 
-    useLayoutEffect(() => {
+    React.useLayoutEffect(() => {
         if (!scrollContainerRef.current) return;
 
         if (view === 'list') {

@@ -8,11 +8,6 @@ const OverridesModal = ({ isOpen, onClose, groupedOverrides, headerOverrideList,
     const {
         resetAllHeaderStyles,
         resetHeaderStyle,
-        resetGlobalFallbackScaleForStyle,
-        resetAllFallbackFontOverridesForStyle,
-        resetAllLineHeightOverridesForStyle,
-        clearPrimaryFontOverride,
-        resetSystemFallbackOverride
     } = actions;
 
     return createPortal(

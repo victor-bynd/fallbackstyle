@@ -1,7 +1,7 @@
 
 import { render, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import React, { useContext, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { UIProvider, useUI } from './UIContext';
 
 // Helper component to expose Context values to tests
