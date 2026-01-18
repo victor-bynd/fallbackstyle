@@ -6,9 +6,9 @@ import Onboarding from './components/Onboarding';
 import BrandFontPreview from './components/BrandFontPreview';
 
 import SideBar from './components/SideBar';
-import StrategySelector from './components/StrategySelector';
+
 import BufferedInput from '../../shared/components/BufferedInput';
-import { calculateOverrides, formatCSS, extractFontMetrics } from '../../shared/utils/MetricCalculator';
+import { calculateOverrides, extractFontMetrics } from '../../shared/utils/MetricCalculator';
 import { parseFontFile, createFontUrl } from '../../shared/services/FontLoader';
 import systemFonts from '../../shared/constants/systemFonts.json';
 import InfoTooltip from '../../shared/components/InfoTooltip';

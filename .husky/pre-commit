@@ -1,2 +1,4 @@
-#!/bin/sh
-npm version patch --no-git-tag-version && git add package.json package-lock.json
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+node scripts/increment-version.js

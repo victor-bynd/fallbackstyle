@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTypo } from '../../../shared/context/useTypo';
 import { useUI } from '../../../shared/context/UIContext';
-import { languageCharacters } from '../../../shared/data/languageCharacters';
+
 import languagesData from '../../../shared/data/languages.json';
 import { getLanguageGroup } from '../../../shared/utils/languageUtils';
 import LanguageGroupFilter from './LanguageGroupFilter';
