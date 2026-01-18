@@ -54,7 +54,8 @@ const Onboarding = ({ importConfig }) => {
         batchAddFontsAndMappings,
         // Unused context values removed
         fontObject,
-        togglePrimaryLanguage
+        togglePrimaryLanguage,
+        resetApp
     } = useTypo();
 
     const toggleLanguage = (id) => {
@@ -77,8 +78,7 @@ const Onboarding = ({ importConfig }) => {
     };
 
     const handleReset = () => {
-        localStorage.clear();
-        window.location.reload();
+        resetApp();
     };
 
     // Ref references for invisible inputs
@@ -311,7 +311,7 @@ const Onboarding = ({ importConfig }) => {
                         Multi-Language Fallback Styles
                     </h1>
                     <p className="text-lg text-slate-500 max-w-xl mx-auto">
-                        Configure fallback fonts for your multi-language project.
+                        Style fallback fonts for your multi-language project.
                     </p>
                 </div>
 
