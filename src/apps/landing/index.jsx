@@ -5,7 +5,27 @@ import { motion } from 'framer-motion';
 import multiLanguageVersion from '../multi-language/version.json';
 import brandFontVersion from '../brand-font/version.json';
 
+import { useState } from 'react';
+import { clear as clearIdb } from 'idb-keyval';
+import { PersistenceService } from '../../shared/services/PersistenceService';
+import ResetConfirmModal from '../../shared/components/ResetConfirmModal';
+
 const LandingPage = () => {
+    const [showResetModal, setShowResetModal] = useState(false);
+
+    const handleGlobalReset = async () => {
+        try {
+            await PersistenceService.clear();
+            await clearIdb();
+            localStorage.clear();
+            window.location.reload();
+        } catch (error) {
+            console.error("Reset failed", error);
+            // Force reload anyway as fallback
+            window.location.reload();
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -77,7 +97,7 @@ const LandingPage = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                     </svg>
                                 </div>
                                 <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide">
@@ -107,13 +127,27 @@ const LandingPage = () => {
                     </motion.div>
                 </div>
 
-                <div className="fixed bottom-0 left-0 right-0 w-full py-6 text-center border-t border-slate-200 bg-slate-50 z-10">
+                <div className="fixed bottom-0 left-0 right-0 w-full py-6 px-8 border-t border-slate-200 bg-slate-50 z-10 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-slate-400 text-sm">
                         © {new Date().getFullYear()} Fallback Style. All rights reserved.
                     </p>
-
+                    <button
+                        onClick={() => setShowResetModal(true)}
+                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors rounded-full hover:bg-rose-50"
+                        title="Reset Application"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </button>
                 </div>
             </div>
+
+            <ResetConfirmModal
+                isOpen={showResetModal}
+                onClose={() => setShowResetModal(false)}
+                onConfirm={handleGlobalReset}
+            />
         </div>
     );
 };
