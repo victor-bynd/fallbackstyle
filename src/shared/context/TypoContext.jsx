@@ -3475,7 +3475,13 @@ export const TypoProvider = ({ children }) => {
                 console.warn('[TypoContext] Failed to check config size', e);
             }
 
-            await PersistenceService.saveConfig(serialized);
+            try {
+                await PersistenceService.saveConfig(serialized);
+            } catch (err) {
+                console.error('[TypoContext] Failed to save config:', err);
+                // Future: Show toast notification to user
+                return; // Stop if config save fails
+            }
 
             const activeFontIds = new Set();
 
@@ -3496,6 +3502,9 @@ export const TypoProvider = ({ children }) => {
                                     persistedFontIds.current.add(font.id);
                                 } catch (err) {
                                     console.warn('[TypoContext] Failed to save font blob:', font.id, err);
+                                    if (err.name === 'QuotaExceededError') {
+                                        // Consider notifying user or halting further saves
+                                    }
                                 }
                             }
                         }

@@ -3,7 +3,7 @@ import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useTypo } from '../../shared/context/useTypo';
 import { useUI } from '../../shared/context/UIContext';
 import Schema from '../../shared/components/Schema';
-import LandingPage from '../../apps/landing/index';
+import Onboarding from './components/Onboarding';
 import SideBar from './components/SideBar';
 import LanguageCard from './components/LanguageCard';
 import LanguageSelectorModal from './components/LanguageSelectorModal';
@@ -525,7 +525,7 @@ const MainContent = ({
         isSessionLoading ? (
           <LoadingScreen />
         ) : (!fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name) ? (
-          <LandingPage importConfig={importConfig} />
+          <Onboarding importConfig={importConfig} />
         ) : (
           <div
             className="pt-4 px-8 md:px-10 pb-32 min-h-screen cursor-default"
