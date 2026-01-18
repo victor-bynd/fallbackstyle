@@ -11,9 +11,9 @@ const LandingPage = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
                 {/* Header Section */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
                     className="text-center mb-24"
                 >
 
@@ -28,9 +28,9 @@ const LandingPage = () => {
                 <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                     {/* Tool 1: Multi-language Fallback */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.5 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
                         className="group relative bg-white rounded-2xl p-8 border border-slate-200 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col h-full"
                     >
                         <div className="mb-8">
@@ -48,7 +48,7 @@ const LandingPage = () => {
                             <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">
                                 Multi-language Fallback
                             </h3>
-                            <p className="text-slate-500 leading-relaxed text-base">
+                            <p className="text-slate-500 leading-relaxed text-base min-h-[80px]">
                                 Orchestrate typography across languages. Manage fallback chains, line-height overrides, and system font stacks for a consistent global design system.
                             </p>
                         </div>
@@ -68,9 +68,9 @@ const LandingPage = () => {
 
                     {/* Tool 2: Brand Font Fallback */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
                         className="group relative bg-white rounded-2xl p-8 border border-slate-200 hover:border-emerald-200 transition-all hover:shadow-xl hover:shadow-emerald-500/5 flex flex-col h-full"
                     >
                         <div className="mb-8">
@@ -88,7 +88,7 @@ const LandingPage = () => {
                             <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-emerald-600 transition-colors">
                                 Brand Font Fallback
                             </h3>
-                            <p className="text-slate-500 leading-relaxed text-base">
+                            <p className="text-slate-500 leading-relaxed text-base min-h-[80px]">
                                 Eliminate CLS and FOUT. Match fallback font metrics to your brand typeface for seamless loading and performance optimization.
                             </p>
                         </div>
@@ -96,9 +96,9 @@ const LandingPage = () => {
                         <div className="mt-auto">
                             <Link
                                 to="/brand-font"
-                                className="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-bold text-slate-700 transition-all bg-white border border-slate-200 rounded-xl hover:border-emerald-500 hover:text-emerald-700 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 active:scale-[0.98]"
+                                className="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-bold text-white transition-all bg-emerald-600 rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 active:scale-[0.98]"
                             >
-                                Open Tool
+                                Launch Tool
                                 <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
@@ -107,7 +107,7 @@ const LandingPage = () => {
                     </motion.div>
                 </div>
 
-                <div className="mt-24 pt-8 border-t border-slate-200 text-center relative">
+                <div className="fixed bottom-0 left-0 right-0 w-full py-6 text-center border-t border-slate-200 bg-slate-50 z-10">
                     <p className="text-slate-400 text-sm">
                         © {new Date().getFullYear()} Fallback Style. All rights reserved.
                     </p>

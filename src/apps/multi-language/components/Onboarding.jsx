@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTypo } from '../../../shared/context/useTypo';
-import FontUploader from '../MultiLanguage/FontUploader';
-import LanguageList from '../MultiLanguage/LanguageList';
-import LanguageSetupModal from '../MultiLanguage/LanguageSetupModal';
+import FontUploader from './FontUploader';
+import LanguageList from './LanguageList';
+import LanguageSetupModal from './LanguageSetupModal';
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 import ResetConfirmModal from '../../../shared/components/ResetConfirmModal';
 
@@ -39,7 +39,7 @@ const InitialOptionCard = ({ icon, title, description, onClick, primary = false 
     </button>
 );
 
-const LandingPage = ({ importConfig }) => {
+const Onboarding = ({ importConfig }) => {
     const [step, setStep] = useState('initial'); // 'initial' | 'languages' | 'upload'
     const [selectedLanguages, setSelectedLanguages] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -87,7 +87,7 @@ const LandingPage = ({ importConfig }) => {
 
     const handleFontSelect = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            console.log("LandingPage: handleFontSelect", e.target.files);
+            console.log("Onboarding: handleFontSelect", e.target.files);
             setDroppedFiles(Array.from(e.target.files));
             // Don't change step, stay on initial page but let FontUploader handle it
             e.target.value = ''; // Reset input to allow re-selection
@@ -308,10 +308,10 @@ const LandingPage = ({ importConfig }) => {
             <div className="max-w-4xl w-full">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
-                        Fallback Styles
+                        Multi-Language Fallback Styles
                     </h1>
                     <p className="text-lg text-slate-500 max-w-xl mx-auto">
-                        Stress-test your typography across languages and fallback fonts.
+                        Configure fallback fonts for your multi-language project.
                     </p>
                 </div>
 
@@ -337,7 +337,7 @@ const LandingPage = ({ importConfig }) => {
                             e.preventDefault();
                             e.stopPropagation();
                             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                console.log("LandingPage: onDrop", e.dataTransfer.files);
+                                console.log("Onboarding: onDrop", e.dataTransfer.files);
                                 setDroppedFiles(Array.from(e.dataTransfer.files));
                             }
                         }}
@@ -436,4 +436,4 @@ const LandingPage = ({ importConfig }) => {
     );
 };
 
-export default LandingPage;
+export default Onboarding;

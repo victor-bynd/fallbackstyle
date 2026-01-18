@@ -55,10 +55,16 @@ export const PersistenceService = {
                 const request = store.put(config, 'appState');
 
                 request.onsuccess = () => resolve();
-                request.onerror = (e) => reject(e);
+                request.onerror = (e) => {
+                    if (e.target.error.name === 'QuotaExceededError') {
+                        console.error('[PersistenceService] Storage quota exceeded while saving config');
+                    }
+                    reject(e.target.error);
+                };
             });
         } catch (err) {
             console.error('[PersistenceService] Error saving config', err);
+            throw err;
         }
     },
 
@@ -97,10 +103,17 @@ export const PersistenceService = {
                 const request = store.put(blob, id);
 
                 request.onsuccess = () => resolve();
-                request.onerror = (e) => reject(e);
+                request.onerror = (e) => {
+                    if (e.target.error.name === 'QuotaExceededError') {
+                        console.error('[PersistenceService] Storage quota exceeded while saving font:', id);
+                        // Optional: Trigger a clean-up or notify user
+                    }
+                    reject(e.target.error);
+                };
             });
         } catch (err) {
             console.error('[PersistenceService] Error saving font', id, err);
+            throw err; // Re-throw to allow caller to handle
         }
     },
 
