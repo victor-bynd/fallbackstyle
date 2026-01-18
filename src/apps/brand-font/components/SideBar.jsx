@@ -281,8 +281,7 @@ const SideBar = ({
         }
     };
 
-    const allFonts = [...systemFonts, ...customFonts];
-    const filteredFonts = allFonts;
+
 
     return (
         <div className="w-80 flex flex-col h-screen border-r border-gray-100 bg-white overflow-hidden text-slate-900 sticky top-0">

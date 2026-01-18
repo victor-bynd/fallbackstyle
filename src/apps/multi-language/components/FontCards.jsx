@@ -9,7 +9,7 @@ import FontSelectionModal from './FontSelectionModal';
 import { createFontUrl, parseFontFile } from '../../../shared/services/FontLoader';
 import InfoTooltip from '../../../shared/components/InfoTooltip';
 import { getLanguageGroup } from '../../../shared/utils/languageUtils';
-import { languageCharacters } from '../../../shared/data/languageCharacters';
+
 import languagesData from '../../../shared/data/languages.json';
 import FontCard from './FontCard';
 import { TOOLTIPS } from '../../../shared/constants/tooltips';

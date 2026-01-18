@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import BufferedInput from '../../shared/components/BufferedInput';
 import { vi } from 'vitest';
 

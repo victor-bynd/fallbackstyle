@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import languagesData from '../../../shared/data/languages.json';
-import { languageCharacters } from '../../../shared/data/languageCharacters';
+
 import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES } from '../../../shared/utils/languageUtils';
 
 const SidebarLanguageList = ({

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import InfoTooltip from '../../shared/components/InfoTooltip';
-import { vi } from 'vitest';
+
 
 describe('InfoTooltip', () => {
     it('should render children trigger', () => {
