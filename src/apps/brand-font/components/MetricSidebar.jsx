@@ -3,7 +3,7 @@ import MetricControls from './MetricControls';
 
 const MetricSidebar = ({
     configMode,
-    setConfigMode,
+    handleConfigModeChange,
     limitToSizeAdjust,
     setLimitToSizeAdjust,
     overrides,
@@ -27,7 +27,7 @@ const MetricSidebar = ({
             <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
                 <MetricControls
                     configMode={configMode}
-                    setConfigMode={setConfigMode}
+                    handleConfigModeChange={handleConfigModeChange}
                     limitToSizeAdjust={limitToSizeAdjust}
                     setLimitToSizeAdjust={setLimitToSizeAdjust}
                     overrides={overrides}

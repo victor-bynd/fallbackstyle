@@ -367,6 +367,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                                                         ascentOverride={settings?.ascentOverride}
                                                         descentOverride={settings?.descentOverride}
                                                         lineGapOverride={settings?.lineGapOverride}
+                                                        guideColor={fontColor}
                                                     />
                                                 );
                                             })()}
@@ -419,6 +420,7 @@ const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
                                             ascentOverride={settings?.ascentOverride}
                                             descentOverride={settings?.descentOverride}
                                             lineGapOverride={settings?.lineGapOverride}
+                                            guideColor={fontLayerSettings[refFont.id]?.color || '#000000'}
                                         />
                                     )
                                 })()}

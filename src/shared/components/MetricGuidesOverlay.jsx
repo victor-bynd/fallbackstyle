@@ -13,6 +13,7 @@ const MetricGuidesOverlay = ({
     descentOverride,
     lineGapOverride,
     browserGuideColor = '#3B82F6', // Default to blue
+    guideColor = '#000000', // Default to black/primary
 }) => {
     // Memoized SVG Generation for Alignment Guides
     const alignmentStyle = useMemo(() => {
@@ -88,11 +89,11 @@ const MetricGuidesOverlay = ({
         const baselineYUnits = halfLeadingUnits + ascender;
 
         const guideLines = [
-            { y: baselineYUnits, color: 'rgba(239, 68, 68, 0.6)', width: strokeWidthUnits, dash: null }, // Baseline - SOLID RED
-            { y: baselineYUnits - xHeight, color: 'rgba(0,0,0,0.3)', width: strokeWidthUnits, dash: dashArrayUnits },
-            { y: baselineYUnits - capHeight, color: 'rgba(0,0,0,0.3)', width: strokeWidthUnits, dash: dashArrayUnits },
-            { y: baselineYUnits - ascender, color: 'rgba(0,0,0,0.1)', width: strokeWidthUnits, dash: dashArrayUnits },
-            { y: baselineYUnits + Math.abs(descender), color: 'rgba(0,0,0,0.1)', width: strokeWidthUnits, dash: dashArrayUnits }
+            { y: baselineYUnits, color: guideColor, width: strokeWidthUnits * 1.5, dash: null }, // Baseline - SOLID
+            { y: baselineYUnits - xHeight, color: `${guideColor}66`, width: strokeWidthUnits, dash: dashArrayUnits },
+            { y: baselineYUnits - capHeight, color: `${guideColor}66`, width: strokeWidthUnits, dash: dashArrayUnits },
+            { y: baselineYUnits - ascender, color: `${guideColor}33`, width: strokeWidthUnits, dash: dashArrayUnits },
+            { y: baselineYUnits + Math.abs(descender), color: `${guideColor}33`, width: strokeWidthUnits, dash: dashArrayUnits }
         ];
 
         // Ensure seamless horizontal tiling
@@ -113,7 +114,7 @@ const MetricGuidesOverlay = ({
             backgroundRepeat: 'repeat',
             backgroundPosition: '0 0'
         };
-    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride]);
+    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride, guideColor]);
 
     // Browser Guides (Line Box View)
     const browserGuideStyle = useMemo(() => showBrowserGuides ? {
@@ -141,7 +142,7 @@ const MetricGuidesOverlay = ({
                 right: fullWidth ? '-500vw' : 0,
                 height: fullWidth ? '100%' : 'auto',
                 pointerEvents: 'none',
-                zIndex: fullWidth ? 0 : 10,
+                zIndex: fullWidth ? 20 : 10, // Increased to show above text
                 fontSize: `${fontSizePx}px`,
                 ...browserGuideStyle,
                 ...alignmentStyle
@@ -160,7 +161,8 @@ MetricGuidesOverlay.propTypes = {
     topOffset: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     ascentOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     descentOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    lineGapOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+    lineGapOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    guideColor: PropTypes.string
 };
 
 export default MetricGuidesOverlay;

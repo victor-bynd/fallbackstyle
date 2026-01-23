@@ -232,15 +232,16 @@ const BrandFontFallback = () => {
         if (!isInitialized || !selectedFallback?.id) return;
 
         setFallbackConfigs(prev => {
-            // Only update if changed to avoid unnecessary renders if passing same object ref (though React handles that)
-            // But we created a new object literals for overrides often.
-
-            // Check equality to avoid loop?
             const current = prev[selectedFallback.id];
+
+            // Determine if we should update manualOverrides
+            const nextManualOverrides = configMode === 'manual' ? overrides : current?.manualOverrides;
+
             if (current &&
                 current.configMode === configMode &&
                 current.limitToSizeAdjust === limitToSizeAdjust &&
-                JSON.stringify(current.overrides) === JSON.stringify(overrides)
+                JSON.stringify(current.overrides) === JSON.stringify(overrides) &&
+                JSON.stringify(current.manualOverrides) === JSON.stringify(nextManualOverrides)
             ) {
                 return prev;
             }
@@ -250,7 +251,8 @@ const BrandFontFallback = () => {
                 [selectedFallback.id]: {
                     configMode,
                     limitToSizeAdjust,
-                    overrides
+                    overrides,
+                    manualOverrides: nextManualOverrides
                 }
             };
         });
@@ -317,6 +319,27 @@ const BrandFontFallback = () => {
         }
     };
 
+    const handleConfigModeChange = (newMode) => {
+        if (selectedFallback?.isCustom && newMode !== 'manual') return;
+
+        setConfigMode(newMode);
+
+        if (newMode === 'default') {
+            setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0, letterSpacing: 0, wordSpacing: 0 });
+        } else if (newMode === 'auto') {
+            if (primaryMetrics && selectedFallback) {
+                setOverrides(calculateOverrides(primaryMetrics, selectedFallback));
+            }
+        } else if (newMode === 'manual') {
+            // Restore manual overrides if we have them for this font
+            const saved = fallbackConfigs[selectedFallback?.id];
+            if (saved && saved.manualOverrides) {
+                setOverrides(saved.manualOverrides);
+            }
+            // else: keep current overrides (from auto/default) as the starting point for manual
+        }
+    };
+
     const handleFallbackSelect = (fallbackFont) => {
         setSelectedFallback(fallbackFont);
 
@@ -332,17 +355,27 @@ const BrandFontFallback = () => {
         // Restore configuration for this fallback if available
         if (fallbackConfigs[fallbackFont.id]) {
             const savedConfig = fallbackConfigs[fallbackFont.id];
-            setConfigMode(savedConfig.configMode || 'default');
-            setLimitToSizeAdjust(!!savedConfig.limitToSizeAdjust); // Force boolean
-            if (savedConfig.overrides) {
-                setOverrides(savedConfig.overrides);
+            const mode = savedConfig.configMode || 'default';
+            setConfigMode(mode);
+            setLimitToSizeAdjust(!!savedConfig.limitToSizeAdjust);
+
+            if (mode === 'manual' && savedConfig.manualOverrides) {
+                setOverrides(savedConfig.manualOverrides);
+            } else if (mode === 'auto') {
+                if (primaryMetrics) {
+                    setOverrides(calculateOverrides(primaryMetrics, fallbackFont));
+                } else if (savedConfig.overrides) {
+                    setOverrides(savedConfig.overrides);
+                }
+            } else {
+                setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0, letterSpacing: 0, wordSpacing: 0 });
             }
             return;
         }
 
         // Otherwise (first time selecting this fallback)
         if (fallbackFont.isCustom) {
-            setConfigMode('default');
+            setConfigMode('manual');
             setOverrides({
                 sizeAdjust: 1.0,
                 ascentOverride: 0,
@@ -549,7 +582,7 @@ const BrandFontFallback = () => {
 
             <MetricSidebar
                 configMode={configMode}
-                setConfigMode={setConfigMode}
+                handleConfigModeChange={handleConfigModeChange}
                 limitToSizeAdjust={limitToSizeAdjust}
                 setLimitToSizeAdjust={setLimitToSizeAdjust}
                 overrides={overrides}

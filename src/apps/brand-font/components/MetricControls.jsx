@@ -4,7 +4,7 @@ import InfoTooltip from '../../../shared/components/InfoTooltip';
 
 const MetricControls = ({
     configMode,
-    setConfigMode,
+    handleConfigModeChange,
     limitToSizeAdjust,
     setLimitToSizeAdjust,
     overrides,
@@ -46,29 +46,21 @@ const MetricControls = ({
                             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50 shadow-sm w-full">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (selectedFallback?.isCustom) return;
-                                        setConfigMode('default');
-                                        setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0, letterSpacing: 0, wordSpacing: 0 });
-                                    }}
+                                    onClick={() => handleConfigModeChange('default')}
                                     disabled={selectedFallback?.isCustom}
                                     className={`flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${configMode === 'default' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'} ${selectedFallback?.isCustom ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     Default
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (selectedFallback?.isCustom) return;
-                                        setConfigMode('auto');
-                                        if (primaryMetrics && selectedFallback) setOverrides(calculateOverrides(primaryMetrics, selectedFallback));
-                                    }}
+                                    onClick={() => handleConfigModeChange('auto')}
                                     disabled={selectedFallback?.isCustom}
                                     className={`flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${configMode === 'auto' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'} ${selectedFallback?.isCustom ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     Auto
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setConfigMode('manual')}
+                                    onClick={() => handleConfigModeChange('manual')}
                                     className={`flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${configMode === 'manual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
                                     Manual
                                 </button>
@@ -101,7 +93,16 @@ const MetricControls = ({
                         {/* Size Adjust */}
                         <div className="group space-y-2">
                             <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Size Adjust</label>
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Size Adjust</label>
+                                    <button
+                                        onClick={() => handleManualUpdate('sizeAdjust', 1.0)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
+                                        title="Reset to 100%"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    </button>
+                                </div>
                                 <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
                                     <BufferedInput
                                         type="number"
@@ -131,7 +132,16 @@ const MetricControls = ({
                         {/* Ascent Override */}
                         <div className={`group space-y-2 transition-all duration-300 ${limitToSizeAdjust ? 'hidden' : ''}`}>
                             <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Ascent</label>
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Ascent</label>
+                                    <button
+                                        onClick={() => handleManualUpdate('ascentOverride', 0)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
+                                        title="Reset to 0%"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    </button>
+                                </div>
                                 <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
                                     <BufferedInput
                                         type="number"
@@ -161,7 +171,16 @@ const MetricControls = ({
                         {/* Descent Override */}
                         <div className={`group space-y-2 transition-all duration-300 ${limitToSizeAdjust ? 'hidden' : ''}`}>
                             <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Descent</label>
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Descent</label>
+                                    <button
+                                        onClick={() => handleManualUpdate('descentOverride', 0)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
+                                        title="Reset to 0%"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    </button>
+                                </div>
                                 <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
                                     <BufferedInput
                                         type="number"
@@ -191,7 +210,16 @@ const MetricControls = ({
                         {/* Line Gap */}
                         <div className={`group space-y-2 transition-all duration-300 ${limitToSizeAdjust ? 'hidden' : ''}`}>
                             <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Line Gap</label>
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Line Gap</label>
+                                    <button
+                                        onClick={() => handleManualUpdate('lineGapOverride', 0)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
+                                        title="Reset to 0%"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    </button>
+                                </div>
                                 <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
                                     <BufferedInput
                                         type="number"
@@ -221,7 +249,16 @@ const MetricControls = ({
                         {/* Letter Spacing */}
                         <div className="group space-y-2 transition-all duration-300">
                             <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Letter Spacing</label>
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Letter Spacing</label>
+                                    <button
+                                        onClick={() => handleManualUpdate('letterSpacing', 0)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
+                                        title="Reset to 0em"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    </button>
+                                </div>
                                 <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
                                     <BufferedInput
                                         type="number"
@@ -251,7 +288,16 @@ const MetricControls = ({
                         {/* Word Spacing */}
                         <div className="group space-y-2 transition-all duration-300">
                             <div className="flex justify-between items-end">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Word Spacing</label>
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Word Spacing</label>
+                                    <button
+                                        onClick={() => handleManualUpdate('wordSpacing', 0)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
+                                        title="Reset to 0em"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    </button>
+                                </div>
                                 <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
                                     <BufferedInput
                                         type="number"

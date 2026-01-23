@@ -454,16 +454,32 @@ const BrandFontPreview = ({
                                         fontObject={primaryFont?.font}
                                         fontSizePx={fontSize}
                                         lineHeight={numericLineHeight}
-                                        showAlignmentGuides={showGuides && !isSimulating && showPrimaryGuides}
+                                        showAlignmentGuides={showGuides && !isSimulating}
                                         showBrowserGuides={false}
                                         fullWidth={true}
+                                        guideColor={(fontColors?.primary || '#EF4444').slice(0, 7)}
                                     />
-                                    {showBrowserGuides && !isSimulating && (
+                                    {showGuides && !isSimulating && (
                                         <MetricGuidesOverlay
                                             fontObject={fallbackFont?.font || primaryFont?.font}
                                             fontSizePx={fontSize}
                                             lineHeight={numericLineHeight}
-                                            showAlignmentGuides={showGuides}
+                                            showAlignmentGuides={true}
+                                            showBrowserGuides={showBrowserGuides}
+                                            ascentOverride={overrides?.ascentOverride}
+                                            descentOverride={overrides?.descentOverride}
+                                            lineGapOverride={overrides?.lineGapOverride}
+                                            browserGuideColor={fontColors?.[fallbackFont?.id] || '#3B82F6'}
+                                            guideColor={(fontColors?.[fallbackFont?.id] || '#3B82F6').slice(0, 7)}
+                                            fullWidth={true}
+                                        />
+                                    )}
+                                    {showBrowserGuides && !showGuides && !isSimulating && (
+                                        <MetricGuidesOverlay
+                                            fontObject={fallbackFont?.font || primaryFont?.font}
+                                            fontSizePx={fontSize}
+                                            lineHeight={numericLineHeight}
+                                            showAlignmentGuides={false}
                                             showBrowserGuides={true}
                                             ascentOverride={overrides?.ascentOverride}
                                             descentOverride={overrides?.descentOverride}
