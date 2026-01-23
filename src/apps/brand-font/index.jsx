@@ -109,7 +109,15 @@ const BrandFontFallback = () => {
                             setConfigMode('default');
                             const defaultFallback = systemFonts.find(f => f.id === 'arial');
                             if (defaultFallback) {
-                                setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0, letterSpacing: 0, wordSpacing: 0 });
+                                setOverrides({
+                                    sizeAdjust: 1.0,
+                                    ascentOverride: 0,
+                                    descentOverride: 0,
+                                    lineGapOverride: 0,
+                                    letterSpacing: 0,
+                                    wordSpacing: 0,
+                                    lineHeight: 'normal'
+                                });
                                 setSelectedFallback(defaultFallback);
                             }
                         }
@@ -368,7 +376,15 @@ const BrandFontFallback = () => {
                     setOverrides(savedConfig.overrides);
                 }
             } else {
-                setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0, letterSpacing: 0, wordSpacing: 0 });
+                setOverrides({
+                    sizeAdjust: 1.0,
+                    ascentOverride: 0,
+                    descentOverride: 0,
+                    lineGapOverride: 0,
+                    letterSpacing: 0,
+                    wordSpacing: 0,
+                    lineHeight: 'normal'
+                });
             }
             return;
         }
@@ -382,7 +398,8 @@ const BrandFontFallback = () => {
                 descentOverride: 0,
                 lineGapOverride: 0,
                 letterSpacing: 0,
-                wordSpacing: 0
+                wordSpacing: 0,
+                lineHeight: 'normal'
             });
         } else {
             // Default to "Default" metrics (no overrides) as per user request
@@ -393,7 +410,8 @@ const BrandFontFallback = () => {
                 descentOverride: 0,
                 lineGapOverride: 0,
                 letterSpacing: 0,
-                wordSpacing: 0
+                wordSpacing: 0,
+                lineHeight: 'normal'
             });
         }
     };
@@ -493,13 +511,43 @@ const BrandFontFallback = () => {
         }
         css += `}\n\n`;
 
+        // Helper to get effective overrides for a font
+        const getEffectiveOverrides = (font) => {
+            // Priority:
+            // 1. Currently active overrides state (if this is the selected font)
+            if (selectedFallback?.id === font.id) {
+                if (configMode === 'manual') return overrides;
+                if (configMode === 'default') return { sizeAdjust: 1.0, letterSpacing: 0, wordSpacing: 0 };
+            }
+
+            // 2. Persisted config in fallbackConfigs
+            const persisted = fallbackConfigs[font.id];
+            if (persisted && persisted.configMode === 'manual') {
+                return persisted.overrides;
+            }
+
+            // 3. Fallback to auto-calculated (or default 1.0)
+            const auto = calculateOverrides(primaryMetrics, font) || { sizeAdjust: 1.0 };
+            return {
+                ...auto,
+                letterSpacing: 0,
+                wordSpacing: 0
+            };
+        };
+
         // Helper to generate @font-face block for fallbacks
         const generateFontFaceBlock = (fallbackName, familyName, ov) => {
+            const hasOverriddenVerticals = !limitToSizeAdjust && (ov.ascentOverride || ov.descentOverride || ov.lineGapOverride);
+            const hasSizeAdjust = ov.sizeAdjust !== undefined && Math.abs(ov.sizeAdjust - 1) > 0.0001;
+
+            if (!hasSizeAdjust && !hasOverriddenVerticals) return '';
+
             let block = `/* Fallback Override for: ${fallbackName} */\n`;
             block += `@font-face {\n`;
             block += `  font-family: '${familyName}';\n`;
             block += `  src: local('${fallbackName}');\n`;
-            if (ov.sizeAdjust !== undefined) {
+
+            if (hasSizeAdjust) {
                 block += `  size-adjust: ${pct(ov.sizeAdjust)};\n`;
             }
             if (!limitToSizeAdjust) {
@@ -509,6 +557,16 @@ const BrandFontFallback = () => {
             }
             block += `  font-display: ${fontDisplay};\n`;
             block += `}\n\n`;
+
+            // Also provide spacing as comments in the @font-face block for visibility
+            const ls = ov.letterSpacing || 0;
+            const ws = ov.wordSpacing || 0;
+            if (ls !== 0 || ws !== 0) {
+                block += `/* Recommended spacing for this fallback: */\n`;
+                if (ls !== 0) block += `/* letter-spacing: ${ls}em; */\n`;
+                if (ws !== 0) block += `/* word-spacing: ${ws}em; */\n\n`;
+            }
+
             return block;
         };
 
@@ -516,17 +574,29 @@ const BrandFontFallback = () => {
         const generateUsageClass = (suffix, fallbackName, familyName, ov) => {
             const ls = ov.letterSpacing || 0;
             const ws = ov.wordSpacing || 0;
-            const hasSpacing = ls !== 0 || ws !== 0;
+            const lh = ov.lineHeight || 'normal';
+            const fontFaceBlock = generateFontFaceBlock(fallbackName, familyName, ov);
+
+            // Only generate class if there are overrides OR a specific fallback font-face exists
+            if (ls === 0 && ws === 0 && lh === 'normal' && !fontFaceBlock) return '';
 
             let block = `/* Usage for ${fallbackName} */\n`;
             block += `.font-with-fallback-${suffix.toLowerCase()} {\n`;
-            block += `  font-family: '${primaryFamily}', '${familyName}', sans-serif;\n`;
+            // If the @font-face matches the system default (no block), we use the system name directly
+            const familyToUse = fontFaceBlock ? familyName : fallbackName;
+            block += `  font-family: '${primaryFamily}', '${familyToUse}', sans-serif;\n`;
 
-            if (hasSpacing) {
+            if (ls !== 0 || ws !== 0) {
                 block += `  /* Spacing adjustments to match character widths */\n`;
                 if (ls !== 0) block += `  letter-spacing: ${ls}em;\n`;
                 if (ws !== 0) block += `  word-spacing: ${ws}em;\n`;
             }
+
+            if (lh !== 'normal') {
+                block += `  /* Custom line height */\n`;
+                block += `  line-height: ${lh};\n`;
+            }
+
             block += `}\n\n`;
             return block;
         };
@@ -536,15 +606,7 @@ const BrandFontFallback = () => {
 
         // 1. Simulated Fallbacks (System Fonts)
         systemFonts.forEach(font => {
-            let ov;
-            if (selectedFallback?.id === font.id && configMode === 'manual') {
-                ov = overrides;
-            } else if (selectedFallback?.id === font.id && configMode === 'default') {
-                ov = { sizeAdjust: 1.0 };
-            } else {
-                ov = calculateOverrides(primaryMetrics, font);
-            }
-
+            const ov = getEffectiveOverrides(font);
             if (ov) {
                 const suffix = font.name.replace(/\s+/g, '');
                 const familyName = `${primaryFamily} Fallback ${suffix}`;
@@ -555,14 +617,7 @@ const BrandFontFallback = () => {
 
         // 2. Custom Fonts
         customFonts.forEach(font => {
-            let ov;
-            if (selectedFallback?.id === font.id) {
-                if (configMode === 'manual') ov = overrides;
-                else ov = { sizeAdjust: 1.0 };
-            } else {
-                ov = { sizeAdjust: 1.0 };
-            }
-
+            const ov = getEffectiveOverrides(font);
             if (ov) {
                 const suffix = font.name.replace(/\s+/g, '');
                 const familyName = `${primaryFamily} Fallback ${suffix}`;
@@ -576,7 +631,7 @@ const BrandFontFallback = () => {
         css += usageClasses;
 
         return css.trim();
-    }, [overrides, selectedFallback, primaryFont, limitToSizeAdjust, fontDisplay, primaryMetrics, customFonts, configMode]);
+    }, [overrides, selectedFallback, primaryFont, limitToSizeAdjust, fontDisplay, primaryMetrics, customFonts, configMode, fallbackConfigs]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 

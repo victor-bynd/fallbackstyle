@@ -276,8 +276,8 @@ const SideBar = ({
     return (
         <div className="w-72 flex flex-col h-screen border-r border-gray-100 bg-white overflow-hidden text-slate-900 sticky top-0">
             {/* Header Section */}
-            <div className="h-14 flex items-center justify-between px-4 border-b border-gray-50 bg-white shrink-0">
-                <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
+            <div className="h-14 flex items-center justify-between px-6 border-b border-gray-50 bg-white shrink-0">
+                <div className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">
                     FONT STACK
                 </div>
                 <button
@@ -296,7 +296,7 @@ const SideBar = ({
 
                 {/* Brand Font Section */}
                 <div className="flex flex-col gap-1">
-                    <div className="px-1 py-1 text-[10px] font-black uppercase tracking-widest text-slate-800 flex items-center justify-between">
+                    <div className="px-1 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 flex items-center justify-between">
                         <span className="flex items-center gap-2">BRAND FONT</span>
                         {primaryFont && (
                             <button
@@ -344,8 +344,8 @@ const SideBar = ({
 
                 {/* Simulated Fallbacks Section */}
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between w-full px-1 py-1 text-slate-800">
-                        <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div className="flex items-center justify-between w-full px-1 py-1 text-slate-900">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                             SIMULATED FALLBACKS
                             <InfoTooltip content="These fonts are loaded as webfonts to simulate system fallback fonts when specific system fonts aren't available on your system." />
                         </span>
@@ -384,8 +384,8 @@ const SideBar = ({
 
                 {/* System Fallbacks Section */}
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between w-full px-1 py-1 text-slate-800">
-                        <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <div className="flex items-center justify-between w-full px-1 py-1 text-slate-900">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                             SYSTEM FALLBACKS
                             <InfoTooltip content="System fallback fonts cannot be automatically styled due to browser tech limitations." />
                         </span>

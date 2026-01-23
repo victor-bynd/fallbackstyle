@@ -25,10 +25,10 @@ const MetricControls = ({
                 <div className={`flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100`}>
                     <div className="flex flex-col">
                         {!isSidebar && (
-                            <h3 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider mb-1">Metrics Configuration</h3>
+                            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] mb-1">Metrics Configuration</h3>
                         )}
                         <div className="flex items-center gap-2">
-                            <p className={`text-[10px] font-black tracking-widest px-2 py-0.5 rounded transition-all ${configMode === 'manual'
+                            <p className={`text-[10px] font-black tracking-[0.2em] px-2 py-0.5 rounded transition-all ${configMode === 'manual'
                                 ? 'bg-indigo-50 text-indigo-700'
                                 : configMode === 'auto'
                                     ? 'bg-emerald-50 text-emerald-700'
@@ -94,7 +94,7 @@ const MetricControls = ({
                         <div className="group space-y-2">
                             <div className="flex justify-between items-end">
                                 <div className="flex items-center gap-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Size Adjust</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Size Adjust</label>
                                     <button
                                         onClick={() => handleManualUpdate('sizeAdjust', 1.0)}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
@@ -133,7 +133,7 @@ const MetricControls = ({
                         <div className={`group space-y-2 transition-all duration-300 ${limitToSizeAdjust ? 'hidden' : ''}`}>
                             <div className="flex justify-between items-end">
                                 <div className="flex items-center gap-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Ascent</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Ascent</label>
                                     <button
                                         onClick={() => handleManualUpdate('ascentOverride', 0)}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
@@ -172,7 +172,7 @@ const MetricControls = ({
                         <div className={`group space-y-2 transition-all duration-300 ${limitToSizeAdjust ? 'hidden' : ''}`}>
                             <div className="flex justify-between items-end">
                                 <div className="flex items-center gap-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Descent</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Descent</label>
                                     <button
                                         onClick={() => handleManualUpdate('descentOverride', 0)}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
@@ -211,7 +211,7 @@ const MetricControls = ({
                         <div className={`group space-y-2 transition-all duration-300 ${limitToSizeAdjust ? 'hidden' : ''}`}>
                             <div className="flex justify-between items-end">
                                 <div className="flex items-center gap-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Line Gap</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Line Gap</label>
                                     <button
                                         onClick={() => handleManualUpdate('lineGapOverride', 0)}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
@@ -250,7 +250,7 @@ const MetricControls = ({
                         <div className="group space-y-2 transition-all duration-300">
                             <div className="flex justify-between items-end">
                                 <div className="flex items-center gap-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Letter Spacing</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Letter Spacing</label>
                                     <button
                                         onClick={() => handleManualUpdate('letterSpacing', 0)}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
@@ -275,8 +275,8 @@ const MetricControls = ({
                             </div>
                             <input
                                 type="range"
-                                min="-0.25"
-                                max="0.25"
+                                min="-0.75"
+                                max="0.75"
                                 step="0.001"
                                 value={overrides.letterSpacing || 0}
                                 onChange={(e) => handleManualUpdate('letterSpacing', parseFloat(e.target.value))}
@@ -289,7 +289,7 @@ const MetricControls = ({
                         <div className="group space-y-2 transition-all duration-300">
                             <div className="flex justify-between items-end">
                                 <div className="flex items-center gap-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Word Spacing</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Word Spacing</label>
                                     <button
                                         onClick={() => handleManualUpdate('wordSpacing', 0)}
                                         className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all"
@@ -314,11 +314,52 @@ const MetricControls = ({
                             </div>
                             <input
                                 type="range"
-                                min="-0.5"
-                                max="0.5"
+                                min="-0.75"
+                                max="0.75"
                                 step="0.005"
                                 value={overrides.wordSpacing || 0}
                                 onChange={(e) => handleManualUpdate('wordSpacing', parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer hover:bg-slate-200 transition-all"
+                                style={{ accentColor: fallbackColor }}
+                            />
+                        </div>
+
+                        {/* Line Height */}
+                        <div className="group space-y-2 transition-all duration-300">
+                            <div className="flex justify-between items-end">
+                                <div className="flex items-center gap-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Line Height</label>
+                                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/50 shadow-sm ml-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleManualUpdate('lineHeight', 'normal')}
+                                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${overrides.lineHeight === 'normal' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
+                                            Normal
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-slate-200 group-focus-within:bg-white transition-all">
+                                    <BufferedInput
+                                        type="number"
+                                        value={overrides.lineHeight === 'normal' ? '' : overrides.lineHeight}
+                                        placeholder={overrides.lineHeight === 'normal' ? 'Normal' : ''}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            if (!isNaN(val)) handleManualUpdate('lineHeight', val);
+                                        }}
+                                        className="w-14 bg-transparent text-right outline-none font-mono text-[12px] font-bold"
+                                        style={{ color: fallbackColor }}
+                                    />
+                                </div>
+                            </div>
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="3.0"
+                                step="0.01"
+                                value={overrides.lineHeight === 'normal' ? 1.5 : overrides.lineHeight}
+                                onChange={(e) => handleManualUpdate('lineHeight', parseFloat(e.target.value))}
                                 className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer hover:bg-slate-200 transition-all"
                                 style={{ accentColor: fallbackColor }}
                             />

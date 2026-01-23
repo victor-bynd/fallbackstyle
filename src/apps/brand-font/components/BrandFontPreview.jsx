@@ -82,8 +82,8 @@ const BrandFontPreview = ({
         };
     }, [primaryFont, fallbackFont, overrides, limitToSizeAdjust]);
 
-    const LINE_HEIGHT = 1.5;
-    const numericLineHeight = calculateNumericLineHeight(LINE_HEIGHT, primaryFont?.font);
+    const LINE_HEIGHT = overrides?.lineHeight || 'normal';
+    const numericLineHeight = calculateNumericLineHeight(LINE_HEIGHT, primaryFont?.font, overrides);
 
     const openEditModal = () => {
         setTempText(text);
@@ -197,14 +197,16 @@ const BrandFontPreview = ({
         opacity: isPrimaryVisible ? 1 : 0,
         color: isSimulating ? '#000000' : (fontColors?.primary || '#00000080'),
         transition: isSimulating ? 'none' : 'opacity 0.2s',
-        pointerEvents: isPrimaryVisible ? 'auto' : 'none'
+        pointerEvents: isPrimaryVisible ? 'auto' : 'none',
+        lineHeight: LINE_HEIGHT
     };
 
     const fallbackStyle = {
         opacity: isFallbackVisible ? 1 : 0,
         color: isSimulating ? '#000000' : (fontColors?.[fallbackFont?.id] || '#3B82F680'),
         transition: isSimulating ? 'none' : 'opacity 0.2s',
-        pointerEvents: isFallbackVisible ? 'auto' : 'none'
+        pointerEvents: isFallbackVisible ? 'auto' : 'none',
+        lineHeight: LINE_HEIGHT
     };
 
     // Helper to get block period based on strategy
