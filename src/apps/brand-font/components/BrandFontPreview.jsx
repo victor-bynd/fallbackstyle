@@ -190,16 +190,21 @@ const BrandFontPreview = ({
 
     const layoutMode = getLayoutMode(); // 'primary' | 'fallback' | 'invisible-primary' | 'mixed'
 
+    const isPrimaryVisible = layoutMode === 'primary' || layoutMode === 'mixed';
+    const isFallbackVisible = layoutMode === 'fallback' || layoutMode === 'mixed';
+
     const primaryStyle = {
-        opacity: layoutMode === 'invisible-primary' ? 0 : 1,
-        transition: isSimulating ? 'none' : 'opacity 0.2s', // Snap during sim/finish, fade during tuning
-        display: layoutMode === 'fallback' ? 'none' : 'block'
+        opacity: isPrimaryVisible ? 1 : 0,
+        color: isSimulating ? '#000000' : (fontColors?.primary || '#00000080'),
+        transition: isSimulating ? 'none' : 'opacity 0.2s',
+        pointerEvents: isPrimaryVisible ? 'auto' : 'none'
     };
 
     const fallbackStyle = {
-        opacity: 1,
-        transition: isSimulating ? 'none' : 'opacity 0.2s', // Snap during sim/finish, fade during tuning
-        display: (layoutMode === 'primary' || layoutMode === 'invisible-primary') ? 'none' : 'block'
+        opacity: isFallbackVisible ? 1 : 0,
+        color: isSimulating ? '#000000' : (fontColors?.[fallbackFont?.id] || '#3B82F680'),
+        transition: isSimulating ? 'none' : 'opacity 0.2s',
+        pointerEvents: isFallbackVisible ? 'auto' : 'none'
     };
 
     // Helper to get block period based on strategy
@@ -348,151 +353,157 @@ const BrandFontPreview = ({
                 </div>
             </div>
 
-            {/* Preview Area */}
-            <div className="relative p-8 overflow-hidden flex flex-col items-start bg-white min-h-[300px]">
-
-                {/* Simulation Visualization Overlay */}
-                {(simulationState === 'running' || simulationState === 'finished') && (
-                    <div className="absolute top-0 left-0 right-0 p-4 z-40 bg-gradient-to-b from-white via-white/80 to-transparent pointer-events-none">
-                        <div className="max-w-2xl mx-auto w-full flex flex-col gap-1">
-                            {/* Timeline */}
-                            <div className="relative h-1 bg-slate-100 rounded-full overflow-hidden w-full">
+            {/* Main Preview Area (Scrollable) */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative bg-white">
+                {/* Simulation Visualization Player (Absolute Overlay at Top) */}
+                <div className={clsx(
+                    "absolute top-0 left-0 right-0 p-4 z-40 transition-all duration-500 ease-in-out",
+                    (simulationState === 'running' || simulationState === 'finished') ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}>
+                    <div className="max-w-3xl mx-auto w-full">
+                        <div className="bg-white/80 backdrop-blur-md rounded-xl p-3 border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] font-sans">
+                            <div className="relative h-1.5 bg-slate-200 rounded-full overflow-hidden w-full mb-3">
                                 <div
-                                    className="absolute left-0 top-0 bottom-0 bg-blue-500 transition-all duration-75 ease-linear"
+                                    className={clsx(
+                                        "absolute left-0 top-0 bottom-0 transition-all duration-75 ease-linear rounded-full",
+                                        simulationState === 'finished' ? 'bg-green-500' : 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]'
+                                    )}
                                     style={{ width: `${(elapsedTime / ((loadDuration) + (300 / 1000))) * 100}%` }}
                                 ></div>
                             </div>
-
-                            {/* Stage Indicators */}
-                            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                <div className={clsx("flex flex-col items-center transition-colors", elapsedTime >= 0 ? "text-slate-800" : "")}>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-current mb-0.5 ring-2 ring-white"></div>
-                                    Start (0s)
+                            <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400 relative px-1">
+                                <div className={clsx("flex flex-col items-center transition-colors duration-300", elapsedTime >= 0 ? "text-slate-800" : "")}>
+                                    <div className={clsx("w-1.5 h-1.5 rounded-full mb-1 ring-4 ring-white shadow-sm transition-all", elapsedTime >= 0 ? "bg-slate-800 scale-125" : "bg-slate-300")}></div>
+                                    <span>Start (0s)</span>
                                 </div>
-
-                                {/* Page Load Marker */}
                                 <div className="absolute left-0 w-full flex justify-center pointer-events-none" style={{
-                                    paddingLeft: `${(PAGE_LOAD_DELAY / ((loadDuration * 1000) + PAGE_LOAD_DELAY)) * 100}%`,
+                                    left: `${(PAGE_LOAD_DELAY / ((loadDuration * 1000) + PAGE_LOAD_DELAY)) * 100}%`,
                                     transform: 'translateX(-50%)'
                                 }}>
-                                    <div className={clsx("flex flex-col items-center transition-colors", elapsedTime >= (PAGE_LOAD_DELAY / 1000) ? "text-slate-600" : "")}>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-current mb-0.5 ring-2 ring-white"></div>
-                                        Paint ({(PAGE_LOAD_DELAY / 1000).toFixed(1)}s)
+                                    <div className={clsx("flex flex-col items-center transition-colors duration-300", elapsedTime >= (PAGE_LOAD_DELAY / 1000) ? "text-indigo-600" : "")}>
+                                        <div className={clsx("w-1.5 h-1.5 rounded-full mb-1 ring-4 ring-white shadow-sm transition-all", elapsedTime >= (PAGE_LOAD_DELAY / 1000) ? "bg-indigo-600 scale-125" : "bg-slate-300")}></div>
+                                        <span>Paint ({(PAGE_LOAD_DELAY / 1000).toFixed(1)}s)</span>
                                     </div>
                                 </div>
-
-                                {/* Dynamic Middle Stage: Only if block period exists and is less than duration */}
                                 {(() => {
                                     const totalDurationMs = (loadDuration * 1000) + PAGE_LOAD_DELAY;
                                     const blockPeriodMs = getBlockPeriod(fontDisplay === 'auto' ? 'block' : fontDisplay);
-
-                                    // The Native Font becomes visible AFTER Page Load + Block Period
                                     const visibleAtMs = PAGE_LOAD_DELAY + blockPeriodMs;
-
                                     if (blockPeriodMs > 0 && visibleAtMs < totalDurationMs) {
                                         const isPastBlock = (elapsedTime * 1000) >= visibleAtMs;
                                         return (
                                             <div className="absolute left-0 w-full flex justify-center pointer-events-none" style={{
-                                                paddingLeft: `${(visibleAtMs / totalDurationMs) * 100}%`,
+                                                left: `${(visibleAtMs / totalDurationMs) * 100}%`,
                                                 transform: 'translateX(-50%)'
                                             }}>
-                                                <div className={clsx("flex flex-col items-center transition-colors", isPastBlock ? "text-orange-600" : "")}>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-current mb-0.5 ring-2 ring-white"></div>
-                                                    Native Font Visible ({(visibleAtMs / 1000).toFixed(1)}s)
+                                                <div className={clsx("flex flex-col items-center transition-colors duration-300", isPastBlock ? "text-amber-600" : "")}>
+                                                    <div className={clsx("w-1.5 h-1.5 rounded-full mb-1 ring-4 ring-white shadow-sm transition-all", isPastBlock ? "bg-amber-600 scale-125" : "bg-slate-300")}></div>
+                                                    <span>Native Visible ({(visibleAtMs / 1000).toFixed(1)}s)</span>
                                                 </div>
                                             </div>
                                         )
                                     }
                                     return null;
                                 })()}
-
-                                <div className={clsx("flex flex-col items-center transition-colors", simulationState === 'finished' ? "text-green-600" : "")}>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-current mb-0.5 ring-2 ring-white"></div>
-                                    Webfont Loaded ({(loadDuration + (PAGE_LOAD_DELAY / 1000)).toFixed(1)}s)
+                                <div className={clsx("flex flex-col items-center transition-colors duration-300", simulationState === 'finished' ? "text-green-600" : "")}>
+                                    <div className={clsx("w-1.5 h-1.5 rounded-full mb-1 ring-4 ring-white shadow-sm transition-all", simulationState === 'finished' ? "bg-green-600 scale-125" : "bg-slate-300")}></div>
+                                    <span>Webfont Loaded ({(loadDuration + (PAGE_LOAD_DELAY / 1000)).toFixed(1)}s)</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
 
+                {/* Preview Content Container */}
+                <div className="pt-28 pb-24 px-8 md:px-16 min-h-full flex flex-col items-center relative">
+                    {/* Grid Background */}
+                    <div className={clsx("absolute inset-0 pointer-events-none transition-opacity duration-300", isSimulating ? "opacity-0" : "opacity-[0.03]")}
+                        style={{
+                            backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
+                            backgroundSize: '20px 20px'
+                        }}
+                    ></div>
 
-
-
-                {/* Grid Background */}
-                <div className={clsx("absolute inset-0 pointer-events-none transition-opacity duration-300", isSimulating ? "opacity-0" : "opacity-[0.03]")}
-                    style={{
-                        backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
-                        backgroundSize: '20px 20px'
-                    }}
-                ></div>
-
-                <div className="grid grid-cols-1 grid-rows-1 items-baseline w-full" style={{ fontSize: `${fontSize}px`, lineHeight: LINE_HEIGHT }}>
-                    {/* Primary Wrapper */}
-                    {(layoutMode !== 'fallback' && layoutMode !== 'blank') && (
-                        <div
-                            className={clsx(
-                                "col-start-1 row-start-1 relative pointer-events-none whitespace-normal break-words z-10 transition-all",
-                                !isSimulating && "mix-blend-multiply"
-                            )}
-                            style={{
-                                fontFamily: 'PrimaryPreview',
-                                color: isSimulating ? '#000000' : (fontColors.primary || '#00000080'),
-                            }}
-                        >
-                            <div style={{ ...primaryStyle, display: 'block' /* Force block as wrapper handles conditional */ }}>
-                                {showPrimaryGuides && !isSimulating ? (
-                                    text.split('').map((char, i) => (
-                                        <span key={i} style={{
-                                            outline: `1px solid ${fontColors.primary || '#EF4444'}`,
-                                            backgroundColor: `${fontColors.primary || '#EF4444'}1A`, // 10% opacity hex
-                                            borderRadius: '2px'
-                                        }}>{char}</span>
-                                    ))
-                                ) : (
-                                    text
+                    {/* Text / Metric Guides Area */}
+                    <div className="relative w-full max-w-5xl group">
+                        <div className="grid grid-cols-1 grid-rows-1 items-baseline w-full" style={{ fontSize: `${fontSize}px`, lineHeight: LINE_HEIGHT }}>
+                            {/* Primary Wrapper */}
+                            <div
+                                className={clsx(
+                                    "col-start-1 row-start-1 relative whitespace-normal break-words z-10 transition-all duration-200",
+                                    !isSimulating && "mix-blend-multiply"
                                 )}
-                                <MetricGuidesOverlay
-                                    fontObject={primaryFont?.font}
-                                    fontSizePx={fontSize}
-                                    lineHeight={numericLineHeight}
-                                    showAlignmentGuides={showGuides && !isSimulating}
-                                    showBrowserGuides={showBrowserGuides && !isSimulating}
-                                    browserGuideColor={fontColors[fallbackFont.id] || '#3B82F6'}
-                                    fullWidth={true}
-                                />
+                                style={{
+                                    fontFamily: 'PrimaryPreview',
+                                    ...primaryStyle
+                                }}
+                            >
+                                <div style={{ display: 'block' }}>
+                                    {showPrimaryGuides && !isSimulating ? (
+                                        text.split('').map((char, i) => (
+                                            <span key={i} style={{
+                                                outline: `1px solid ${fontColors?.primary || '#EF4444'}`,
+                                                backgroundColor: `${fontColors?.primary || '#EF4444'}1A`,
+                                                borderRadius: '2px'
+                                            }}>{char}</span>
+                                        ))
+                                    ) : (
+                                        text
+                                    )}
+                                    <MetricGuidesOverlay
+                                        fontObject={primaryFont?.font}
+                                        fontSizePx={fontSize}
+                                        lineHeight={numericLineHeight}
+                                        showAlignmentGuides={showGuides && !isSimulating && showPrimaryGuides}
+                                        showBrowserGuides={false}
+                                        fullWidth={true}
+                                    />
+                                    {showBrowserGuides && !isSimulating && (
+                                        <MetricGuidesOverlay
+                                            fontObject={fallbackFont?.font || primaryFont?.font}
+                                            fontSizePx={fontSize}
+                                            lineHeight={numericLineHeight}
+                                            showAlignmentGuides={showGuides}
+                                            showBrowserGuides={true}
+                                            ascentOverride={overrides?.ascentOverride}
+                                            descentOverride={overrides?.descentOverride}
+                                            lineGapOverride={overrides?.lineGapOverride}
+                                            browserGuideColor={fontColors?.[fallbackFont?.id] || '#3B82F6'}
+                                            fullWidth={true}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Fallback Wrapper */}
+                            <div
+                                className={clsx(
+                                    "col-start-1 row-start-1 whitespace-normal break-words z-0 transition-all duration-200",
+                                    !isSimulating && "mix-blend-multiply"
+                                )}
+                                style={{
+                                    fontFamily: fallbackFont ? `FallbackPreview-${fallbackFont.id}` : 'sans-serif',
+                                    letterSpacing: overrides?.letterSpacing ? `${overrides.letterSpacing}em` : undefined,
+                                    wordSpacing: overrides?.wordSpacing ? `${overrides.wordSpacing}em` : undefined,
+                                    ...fallbackStyle
+                                }}
+                            >
+                                <div style={{ display: 'block' }}>
+                                    {showBrowserGuides && !isSimulating ? (
+                                        text.split('').map((char, i) => (
+                                            <span key={i} style={{
+                                                outline: `1px solid ${fontColors?.[fallbackFont?.id] || '#3B82F6'}`,
+                                                backgroundColor: `${fontColors?.[fallbackFont?.id] || '#3B82F6'}1A`,
+                                                borderRadius: '2px'
+                                            }}>{char}</span>
+                                        ))
+                                    ) : (
+                                        text
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    )}
-
-                    {/* Fallback Wrapper */}
-                    {(layoutMode !== 'primary' && layoutMode !== 'invisible-primary' && layoutMode !== 'blank') && (
-                        <div
-                            className={clsx(
-                                "col-start-1 row-start-1 whitespace-normal break-words z-0 transition-all",
-                                !isSimulating && "mix-blend-multiply"
-                            )}
-                            style={{
-                                fontFamily: `FallbackPreview-${fallbackFont.id}`,
-                                color: isSimulating ? '#000000' : (fontColors[fallbackFont.id] || '#3B82F680'),
-                                letterSpacing: overrides?.letterSpacing ? `${overrides.letterSpacing}em` : undefined,
-                                wordSpacing: overrides?.wordSpacing ? `${overrides.wordSpacing}em` : undefined
-                            }}
-                        >
-                            <div style={{ ...fallbackStyle, display: 'block' /* Force block as wrapper handles conditional */ }}>
-                                {showBrowserGuides && !isSimulating ? (
-                                    text.split('').map((char, i) => (
-                                        <span key={i} style={{
-                                            outline: `1px solid ${fontColors[fallbackFont.id] || '#3B82F6'}`,
-                                            backgroundColor: `${fontColors[fallbackFont.id] || '#3B82F6'}1A`, // 10% opacity hex
-                                            borderRadius: '2px'
-                                        }}>{char}</span>
-                                    ))
-                                ) : (
-                                    text
-                                )}
-                            </div>
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
 
@@ -501,13 +512,9 @@ const BrandFontPreview = ({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}>
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                Edit Preview Text
-                            </h3>
+                            <h3 className="font-bold text-gray-900 flex items-center gap-2">Edit Preview Text</h3>
                             <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
                         <div className="p-4">
@@ -520,18 +527,8 @@ const BrandFontPreview = ({
                             />
                         </div>
                         <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsEditModalOpen(false)}
-                                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={saveText}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                            >
-                                Save Text
-                            </button>
+                            <button onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+                            <button onClick={saveText} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">Save Text</button>
                         </div>
                     </div>
                 </div>
@@ -542,20 +539,13 @@ const BrandFontPreview = ({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsSettingsModalOpen(false)}>
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                Font Loading Strategy
-                            </h3>
+                            <h3 className="font-bold text-gray-900 flex items-center gap-2">Font Loading Strategy</h3>
                             <button onClick={() => setIsSettingsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
                         <div className="p-6 max-h-[70vh] overflow-y-auto">
-                            <StrategySelector value={fontDisplay} onChange={(val) => {
-                                setFontDisplay(val);
-                                // Optional: close on select? No, let user explore options.
-                            }} />
+                            <StrategySelector value={fontDisplay} onChange={(val) => setFontDisplay(val)} />
                         </div>
                     </div>
                 </div>

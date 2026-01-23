@@ -558,6 +558,7 @@ const BrandFontFallback = () => {
                 primaryMetrics={primaryMetrics}
                 calculateOverrides={calculateOverrides}
                 setOverrides={setOverrides}
+                fontColors={fontColors}
             />
 
             <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">

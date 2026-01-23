@@ -11,19 +11,20 @@ const MetricSidebar = ({
     selectedFallback,
     primaryMetrics,
     calculateOverrides,
-    setOverrides
+    setOverrides,
+    fontColors = {}
 }) => {
     return (
-        <div className="w-80 flex flex-col h-screen border-r border-gray-100 bg-white overflow-hidden text-slate-900 sticky top-0">
+        <div className="w-80 flex flex-col h-screen border-r border-slate-100 bg-white overflow-hidden text-slate-900 sticky top-0 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)]">
             {/* Header Section */}
-            <div className="h-14 flex items-center px-4 border-b border-gray-50 bg-white shrink-0">
-                <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                    METRICS CONFIGURATION
+            <div className="h-16 flex items-center px-6 border-b border-slate-50 bg-white shrink-0">
+                <div className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">
+                    Metrics Configuration
                 </div>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
                 <MetricControls
                     configMode={configMode}
                     setConfigMode={setConfigMode}
@@ -37,6 +38,7 @@ const MetricSidebar = ({
                     setOverrides={setOverrides}
                     // Pass a prop to indicate sidebar mode if needed for styling adjustments
                     isSidebar={true}
+                    fontColors={fontColors}
                 />
             </div>
         </div>

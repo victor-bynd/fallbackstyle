@@ -11,8 +11,8 @@ const MetricGuidesOverlay = ({
     topOffset = '0px',
     ascentOverride,
     descentOverride,
+    lineGapOverride,
     browserGuideColor = '#3B82F6', // Default to blue
-    // Duplicate prop removed
 }) => {
     // Memoized SVG Generation for Alignment Guides
     const alignmentStyle = useMemo(() => {
@@ -56,14 +56,18 @@ const MetricGuidesOverlay = ({
             descender = -1 * Math.abs(Number(descentOverride) * upm);
         }
 
-
         const xHeight = os2?.sxHeight || 0;
         const capHeight = os2?.sCapHeight || 0;
 
         const contentHeightUnits = ascender - descender; // descender is usually negative
 
         // Calculate total height based on line height multiplier
-        const totalHeightUnits = upm * lineHeight;
+        // If overrides are present, the "normal" line height is the sum of (ascent + descent + lineGap).
+        // However, if the user provided an explicit lineHeight (like 1.5), the box is fixed.
+        let totalHeightUnits = upm * lineHeight;
+
+        // If we are simulating "normal" behavior with overrides, we might need to adjust this.
+        // For now, we assume fixed line-height from the preview settings.
 
         // Prevent division by zero
         if (fontSizePx <= 0) return {};
