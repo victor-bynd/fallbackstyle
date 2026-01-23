@@ -62,9 +62,9 @@ const BrandFontPreview = ({
                 src: ${fallbackFont.filename ? `url('/reference_fonts/${fallbackFont.filename}')` : `local('${fallbackFont.name}')`};
                 size-adjust: ${pct(overrides.sizeAdjust)};
                 ${!limitToSizeAdjust ? `
-                ascent-override: ${pct(overrides.ascentOverride)};
-                descent-override: ${pct(overrides.descentOverride)};
-                line-gap-override: ${pct(overrides.lineGapOverride)};
+                ${overrides.ascentOverride ? `ascent-override: ${pct(overrides.ascentOverride)};` : ''}
+                ${overrides.descentOverride ? `descent-override: ${pct(overrides.descentOverride)};` : ''}
+                ${overrides.lineGapOverride ? `line-gap-override: ${pct(overrides.lineGapOverride)};` : ''}
                 ` : ''}
             }
             
@@ -318,10 +318,14 @@ const BrandFontPreview = ({
                             onClick={() => setShowPrimaryGuides(!showPrimaryGuides)}
                             className={clsx(
                                 "px-3 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all border",
-                                showPrimaryGuides
-                                    ? "bg-rose-50 border-rose-200 text-rose-600 ring-1 ring-rose-500/10 shadow-sm"
-                                    : "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                                !showPrimaryGuides && "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                             )}
+                            style={showPrimaryGuides ? {
+                                backgroundColor: `${(fontColors.primary || '#EF4444').slice(0, 7)}1A`,
+                                borderColor: `${(fontColors.primary || '#EF4444').slice(0, 7)}4D`,
+                                color: (fontColors.primary || '#EF4444').slice(0, 7),
+                                boxShadow: `0 0 0 1px ${(fontColors.primary || '#EF4444').slice(0, 7)}1A`
+                            } : {}}
                         >
                             BRAND LINEBOX
                         </button>
@@ -329,10 +333,14 @@ const BrandFontPreview = ({
                             onClick={() => setShowBrowserGuides(!showBrowserGuides)}
                             className={clsx(
                                 "px-3 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all border",
-                                showBrowserGuides
-                                    ? "bg-indigo-50 border-indigo-200 text-indigo-600 ring-1 ring-indigo-500/10 shadow-sm"
-                                    : "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                                !showBrowserGuides && "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                             )}
+                            style={showBrowserGuides ? {
+                                backgroundColor: `${(fontColors[fallbackFont.id] || '#3B82F6').slice(0, 7)}1A`,
+                                borderColor: `${(fontColors[fallbackFont.id] || '#3B82F6').slice(0, 7)}4D`,
+                                color: (fontColors[fallbackFont.id] || '#3B82F6').slice(0, 7),
+                                boxShadow: `0 0 0 1px ${(fontColors[fallbackFont.id] || '#3B82F6').slice(0, 7)}1A`
+                            } : {}}
                         >
                             FALLBACK LINEBOX
                         </button>
@@ -449,6 +457,7 @@ const BrandFontPreview = ({
                                     lineHeight={numericLineHeight}
                                     showAlignmentGuides={showGuides && !isSimulating}
                                     showBrowserGuides={showBrowserGuides && !isSimulating}
+                                    browserGuideColor={fontColors[fallbackFont.id] || '#3B82F6'}
                                     fullWidth={true}
                                 />
                             </div>
@@ -465,6 +474,8 @@ const BrandFontPreview = ({
                             style={{
                                 fontFamily: `FallbackPreview-${fallbackFont.id}`,
                                 color: isSimulating ? '#000000' : (fontColors[fallbackFont.id] || '#3B82F680'),
+                                letterSpacing: overrides?.letterSpacing ? `${overrides.letterSpacing}em` : undefined,
+                                wordSpacing: overrides?.wordSpacing ? `${overrides.wordSpacing}em` : undefined
                             }}
                         >
                             <div style={{ ...fallbackStyle, display: 'block' /* Force block as wrapper handles conditional */ }}>

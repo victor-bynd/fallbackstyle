@@ -6,6 +6,7 @@ import Onboarding from './components/Onboarding';
 import BrandFontPreview from './components/BrandFontPreview';
 
 import SideBar from './components/SideBar';
+import MetricSidebar from './components/MetricSidebar';
 
 import BufferedInput from '../../shared/components/BufferedInput';
 import { calculateOverrides, extractFontMetrics } from '../../shared/utils/MetricCalculator';
@@ -46,7 +47,8 @@ const BrandFontFallback = () => {
     const [selectedFallback, setSelectedFallback] = useState(systemFonts.find(f => f.id === 'arial'));
     const [customFonts, setCustomFonts] = useState([]);
     const [overrides, setOverrides] = useState(null);
-    const [isAuto, setIsAuto] = useState(true);
+    // Replace isAuto with configMode: 'auto' | 'default' | 'manual'
+    const [configMode, setConfigMode] = useState('default');
     const [showBrowserGuides, setShowBrowserGuides] = useState(false);
     const [showPrimaryGuides, setShowPrimaryGuides] = useState(false);
     const [limitToSizeAdjust, setLimitToSizeAdjust] = useState(false);
@@ -54,6 +56,8 @@ const BrandFontFallback = () => {
     const [isInitialized, setIsInitialized] = useState(false);
     const [fontColors, setFontColors] = useState(getInitialFontColors());
     const [fontDisplay, setFontDisplay] = useState('swap');
+    // New: Persistence map for per-fallback settings
+    const [fallbackConfigs, setFallbackConfigs] = useState({});
 
     // Persistence: Load State
     useEffect(() => {
@@ -102,10 +106,10 @@ const BrandFontFallback = () => {
 
                         // Default logic if no config but file exists
                         if (!config) {
-                            setIsAuto(true);
+                            setConfigMode('default');
                             const defaultFallback = systemFonts.find(f => f.id === 'arial');
                             if (defaultFallback) {
-                                setOverrides(calculateOverrides(metrics, defaultFallback));
+                                setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0, letterSpacing: 0, wordSpacing: 0 });
                                 setSelectedFallback(defaultFallback);
                             }
                         }
@@ -122,7 +126,12 @@ const BrandFontFallback = () => {
 
                 // 3. Restore Config State
                 if (config) {
+                    // Restore Fallback Configs Map
+                    const restoredFallbackConfigs = config.fallbackConfigs || {};
+                    setFallbackConfigs(restoredFallbackConfigs);
+
                     // Restore Fallback
+                    let validFallback = null;
                     if (config.selectedFallbackId) {
                         let fallback = systemFonts.find(f => f.id === config.selectedFallbackId);
                         if (!fallback && config.customFonts) {
@@ -131,7 +140,10 @@ const BrandFontFallback = () => {
                         // Fallback to arial if saved fallback not found but others exist
                         if (!fallback) fallback = systemFonts.find(f => f.id === 'arial');
 
-                        if (fallback) setSelectedFallback(fallback);
+                        if (fallback) {
+                            setSelectedFallback(fallback);
+                            validFallback = fallback;
+                        }
                     }
 
                     // Restore Colors
@@ -145,9 +157,26 @@ const BrandFontFallback = () => {
                         setFontColors(getInitialFontColors());
                     }
 
-                    // Restore Overrides
+                    // Restore Overrides and Mode for the selected fallback
+                    // Priority: config.overrides (legacy/current session) -> fallbackConfigs[id] (new) -> Default
+                    // Actually, if we have fallbackConfigs, we should prefer that for consistency? 
+                    // But if user just refreshed, config.overrides is the exact last state.
+
                     if (config.overrides) setOverrides(config.overrides);
-                    if (typeof config.isAuto === 'boolean') setIsAuto(config.isAuto);
+
+                    // Restore Config Mode (migration from isAuto)
+                    if (config.configMode) {
+                        setConfigMode(config.configMode);
+                    } else if (typeof config.isAuto === 'boolean') {
+                        // Migrate old isAuto
+                        setConfigMode(config.isAuto ? 'auto' : 'manual');
+                    }
+
+                    // Sync initial fallback config if missing
+                    if (validFallback && !restoredFallbackConfigs[validFallback.id] && config.overrides && config.configMode) {
+                        // Only if we have explicit legacy overrides, maybe we should seed the map?
+                        // Let's rely on the effect to populate it after mount.
+                    }
 
                     // Guides
                     if (typeof config.showBrowserGuides === 'boolean') setShowBrowserGuides(config.showBrowserGuides);
@@ -183,19 +212,49 @@ const BrandFontFallback = () => {
                 customFonts,
                 selectedFallbackId: selectedFallback?.id,
                 overrides,
-                isAuto,
+                configMode, // Persist configMode
                 showBrowserGuides,
                 showPrimaryGuides,
                 limitToSizeAdjust,
                 fontColors,
-                fontDisplay
+                fontDisplay,
+                fallbackConfigs // Persist map
             };
             localStorage.setItem('brand-font-config', JSON.stringify(config));
         };
 
         const timeoutId = setTimeout(saveConfig, 800); // 800ms debounce
         return () => clearTimeout(timeoutId);
-    }, [isInitialized, customFonts, selectedFallback, overrides, isAuto, showBrowserGuides, showPrimaryGuides, limitToSizeAdjust, fontColors, fontDisplay]);
+    }, [isInitialized, customFonts, selectedFallback, overrides, configMode, showBrowserGuides, showPrimaryGuides, limitToSizeAdjust, fontColors, fontDisplay, fallbackConfigs]);
+
+    // Internal Persistence: Sync current settings to fallbackConfigs map
+    useEffect(() => {
+        if (!isInitialized || !selectedFallback?.id) return;
+
+        setFallbackConfigs(prev => {
+            // Only update if changed to avoid unnecessary renders if passing same object ref (though React handles that)
+            // But we created a new object literals for overrides often.
+
+            // Check equality to avoid loop?
+            const current = prev[selectedFallback.id];
+            if (current &&
+                current.configMode === configMode &&
+                current.limitToSizeAdjust === limitToSizeAdjust &&
+                JSON.stringify(current.overrides) === JSON.stringify(overrides)
+            ) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                [selectedFallback.id]: {
+                    configMode,
+                    limitToSizeAdjust,
+                    overrides
+                }
+            };
+        });
+    }, [configMode, limitToSizeAdjust, overrides, selectedFallback, isInitialized]);
 
     // Persistence: Save Font File
     useEffect(() => {
@@ -246,7 +305,7 @@ const BrandFontFallback = () => {
 
         setPrimaryMetrics(newMetrics);
         // console.log("Extracted Primary Metrics:", newMetrics.metrics);
-        setIsAuto(true); // Reset to auto on new font
+        setConfigMode('auto'); // Reset to auto on new font
 
         // Save to IDB immediately (no debounce needed for single file event)
         // Check size again just in case, though useEffect handles it too. 
@@ -270,19 +329,39 @@ const BrandFontFallback = () => {
             };
         });
 
+        // Restore configuration for this fallback if available
+        if (fallbackConfigs[fallbackFont.id]) {
+            const savedConfig = fallbackConfigs[fallbackFont.id];
+            setConfigMode(savedConfig.configMode || 'default');
+            setLimitToSizeAdjust(!!savedConfig.limitToSizeAdjust); // Force boolean
+            if (savedConfig.overrides) {
+                setOverrides(savedConfig.overrides);
+            }
+            return;
+        }
+
+        // Otherwise (first time selecting this fallback)
         if (fallbackFont.isCustom) {
-            setIsAuto(false);
+            setConfigMode('default');
             setOverrides({
                 sizeAdjust: 1.0,
                 ascentOverride: 0,
                 descentOverride: 0,
-                lineGapOverride: 0
+                lineGapOverride: 0,
+                letterSpacing: 0,
+                wordSpacing: 0
             });
         } else {
-            setIsAuto(true);
-            if (primaryMetrics) {
-                setOverrides(calculateOverrides(primaryMetrics, fallbackFont));
-            }
+            // Default to "Default" metrics (no overrides) as per user request
+            setConfigMode('default');
+            setOverrides({
+                sizeAdjust: 1.0,
+                ascentOverride: 0,
+                descentOverride: 0,
+                lineGapOverride: 0,
+                letterSpacing: 0,
+                wordSpacing: 0
+            });
         }
     };
 
@@ -319,7 +398,7 @@ const BrandFontFallback = () => {
         setSelectedFallback(systemFonts.find(f => f.id === 'arial'));
         setCustomFonts([]);
         setOverrides(null);
-        setIsAuto(true);
+        setConfigMode('default');
         setShowBrowserGuides(false);
         setShowPrimaryGuides(false);
         setLimitToSizeAdjust(false);
@@ -342,6 +421,13 @@ const BrandFontFallback = () => {
     };
 
     const handleManualUpdate = (key, value) => {
+        // If updating manually, switch to manual mode if not already
+        if (configMode === 'auto' || configMode === 'default') { // But wait, default implies no overrides?
+            // Actually, if we update manually, we should switch to manual.
+            // If we were default, and we touch a slider, we become manual.
+            setConfigMode('manual');
+        }
+
         setOverrides(prev => ({
             ...prev,
             [key]: value
@@ -351,7 +437,7 @@ const BrandFontFallback = () => {
     const handleCopyOverrides = (sourceFont) => {
         if (!primaryMetrics || !sourceFont) return;
         setOverrides(calculateOverrides(primaryMetrics, sourceFont));
-        setIsAuto(false);
+        setConfigMode('manual'); // was setIsAuto(false)
     };
 
     // Format CSS for display
@@ -368,27 +454,43 @@ const BrandFontFallback = () => {
             block += `@font-face {\n`;
             block += `  font-family: '${familyName}';\n`;
             block += `  src: local('${fallbackName}');\n`;
-            block += `  size-adjust: ${pct(ov.sizeAdjust)};\n`;
+            if (ov.sizeAdjust !== undefined) {
+                block += `  size-adjust: ${pct(ov.sizeAdjust)};\n`;
+            }
             if (!limitToSizeAdjust) {
-                block += `  ascent-override: ${pct(ov.ascentOverride)};\n`;
-                block += `  descent-override: ${pct(ov.descentOverride)};\n`;
-                block += `  line-gap-override: ${pct(ov.lineGapOverride)};\n`;
+                if (ov.ascentOverride) block += `  ascent-override: ${pct(ov.ascentOverride)};\n`;
+                if (ov.descentOverride) block += `  descent-override: ${pct(ov.descentOverride)};\n`;
+                if (ov.lineGapOverride) block += `  line-gap-override: ${pct(ov.lineGapOverride)};\n`;
             }
             block += `  font-display: ${fontDisplay};\n`;
             block += `}\n\n`;
+
+            // Spacing adjustments (not valid in @font-face, so provided as comments)
+            const ls = ov.letterSpacing || 0;
+            const ws = ov.wordSpacing || 0;
+            if (ls !== 0 || ws !== 0) {
+                block += `/* Usage: apply these to the element using the fallback font to match character widths */\n`;
+                if (ls !== 0) block += `/* letter-spacing: ${ls}em; */\n`;
+                if (ws !== 0) block += `/* word-spacing: ${ws}em; */\n`;
+                block += `\n`;
+            }
             return block;
         };
 
         // 1. Simulated Fallbacks (System Fonts)
         systemFonts.forEach(font => {
             let ov;
-            // If this is the currently selected font and we are in manual mode, use manual overrides
-            if (selectedFallback?.id === font.id && !isAuto) {
+            // If this is the currently selected font, use current overrides (if manual/default) or calc?
+            // If selected, we use `overrides` state if in manual.
+            if (selectedFallback?.id === font.id && configMode === 'manual') {
                 ov = overrides;
+            } else if (selectedFallback?.id === font.id && configMode === 'default') {
+                ov = { sizeAdjust: 1.0 }; // Default values (omit vertical overrides)
             } else {
                 // Otherwise calculate auto overrides
                 ov = calculateOverrides(primaryMetrics, font);
             }
+
             if (ov) {
                 // Use family name convention: Primary_Fallback_FallbackName
                 // Clean up spaces in family name
@@ -402,10 +504,11 @@ const BrandFontFallback = () => {
         customFonts.forEach(font => {
             let ov;
             if (selectedFallback?.id === font.id) {
-                ov = overrides;
+                if (configMode === 'manual') ov = overrides;
+                else ov = { sizeAdjust: 1.0 };
             } else {
                 // Default for custom fonts not currently selected (since we don't persist unselected custom config yet)
-                ov = { sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0 };
+                ov = { sizeAdjust: 1.0 };
             }
 
             if (ov) {
@@ -416,7 +519,7 @@ const BrandFontFallback = () => {
         });
 
         return css.trim();
-    }, [overrides, selectedFallback, primaryFont, limitToSizeAdjust, fontDisplay, primaryMetrics, customFonts, isAuto]);
+    }, [overrides, selectedFallback, primaryFont, limitToSizeAdjust, fontDisplay, primaryMetrics, customFonts, configMode]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -424,6 +527,8 @@ const BrandFontFallback = () => {
     if (!primaryFont) {
         return <Onboarding onFontLoaded={handleFontLoaded} />;
     }
+
+
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-row font-sans">
@@ -440,6 +545,19 @@ const BrandFontFallback = () => {
                 fontColors={fontColors}
                 onUpdateFontColor={handleUpdateFontColor}
                 onExport={() => setIsModalOpen(true)}
+            />
+
+            <MetricSidebar
+                configMode={configMode}
+                setConfigMode={setConfigMode}
+                limitToSizeAdjust={limitToSizeAdjust}
+                setLimitToSizeAdjust={setLimitToSizeAdjust}
+                overrides={overrides}
+                handleManualUpdate={handleManualUpdate}
+                selectedFallback={selectedFallback}
+                primaryMetrics={primaryMetrics}
+                calculateOverrides={calculateOverrides}
+                setOverrides={setOverrides}
             />
 
             <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
@@ -469,186 +587,6 @@ const BrandFontFallback = () => {
                             )}
                         </div>
 
-                        {/* Configuration Area */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-8">
-                            {/* Controls Row */}
-                            <div className="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-slate-100">
-                                <div className="flex flex-col">
-                                    <h3 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider">Metrics Configuration</h3>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-tight">
-                                        {isAuto ? 'CALCULATED AUTOMATICALLY' : 'MANUAL OVERRIDE ACTIVE'}
-                                    </p>
-                                </div>
-
-                                <div className="flex items-center gap-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50 shadow-sm">
-                                                <button
-                                                    onClick={() => setLimitToSizeAdjust(false)}
-                                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${!limitToSizeAdjust ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                                                    All
-                                                </button>
-                                                <button
-                                                    onClick={() => setLimitToSizeAdjust(true)}
-                                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${limitToSizeAdjust ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                                                    Size Only
-                                                </button>
-                                            </div>
-                                            <InfoTooltip content="Size-adjust has the most browser support. Safari does not support ascent, descent, or line-gap overrides." />
-                                        </div>
-
-                                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50 shadow-sm">
-                                            <button
-                                                onClick={() => {
-                                                    if (selectedFallback?.isCustom) return;
-                                                    setIsAuto(true);
-                                                    if (primaryMetrics && selectedFallback) setOverrides(calculateOverrides(primaryMetrics, selectedFallback));
-                                                }}
-                                                disabled={selectedFallback?.isCustom}
-                                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isAuto ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'} ${selectedFallback?.isCustom ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                Auto
-                                            </button>
-                                            <button
-                                                onClick={() => setIsAuto(false)}
-                                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${!isAuto ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                                                Manual
-                                            </button>
-                                        </div>
-
-                                        {!isAuto && (
-                                            <button
-                                                onClick={() => setOverrides({ sizeAdjust: 1.0, ascentOverride: 0, descentOverride: 0, lineGapOverride: 0 })}
-                                                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
-                                                title="Reset to Defaults"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                                </svg>
-                                            </button>
-                                        )}
-                                    </div>
-
-
-                                </div>
-                            </div>
-
-                            {overrides && (
-                                <div className={`grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 transition-all duration-300 ${isAuto ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'}`}>
-                                    <div className="group space-y-4">
-                                        <div className="flex justify-between items-end">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Size Adjust</label>
-                                            <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-indigo-200 group-focus-within:bg-white transition-all">
-                                                <BufferedInput
-                                                    type="number"
-                                                    value={Math.round((overrides.sizeAdjust || 0) * 10000) / 100}
-                                                    onChange={(e) => {
-                                                        const val = parseFloat(e.target.value);
-                                                        if (!isNaN(val)) handleManualUpdate('sizeAdjust', val / 100);
-                                                    }}
-                                                    className="w-14 bg-transparent text-right outline-none text-indigo-600 font-mono text-[12px] font-bold"
-                                                />
-                                                <span className="text-[10px] font-bold text-slate-300">%</span>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="50"
-                                            max="150"
-                                            step="0.1"
-                                            value={(overrides.sizeAdjust || 0) * 100}
-                                            onChange={(e) => handleManualUpdate('sizeAdjust', parseFloat(e.target.value) / 100)}
-                                            className="w-full accent-indigo-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer hover:bg-slate-200 transition-all"
-                                        />
-                                    </div>
-
-                                    <div className={`group space-y-4 transition-all duration-300 ${limitToSizeAdjust ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-                                        <div className="flex justify-between items-end">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Ascent Override</label>
-                                            <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-indigo-200 group-focus-within:bg-white transition-all">
-                                                <BufferedInput
-                                                    type="number"
-                                                    value={Math.round((overrides.ascentOverride || 0) * 10000) / 100}
-                                                    onChange={(e) => {
-                                                        const val = parseFloat(e.target.value);
-                                                        if (!isNaN(val)) handleManualUpdate('ascentOverride', val / 100);
-                                                    }}
-                                                    className="w-14 bg-transparent text-right outline-none text-indigo-600 font-mono text-[12px] font-bold"
-                                                />
-                                                <span className="text-[10px] font-bold text-slate-300">%</span>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="150"
-                                            step="0.1"
-                                            value={(overrides.ascentOverride || 0) * 100}
-                                            onChange={(e) => handleManualUpdate('ascentOverride', parseFloat(e.target.value) / 100)}
-                                            className="w-full accent-indigo-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer hover:bg-slate-200 transition-all"
-                                        />
-                                    </div>
-
-                                    <div className={`group space-y-4 transition-all duration-300 ${limitToSizeAdjust ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-                                        <div className="flex justify-between items-end">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Descent Override</label>
-                                            <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-indigo-200 group-focus-within:bg-white transition-all">
-                                                <BufferedInput
-                                                    type="number"
-                                                    value={Math.round((overrides.descentOverride || 0) * 10000) / 100}
-                                                    onChange={(e) => {
-                                                        const val = parseFloat(e.target.value);
-                                                        if (!isNaN(val)) handleManualUpdate('descentOverride', val / 100);
-                                                    }}
-                                                    className="w-14 bg-transparent text-right outline-none text-indigo-600 font-mono text-[12px] font-bold"
-                                                />
-                                                <span className="text-[10px] font-bold text-slate-300">%</span>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="150"
-                                            step="0.1"
-                                            value={(overrides.descentOverride || 0) * 100}
-                                            onChange={(e) => handleManualUpdate('descentOverride', parseFloat(e.target.value) / 100)}
-                                            className="w-full accent-indigo-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer hover:bg-slate-200 transition-all"
-                                        />
-                                    </div>
-
-                                    <div className={`group space-y-4 transition-all duration-300 ${limitToSizeAdjust ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-                                        <div className="flex justify-between items-end">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Line Gap Override</label>
-                                            <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 group-focus-within:border-indigo-200 group-focus-within:bg-white transition-all">
-                                                <BufferedInput
-                                                    type="number"
-                                                    value={Math.round((overrides.lineGapOverride || 0) * 10000) / 100}
-                                                    onChange={(e) => {
-                                                        const val = parseFloat(e.target.value);
-                                                        if (!isNaN(val)) handleManualUpdate('lineGapOverride', val / 100);
-                                                    }}
-                                                    className="w-14 bg-transparent text-right outline-none text-indigo-600 font-mono text-[12px] font-bold"
-                                                />
-                                                <span className="text-[10px] font-bold text-slate-300">%</span>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            step="0.1"
-                                            value={(overrides.lineGapOverride || 0) * 100}
-                                            onChange={(e) => handleManualUpdate('lineGapOverride', parseFloat(e.target.value) / 100)}
-                                            className="w-full accent-indigo-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer hover:bg-slate-200 transition-all"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="border-t border-slate-100 pt-8 text-[11px] text-slate-400 text-center italic">
-                                Font loading strategy can now be configured in the simulation toolbar above.
-                            </div>
-                        </div>
                     </div>
                 </div>
 

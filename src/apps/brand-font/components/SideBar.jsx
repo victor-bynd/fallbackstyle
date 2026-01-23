@@ -6,6 +6,216 @@ import systemFonts from '../../../shared/constants/systemFonts.json';
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 import InfoTooltip from '../../../shared/components/InfoTooltip';
 
+const hexToRgba = (hex) => {
+    if (!hex) return { hex: '#3B82F6', alpha: 0.35 };
+    const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+    if (cleanHex.length === 8) {
+        const h = cleanHex.slice(0, 6);
+        const a = parseInt(cleanHex.slice(6, 8), 16) / 255;
+        return { hex: `#${h}`, alpha: a };
+    }
+    return { hex: `#${cleanHex.slice(0, 6)}`, alpha: 1 };
+};
+
+const rgbaToHex = (hex, alpha) => {
+    const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+    const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
+    return `#${cleanHex}${a}`;
+};
+
+const ColorDot = ({ id, color, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const { hex, alpha } = hexToRgba(color);
+    const triggerRef = useRef(null);
+    const popoverRef = useRef(null);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const updatePosition = () => {
+            if (triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                setCoords({
+                    top: rect.bottom + 8,
+                    left: rect.left
+                });
+            }
+        };
+
+        updatePosition();
+        const handleClickOutside = (e) => {
+            if (popoverRef.current && !popoverRef.current.contains(e.target) &&
+                triggerRef.current && !triggerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    return (
+        <div className="relative flex items-center shrink-0">
+            <button
+                ref={triggerRef}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
+                }}
+                className="w-3.5 h-3.5 flex-shrink-0 rounded-full border border-slate-200 shadow-sm overflow-hidden relative group/dot"
+                style={{ backgroundColor: color || '#3B82F6' }}
+                title="Change color & opacity"
+            >
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/dot:opacity-100 transition-opacity" />
+            </button>
+
+            {isOpen && createPortal(
+                <div
+                    ref={popoverRef}
+                    className="fixed p-3 bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] min-w-[140px] animate-in fade-in zoom-in-95 origin-top-left"
+                    style={{
+                        top: coords.top,
+                        left: coords.left
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Color</span>
+                            <div className="relative w-6 h-6 rounded-md border border-slate-200 overflow-hidden shrink-0">
+                                <div className="absolute inset-0" style={{ backgroundColor: hex }} />
+                                <input
+                                    type="color"
+                                    value={hex}
+                                    onInput={(e) => onChange(id, rgbaToHex(e.target.value, alpha))}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer scale-150"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Opacity</span>
+                                <span className="text-[10px] font-bold text-slate-600 tabular-nums">{Math.round(alpha * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={alpha}
+                                onInput={(e) => onChange(id, rgbaToHex(hex, parseFloat(e.target.value)))}
+                                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                            />
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
+const CopyOverridesPopover = ({ onSelect, fontColors }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const triggerRef = useRef(null);
+    const popoverRef = useRef(null);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const updatePosition = () => {
+            if (triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                setCoords({
+                    top: rect.bottom + 8,
+                    left: rect.right - 160 // min-w is 160
+                });
+            }
+        };
+
+        updatePosition();
+        const handleClickOutside = (e) => {
+            if (popoverRef.current && !popoverRef.current.contains(e.target) &&
+                triggerRef.current && !triggerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    return (
+        <div className="relative">
+            <button
+                ref={triggerRef}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
+                }}
+                className={clsx(
+                    "p-1.5 rounded-md transition-all flex items-center justify-center",
+                    isOpen ? "bg-indigo-100 text-indigo-600" : "text-slate-300 hover:text-indigo-500 hover:bg-indigo-50"
+                )}
+                title="Copy metrics from simulated fallback"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                    <path fillRule="evenodd" d="M15.988 3.012A2.25 2.25 0 0118 5.25v6.5A2.25 2.25 0 0115.75 14H13.5V7a2.25 2.25 0 00-2.25-2.25H4.75V5.25a2.25 2.25 0 012.25-2.25h9a2.25 2.25 0 012.25 2.25z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M2.25 8.25a2.25 2.25 0 012.25-2.25h6.5A2.25 2.25 0 0113.25 8.25v6.5a2.25 2.25 0 01-2.25 2.25h-6.5A2.25 2.25 0 012.25 14.75v-6.5z" clipRule="evenodd" />
+                </svg>
+            </button>
+
+            {isOpen && createPortal(
+                <div
+                    ref={popoverRef}
+                    className="fixed p-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] min-w-[160px] animate-in fade-in zoom-in-95 origin-top-right"
+                    style={{
+                        top: coords.top,
+                        left: coords.left
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="px-2 py-1.5 border-b border-slate-50 mb-1">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Copy Overrides From</span>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                        {systemFonts.map((font) => (
+                            <button
+                                key={font.id}
+                                onClick={() => {
+                                    onSelect(font);
+                                    setIsOpen(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
+                            >
+                                <div className="w-2 h-2 rounded-full border border-slate-200" style={{ backgroundColor: fontColors[font.id] }} />
+                                {font.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
 const SideBar = ({
     primaryFont,
     selectedFallback,
@@ -26,226 +236,6 @@ const SideBar = ({
 
     const settingsRef = useRef(null);
     const fileInputRef = useRef(null);
-
-    const hexToRgba = (hex) => {
-        if (!hex) return { hex: '#3B82F6', alpha: 0.35 };
-        const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
-        if (cleanHex.length === 8) {
-            const h = cleanHex.slice(0, 6);
-            const a = parseInt(cleanHex.slice(6, 8), 16) / 255;
-            return { hex: `#${h}`, alpha: a };
-        }
-        return { hex: `#${cleanHex.slice(0, 6)}`, alpha: 1 };
-    };
-
-    const rgbaToHex = (hex, alpha) => {
-        const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
-        const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
-        return `#${cleanHex}${a}`;
-    };
-
-    const ColorDot = ({ id, color, onChange }) => {
-        const [isOpen, setIsOpen] = useState(false);
-        const { hex, alpha } = hexToRgba(color);
-        const triggerRef = useRef(null);
-        const popoverRef = useRef(null);
-        const [coords, setCoords] = useState({ top: 0, left: 0 });
-
-        useEffect(() => {
-            if (!isOpen) return;
-
-            const updatePosition = () => {
-                if (triggerRef.current) {
-                    const rect = triggerRef.current.getBoundingClientRect();
-                    setCoords({
-                        top: rect.bottom + 8,
-                        left: rect.left
-                    });
-                }
-            };
-
-            updatePosition();
-            const handleClickOutside = (e) => {
-                if (popoverRef.current && !popoverRef.current.contains(e.target) &&
-                    triggerRef.current && !triggerRef.current.contains(e.target)) {
-                    setIsOpen(false);
-                }
-            };
-
-            window.addEventListener('scroll', updatePosition, true);
-            window.addEventListener('resize', updatePosition);
-            document.addEventListener('mousedown', handleClickOutside);
-
-            return () => {
-                window.removeEventListener('scroll', updatePosition, true);
-                window.removeEventListener('resize', updatePosition);
-                document.removeEventListener('mousedown', handleClickOutside);
-            };
-        }, [isOpen]);
-
-        return (
-            <div className="relative flex items-center shrink-0">
-                <button
-                    ref={triggerRef}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setIsOpen(!isOpen);
-                    }}
-                    className="w-3.5 h-3.5 flex-shrink-0 rounded-full border border-slate-200 shadow-sm overflow-hidden relative group/dot"
-                    style={{ backgroundColor: color || '#3B82F6' }}
-                    title="Change color & opacity"
-                >
-                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/dot:opacity-100 transition-opacity" />
-                </button>
-
-                {isOpen && createPortal(
-                    <div
-                        ref={popoverRef}
-                        className="fixed p-3 bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] min-w-[140px] animate-in fade-in zoom-in-95 origin-top-left"
-                        style={{
-                            top: coords.top,
-                            left: coords.left
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center justify-between gap-4">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Color</span>
-                                <div className="relative w-6 h-6 rounded-md border border-slate-200 overflow-hidden shrink-0">
-                                    <div className="absolute inset-0" style={{ backgroundColor: hex }} />
-                                    <input
-                                        type="color"
-                                        value={hex}
-                                        onInput={(e) => onChange(id, rgbaToHex(e.target.value, alpha))}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer scale-150"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Opacity</span>
-                                    <span className="text-[10px] font-bold text-slate-600 tabular-nums">{Math.round(alpha * 100)}%</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={alpha}
-                                    onInput={(e) => onChange(id, rgbaToHex(hex, parseFloat(e.target.value)))}
-                                    className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                />
-                            </div>
-                        </div>
-                    </div>,
-                    document.body
-                )}
-            </div>
-        );
-    };
-
-    const CopyOverridesPopover = ({ onSelect }) => {
-        const [isOpen, setIsOpen] = useState(false);
-        const triggerRef = useRef(null);
-        const popoverRef = useRef(null);
-        const [coords, setCoords] = useState({ top: 0, left: 0 });
-
-        useEffect(() => {
-            if (!isOpen) return;
-
-            const updatePosition = () => {
-                if (triggerRef.current) {
-                    const rect = triggerRef.current.getBoundingClientRect();
-                    setCoords({
-                        top: rect.bottom + 8,
-                        left: rect.right - 160 // min-w is 160
-                    });
-                }
-            };
-
-            updatePosition();
-            const handleClickOutside = (e) => {
-                if (popoverRef.current && !popoverRef.current.contains(e.target) &&
-                    triggerRef.current && !triggerRef.current.contains(e.target)) {
-                    setIsOpen(false);
-                }
-            };
-
-            window.addEventListener('scroll', updatePosition, true);
-            window.addEventListener('resize', updatePosition);
-            document.addEventListener('mousedown', handleClickOutside);
-
-            return () => {
-                window.removeEventListener('scroll', updatePosition, true);
-                window.removeEventListener('resize', updatePosition);
-                document.removeEventListener('mousedown', handleClickOutside);
-            };
-        }, [isOpen]);
-
-        return (
-            <div className="relative">
-                <button
-                    ref={triggerRef}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setIsOpen(!isOpen);
-                    }}
-                    className={clsx(
-                        "p-1.5 rounded-md transition-all flex items-center justify-center",
-                        isOpen ? "bg-indigo-100 text-indigo-600" : "text-slate-300 hover:text-indigo-500 hover:bg-indigo-50"
-                    )}
-                    title="Copy metrics from simulated fallback"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                        <path fillRule="evenodd" d="M15.988 3.012A2.25 2.25 0 0118 5.25v6.5A2.25 2.25 0 0115.75 14H13.5V7a2.25 2.25 0 00-2.25-2.25H4.75V5.25a2.25 2.25 0 012.25-2.25h9a2.25 2.25 0 012.25 2.25z" clipRule="evenodd" />
-                        <path fillRule="evenodd" d="M2.25 8.25a2.25 2.25 0 012.25-2.25h6.5A2.25 2.25 0 0113.25 8.25v6.5a2.25 2.25 0 01-2.25 2.25h-6.5A2.25 2.25 0 012.25 14.75v-6.5z" clipRule="evenodd" />
-                    </svg>
-                </button>
-
-                {isOpen && createPortal(
-                    <div
-                        ref={popoverRef}
-                        className="fixed p-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] min-w-[160px] animate-in fade-in zoom-in-95 origin-top-right"
-                        style={{
-                            top: coords.top,
-                            left: coords.left
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="px-2 py-1.5 border-b border-slate-50 mb-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Copy Overrides From</span>
-                        </div>
-                        <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
-                            {systemFonts.map((font) => (
-                                <button
-                                    key={font.id}
-                                    onClick={() => {
-                                        onSelect(font);
-                                        setIsOpen(false);
-                                    }}
-                                    className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2"
-                                >
-                                    <div className="w-2 h-2 rounded-full border border-slate-200" style={{ backgroundColor: fontColors[font.id] }} />
-                                    {font.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>,
-                    document.body
-                )}
-            </div>
-        );
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (settingsRef.current && !settingsRef.current.contains(event.target)) {
-                setShowSettings(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     const handleAddCustom = () => {
         if (!newFontName.trim()) return;
@@ -284,7 +274,7 @@ const SideBar = ({
 
 
     return (
-        <div className="w-80 flex flex-col h-screen border-r border-gray-100 bg-white overflow-hidden text-slate-900 sticky top-0">
+        <div className="w-72 flex flex-col h-screen border-r border-gray-100 bg-white overflow-hidden text-slate-900 sticky top-0">
             {/* Header Section */}
             <div className="h-14 flex items-center justify-between px-4 border-b border-gray-50 bg-white shrink-0">
                 <div className="text-xs font-black text-slate-800 uppercase tracking-widest">
@@ -363,11 +353,19 @@ const SideBar = ({
 
                     <div className="space-y-1">
                         {systemFonts.map((font) => (
-                            <button
+                            <div
                                 key={font.id}
                                 onClick={() => onSelectFallback(font)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onSelectFallback(font);
+                                    }
+                                }}
                                 className={clsx(
-                                    "w-full text-left p-3.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border flex items-center gap-3 group/item",
+                                    "w-full text-left p-3.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border flex items-center gap-3 group/item cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20",
                                     selectedFallback?.id === font.id
                                         ? "bg-indigo-50 border-indigo-200 text-indigo-600 ring-1 ring-indigo-500/10 shadow-sm"
                                         : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-600"
@@ -379,7 +377,7 @@ const SideBar = ({
                                     onChange={onUpdateFontColor}
                                 />
                                 <span className="truncate flex-1">{font.name}</span>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -397,10 +395,18 @@ const SideBar = ({
                         {customFonts.length > 0 ? (
                             customFonts.map((font) => (
                                 <div key={font.id} className="relative group">
-                                    <button
+                                    <div
                                         onClick={() => onSelectFallback(font)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                onSelectFallback(font);
+                                            }
+                                        }}
                                         className={clsx(
-                                            "w-full text-left p-3.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border flex items-center gap-3 group/item pr-10",
+                                            "w-full text-left p-3.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border flex items-center gap-3 group/item pr-10 cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20",
                                             selectedFallback?.id === font.id
                                                 ? "bg-indigo-50 border-indigo-200 text-indigo-600 ring-1 ring-indigo-500/10 shadow-sm"
                                                 : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-600"
@@ -412,9 +418,9 @@ const SideBar = ({
                                             onChange={onUpdateFontColor}
                                         />
                                         <span className="truncate flex-1">{font.name}</span>
-                                    </button>
+                                    </div>
                                     <div className="flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
-                                        <CopyOverridesPopover onSelect={onCopyOverrides} />
+                                        <CopyOverridesPopover onSelect={onCopyOverrides} fontColors={fontColors} />
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();

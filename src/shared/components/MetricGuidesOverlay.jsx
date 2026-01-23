@@ -11,6 +11,7 @@ const MetricGuidesOverlay = ({
     topOffset = '0px',
     ascentOverride,
     descentOverride,
+    browserGuideColor = '#3B82F6', // Default to blue
     // Duplicate prop removed
 }) => {
     // Memoized SVG Generation for Alignment Guides
@@ -114,14 +115,14 @@ const MetricGuidesOverlay = ({
     const browserGuideStyle = useMemo(() => showBrowserGuides ? {
         backgroundImage: `repeating-linear-gradient(
             to bottom,
-            rgba(59, 130, 246, 0.05) 0em,
-            rgba(59, 130, 246, 0.05) ${lineHeight - 0.05}em,
-            rgba(59, 130, 246, 0.2) ${lineHeight - 0.05}em,
-            rgba(59, 130, 246, 0.2) ${lineHeight}em
+            ${browserGuideColor.slice(0, 7)}0D 0em,
+            ${browserGuideColor.slice(0, 7)}0D ${lineHeight - 0.05}em,
+            ${browserGuideColor.slice(0, 7)}33 ${lineHeight - 0.05}em,
+            ${browserGuideColor.slice(0, 7)}33 ${lineHeight}em
         )`,
         backgroundSize: `100% ${lineHeight}em`,
         // Ensure browser guides sit below text but above regular background if needed
-    } : {}, [showBrowserGuides, lineHeight]);
+    } : {}, [showBrowserGuides, lineHeight, browserGuideColor]);
 
     if (!showAlignmentGuides && !showBrowserGuides) return null;
 
