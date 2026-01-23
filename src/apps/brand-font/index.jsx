@@ -478,12 +478,24 @@ const BrandFontFallback = () => {
     const cssOutput = useMemo(() => {
         if (!primaryFont || !primaryMetrics) return '';
 
-        let css = '';
+        let css = '/* --- Font Face Definitions --- */\n\n';
         const pct = (n) => `${(n * 100).toFixed(2)}%`;
+        const primaryFamily = primaryFont.fileName.replace(/\.[^/.]+$/, "");
 
-        // Helper to generate block
-        const generateBlock = (fallbackName, familyName, ov) => {
-            let block = `/* Fallback: ${fallbackName} */\n`;
+        // 0. Primary Font Definition (Reference)
+        css += `/* Primary Font: ${primaryFont.fileName} */\n`;
+        css += `@font-face {\n`;
+        css += `  font-family: '${primaryFamily}';\n`;
+        css += `  src: url('[INSERT_FONT_URL_HERE]'); /* Update with your actual font path */\n`;
+        css += `  font-display: ${fontDisplay};\n`;
+        if (primaryFont.metadata?.staticWeight) {
+            css += `  font-weight: ${primaryFont.metadata.staticWeight};\n`;
+        }
+        css += `}\n\n`;
+
+        // Helper to generate @font-face block for fallbacks
+        const generateFontFaceBlock = (fallbackName, familyName, ov) => {
+            let block = `/* Fallback Override for: ${fallbackName} */\n`;
             block += `@font-face {\n`;
             block += `  font-family: '${familyName}';\n`;
             block += `  src: local('${fallbackName}');\n`;
@@ -497,39 +509,47 @@ const BrandFontFallback = () => {
             }
             block += `  font-display: ${fontDisplay};\n`;
             block += `}\n\n`;
-
-            // Spacing adjustments (not valid in @font-face, so provided as comments)
-            const ls = ov.letterSpacing || 0;
-            const ws = ov.wordSpacing || 0;
-            if (ls !== 0 || ws !== 0) {
-                block += `/* Usage: apply these to the element using the fallback font to match character widths */\n`;
-                if (ls !== 0) block += `/* letter-spacing: ${ls}em; */\n`;
-                if (ws !== 0) block += `/* word-spacing: ${ws}em; */\n`;
-                block += `\n`;
-            }
             return block;
         };
+
+        // Helper to generate usage class
+        const generateUsageClass = (suffix, fallbackName, familyName, ov) => {
+            const ls = ov.letterSpacing || 0;
+            const ws = ov.wordSpacing || 0;
+            const hasSpacing = ls !== 0 || ws !== 0;
+
+            let block = `/* Usage for ${fallbackName} */\n`;
+            block += `.font-with-fallback-${suffix.toLowerCase()} {\n`;
+            block += `  font-family: '${primaryFamily}', '${familyName}', sans-serif;\n`;
+
+            if (hasSpacing) {
+                block += `  /* Spacing adjustments to match character widths */\n`;
+                if (ls !== 0) block += `  letter-spacing: ${ls}em;\n`;
+                if (ws !== 0) block += `  word-spacing: ${ws}em;\n`;
+            }
+            block += `}\n\n`;
+            return block;
+        };
+
+        let fontFaceBlocks = '';
+        let usageClasses = `/* Standard Usage */\n.font-primary {\n  font-family: '${primaryFamily}', sans-serif;\n}\n\n`;
 
         // 1. Simulated Fallbacks (System Fonts)
         systemFonts.forEach(font => {
             let ov;
-            // If this is the currently selected font, use current overrides (if manual/default) or calc?
-            // If selected, we use `overrides` state if in manual.
             if (selectedFallback?.id === font.id && configMode === 'manual') {
                 ov = overrides;
             } else if (selectedFallback?.id === font.id && configMode === 'default') {
-                ov = { sizeAdjust: 1.0 }; // Default values (omit vertical overrides)
+                ov = { sizeAdjust: 1.0 };
             } else {
-                // Otherwise calculate auto overrides
                 ov = calculateOverrides(primaryMetrics, font);
             }
 
             if (ov) {
-                // Use family name convention: Primary_Fallback_FallbackName
-                // Clean up spaces in family name
                 const suffix = font.name.replace(/\s+/g, '');
-                const familyName = `${primaryFont.fileName.replace(/\.[^/.]+$/, "")} Fallback ${suffix}`;
-                css += generateBlock(font.name, familyName, ov);
+                const familyName = `${primaryFamily} Fallback ${suffix}`;
+                fontFaceBlocks += generateFontFaceBlock(font.name, familyName, ov);
+                usageClasses += generateUsageClass(suffix, font.name, familyName, ov);
             }
         });
 
@@ -540,16 +560,20 @@ const BrandFontFallback = () => {
                 if (configMode === 'manual') ov = overrides;
                 else ov = { sizeAdjust: 1.0 };
             } else {
-                // Default for custom fonts not currently selected (since we don't persist unselected custom config yet)
                 ov = { sizeAdjust: 1.0 };
             }
 
             if (ov) {
                 const suffix = font.name.replace(/\s+/g, '');
-                const familyName = `${primaryFont.fileName.replace(/\.[^/.]+$/, "")} Fallback ${suffix}`;
-                css += generateBlock(font.name, familyName, ov);
+                const familyName = `${primaryFamily} Fallback ${suffix}`;
+                fontFaceBlocks += generateFontFaceBlock(font.name, familyName, ov);
+                usageClasses += generateUsageClass(suffix, font.name, familyName, ov);
             }
         });
+
+        css += fontFaceBlocks;
+        css += '\n/* --- Usage Classes --- */\n\n';
+        css += usageClasses;
 
         return css.trim();
     }, [overrides, selectedFallback, primaryFont, limitToSizeAdjust, fontDisplay, primaryMetrics, customFonts, configMode]);
