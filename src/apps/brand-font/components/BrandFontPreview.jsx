@@ -33,7 +33,8 @@ const BrandFontPreview = ({
     const [loadDuration] = useState(0.7); // 0.7s + 0.3s delay = 1.0s Total
     const [elapsedTime, setElapsedTime] = useState(0);
 
-    const isSimulating = simulationState !== 'idle'; // helper
+    const isSimulationActive = simulationState !== 'idle'; // helper to hide laboratory UI
+    const isSimulating = simulationState === 'running'; // helper for animation states
 
     // Note: In a real environment, we'd need the @font-face to be active.
     // Since we can't easily inject dynamic @font-face here without a style tag,
@@ -83,7 +84,14 @@ const BrandFontPreview = ({
     }, [primaryFont, fallbackFont, overrides, limitToSizeAdjust]);
 
     const LINE_HEIGHT = overrides?.lineHeight || 'normal';
-    const numericLineHeight = calculateNumericLineHeight(LINE_HEIGHT, primaryFont?.font, overrides);
+
+    // Primary grid height (calculated using primary font metrics ONLY, respecting the shared line-height)
+    const primaryNumericLineHeight = calculateNumericLineHeight(LINE_HEIGHT, primaryFont?.font, {
+        // We do NOT pass the fallback overrides (ascent, descent, sizeAdjust) to the primary grid calculation
+    });
+
+    // Fallback grid height (calculated using fallback font metrics AND overrides)
+    const fallbackNumericLineHeight = calculateNumericLineHeight(LINE_HEIGHT, fallbackFont?.font || primaryFont?.font, overrides);
 
     const openEditModal = () => {
         setTempText(text);
@@ -154,6 +162,48 @@ const BrandFontPreview = ({
         setElapsedTime(0);
     };
 
+    // Tracks the current configuration to detect changes and reset simulation during render
+    // to avoid cascading renders (react-hooks/set-state-in-effect)
+    const [currentConfig, setCurrentConfig] = useState({
+        primaryId: primaryFont?.id,
+        fallbackId: fallbackFont?.id,
+        overrides,
+        showBrowserGuides,
+        showPrimaryGuides,
+        limitToSizeAdjust,
+        fontDisplay
+    });
+
+    const hasConfigChanged =
+        primaryFont?.id !== currentConfig.primaryId ||
+        fallbackFont?.id !== currentConfig.fallbackId ||
+        overrides !== currentConfig.overrides ||
+        showBrowserGuides !== currentConfig.showBrowserGuides ||
+        showPrimaryGuides !== currentConfig.showPrimaryGuides ||
+        limitToSizeAdjust !== currentConfig.limitToSizeAdjust ||
+        fontDisplay !== currentConfig.fontDisplay;
+
+    if (hasConfigChanged) {
+        // Update the reference config
+        setCurrentConfig({
+            primaryId: primaryFont?.id,
+            fallbackId: fallbackFont?.id,
+            overrides,
+            showBrowserGuides,
+            showPrimaryGuides,
+            limitToSizeAdjust,
+            fontDisplay
+        });
+
+        // Reset simulation states during render
+        if (simulationState !== 'idle') {
+            setSimulationState('idle');
+            setIsLoading(false);
+            setHasBlockTimeoutPassed(false);
+            setElapsedTime(0);
+        }
+    }
+
     // Derived Visual State Calculation
     const getLayoutMode = () => {
         // Default (Loaded/Idle)
@@ -195,16 +245,16 @@ const BrandFontPreview = ({
 
     const primaryStyle = {
         opacity: isPrimaryVisible ? 1 : 0,
-        color: isSimulating ? '#000000' : (fontColors?.primary || '#00000080'),
-        transition: isSimulating ? 'none' : 'opacity 0.2s',
+        color: isSimulationActive ? '#000000' : (fontColors?.primary || '#00000080'),
+        transition: isSimulationActive ? 'none' : 'opacity 0.2s',
         pointerEvents: isPrimaryVisible ? 'auto' : 'none',
         lineHeight: LINE_HEIGHT
     };
 
     const fallbackStyle = {
         opacity: isFallbackVisible ? 1 : 0,
-        color: isSimulating ? '#000000' : (fontColors?.[fallbackFont?.id] || '#3B82F680'),
-        transition: isSimulating ? 'none' : 'opacity 0.2s',
+        color: isSimulationActive ? '#000000' : (fontColors?.[fallbackFont?.id] || '#3B82F680'),
+        transition: isSimulationActive ? 'none' : 'opacity 0.2s',
         pointerEvents: isFallbackVisible ? 'auto' : 'none',
         lineHeight: LINE_HEIGHT
     };
@@ -419,7 +469,7 @@ const BrandFontPreview = ({
                 {/* Preview Content Container */}
                 <div className="pt-28 pb-24 px-8 md:px-16 min-h-full flex flex-col items-center relative">
                     {/* Grid Background */}
-                    <div className={clsx("absolute inset-0 pointer-events-none transition-opacity duration-300", isSimulating ? "opacity-0" : "opacity-[0.03]")}
+                    <div className={clsx("absolute inset-0 pointer-events-none transition-opacity duration-300", isSimulationActive ? "opacity-0" : "opacity-[0.03]")}
                         style={{
                             backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
                             backgroundSize: '20px 20px'
@@ -432,8 +482,8 @@ const BrandFontPreview = ({
                             {/* Primary Wrapper */}
                             <div
                                 className={clsx(
-                                    "col-start-1 row-start-1 relative whitespace-normal break-words z-10 transition-all duration-200",
-                                    !isSimulating && "mix-blend-multiply"
+                                    "col-start-1 row-start-1 relative whitespace-normal break-words z-10",
+                                    !isSimulationActive && "mix-blend-multiply transition-all duration-200"
                                 )}
                                 style={{
                                     fontFamily: 'PrimaryPreview',
@@ -441,7 +491,7 @@ const BrandFontPreview = ({
                                 }}
                             >
                                 <div style={{ display: 'block' }}>
-                                    {showPrimaryGuides && !isSimulating ? (
+                                    {showPrimaryGuides && !isSimulationActive ? (
                                         text.split('').map((char, i) => (
                                             <span key={i} style={{
                                                 outline: `1px solid ${fontColors?.primary || '#EF4444'}`,
@@ -455,37 +505,39 @@ const BrandFontPreview = ({
                                     <MetricGuidesOverlay
                                         fontObject={primaryFont?.font}
                                         fontSizePx={fontSize}
-                                        lineHeight={numericLineHeight}
-                                        showAlignmentGuides={showGuides && !isSimulating}
+                                        lineHeight={primaryNumericLineHeight}
+                                        showAlignmentGuides={showGuides && !isSimulationActive}
                                         showBrowserGuides={false}
                                         fullWidth={true}
                                         guideColor={(fontColors?.primary || '#EF4444').slice(0, 7)}
                                     />
-                                    {showGuides && !isSimulating && (
+                                    {showGuides && !isSimulationActive && (
                                         <MetricGuidesOverlay
                                             fontObject={fallbackFont?.font || primaryFont?.font}
                                             fontSizePx={fontSize}
-                                            lineHeight={numericLineHeight}
+                                            lineHeight={fallbackNumericLineHeight}
                                             showAlignmentGuides={true}
                                             showBrowserGuides={showBrowserGuides}
                                             ascentOverride={overrides?.ascentOverride}
                                             descentOverride={overrides?.descentOverride}
                                             lineGapOverride={overrides?.lineGapOverride}
+                                            sizeAdjust={overrides?.sizeAdjust}
                                             browserGuideColor={fontColors?.[fallbackFont?.id] || '#3B82F6'}
                                             guideColor={(fontColors?.[fallbackFont?.id] || '#3B82F6').slice(0, 7)}
                                             fullWidth={true}
                                         />
                                     )}
-                                    {showBrowserGuides && !showGuides && !isSimulating && (
+                                    {showBrowserGuides && !showGuides && !isSimulationActive && (
                                         <MetricGuidesOverlay
                                             fontObject={fallbackFont?.font || primaryFont?.font}
                                             fontSizePx={fontSize}
-                                            lineHeight={numericLineHeight}
+                                            lineHeight={fallbackNumericLineHeight}
                                             showAlignmentGuides={false}
                                             showBrowserGuides={true}
                                             ascentOverride={overrides?.ascentOverride}
                                             descentOverride={overrides?.descentOverride}
                                             lineGapOverride={overrides?.lineGapOverride}
+                                            sizeAdjust={overrides?.sizeAdjust}
                                             browserGuideColor={fontColors?.[fallbackFont?.id] || '#3B82F6'}
                                             fullWidth={true}
                                         />
@@ -496,8 +548,8 @@ const BrandFontPreview = ({
                             {/* Fallback Wrapper */}
                             <div
                                 className={clsx(
-                                    "col-start-1 row-start-1 whitespace-normal break-words z-0 transition-all duration-200",
-                                    !isSimulating && "mix-blend-multiply"
+                                    "col-start-1 row-start-1 whitespace-normal break-words z-0",
+                                    !isSimulationActive && "mix-blend-multiply transition-all duration-200"
                                 )}
                                 style={{
                                     fontFamily: fallbackFont ? `FallbackPreview-${fallbackFont.id}` : 'sans-serif',
@@ -507,7 +559,7 @@ const BrandFontPreview = ({
                                 }}
                             >
                                 <div style={{ display: 'block' }}>
-                                    {showBrowserGuides && !isSimulating ? (
+                                    {showBrowserGuides && !isSimulationActive ? (
                                         text.split('').map((char, i) => (
                                             <span key={i} style={{
                                                 outline: `1px solid ${fontColors?.[fallbackFont?.id] || '#3B82F6'}`,

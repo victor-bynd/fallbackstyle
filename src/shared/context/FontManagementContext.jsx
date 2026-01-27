@@ -7,6 +7,16 @@ import { createLogger } from '../services/Logger';
 
 const logger = createLogger('FontManagement');
 
+const getNextUniqueColor = (fonts) => {
+    const usedColors = new Set(fonts.filter(f => f && f.color).map(f => f.color));
+    for (let i = 0; i < DEFAULT_PALETTE.length; i++) {
+        const color = DEFAULT_PALETTE[i];
+        if (!usedColors.has(color)) return color;
+    }
+    // Fallback: cycle if exhausted (unlikely with 53 colors)
+    return DEFAULT_PALETTE[fonts.length % DEFAULT_PALETTE.length];
+};
+
 /**
  * FontManagementContext
  *
@@ -197,7 +207,7 @@ export const FontManagementProvider = ({ children }) => {
             const newFont = {
                 ...fontData,
                 type: 'fallback',
-                color: fontData.color || DEFAULT_PALETTE[prev.length % DEFAULT_PALETTE.length]
+                color: fontData.color || getNextUniqueColor(prev)
             };
 
             if (isSystem || firstSystemIndex === -1) {
@@ -239,11 +249,15 @@ export const FontManagementProvider = ({ children }) => {
                     existingNames.add(nName);
                     return true;
                 })
-                .map((fontData, i) => ({
-                    ...fontData,
-                    type: 'fallback',
-                    color: fontData.color || DEFAULT_PALETTE[(prev.length + i) % DEFAULT_PALETTE.length]
-                }));
+                .reduce((acc, fontData) => {
+                    const newFont = {
+                        ...fontData,
+                        type: 'fallback',
+                        color: fontData.color || getNextUniqueColor([...prev, ...acc])
+                    };
+                    acc.push(newFont);
+                    return acc;
+                }, []);
 
             return [...prev, ...newFonts];
         });
@@ -255,21 +269,25 @@ export const FontManagementProvider = ({ children }) => {
     const addStrictlyMappedFonts = useCallback((fontsDataArray, langId) => {
         logger.debug('Adding strictly mapped fonts for language:', langId, fontsDataArray.length);
 
-        const newFonts = fontsDataArray.map((fontData, i) => ({
-            ...fontData,
-            id: `fallback-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-            type: 'fallback',
-            isClone: true,
-            isLangSpecific: true,
-            color: fontData.color || DEFAULT_PALETTE[i % DEFAULT_PALETTE.length],
-            lineHeight: fontData.lineHeight || 'normal'
-        }));
+        const newFonts = [];
+        fontsDataArray.forEach((fontData, i) => {
+            const newFont = {
+                ...fontData,
+                id: `fallback-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+                type: 'fallback',
+                isClone: true,
+                isLangSpecific: true,
+                color: fontData.color || getNextUniqueColor([...fonts, ...newFonts]),
+                lineHeight: fontData.lineHeight || 'normal'
+            };
+            newFonts.push(newFont);
+        });
 
         setFonts(prev => [...prev, ...newFonts]);
 
         // Note: Caller should update fallbackFontOverrides map
         return newFonts;
-    }, [setFonts]);
+    }, [setFonts, fonts]);
 
     /**
      * Add a language-specific clone of an existing font

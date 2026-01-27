@@ -20,26 +20,49 @@ import ResetLoadingScreen from '../../shared/components/ResetLoadingScreen';
 
 // High-contrast palette for easy distinction with 35% alpha (#RRGGBB59)
 const HIGH_CONTRAST_PALETTE = [
-    '#EF444459', // Red-500 @ 35%
-    '#3B82F659', // Blue-500 @ 35%
-    '#8B5CF659', // Purple-500 @ 35%
-    '#F59E0B59', // Yellow-500 @ 35%
-    '#10B98159', // Emerald-500 @ 35%
-    '#EA580C59', // Orange-600 @ 35%
-    '#DB277759', // Rose-600 @ 35%
-    '#0D948859', // Teal-600 @ 35%
+    '#EF444459', // Red-500
+    '#3B82F659', // Blue-500
+    '#8B5CF659', // Purple-500
+    '#F59E0B59', // Yellow-500
+    '#10B98159', // Emerald-500
+    '#EA580C59', // Orange-600
+    '#DB277759', // Rose-600
+    '#0D948859', // Teal-600
+    '#F43F5E59', // Rose-500
+    '#6366F159', // Indigo-500
+    '#D946EF59', // Fuchsia-500
+    '#06B6D459', // Cyan-500
+    '#84CC1659', // Lime-500
+    '#EAB30859', // Yellow-500
+    '#A855F759', // Purple-500
+    '#EC489959', // Pink-500
+    '#22C55E59', // Green-500
+    '#06B6D459', // Cyan-500
+    '#F9731659', // Orange-500
+    '#14B8A659', // Teal-500
+    '#71717A59', // Zinc-500
+    '#64748B59'  // Slate-500
 ];
 
-const getPaletteColor = (index) => HIGH_CONTRAST_PALETTE[index % HIGH_CONTRAST_PALETTE.length];
+const getNextUniqueColor = (currentColors) => {
+    const usedColors = new Set(Object.values(currentColors));
+    // Find first color from HIGH_CONTRAST_PALETTE that isn't used
+    for (let i = 0; i < HIGH_CONTRAST_PALETTE.length; i++) {
+        const color = HIGH_CONTRAST_PALETTE[i];
+        if (!usedColors.has(color)) return color;
+    }
+    // Fallback: Generate a random color with 35% alpha if palette exhausted
+    const hex = Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    return `#${hex}59`;
+};
 
 const getInitialFontColors = () => {
     const colors = {
         primary: '#00000059' // Black @ 35% alpha
     };
-    // Assign colors to all system fonts in order
-    systemFonts.forEach((font, index) => {
-        // Use high contrast palette for fallbacks
-        colors[font.id] = getPaletteColor(index);
+    // Assign unique colors to all system fonts in order
+    systemFonts.forEach(font => {
+        colors[font.id] = getNextUniqueColor(colors);
     });
     return colors;
 };
@@ -215,6 +238,53 @@ const BrandFontFallback = () => {
 
         loadState();
     }, []);
+
+    // Color Consistency: Ensure all fonts have unique colors, especially after adding new system fonts
+    useEffect(() => {
+        if (!isInitialized) return;
+
+        setFontColors(prev => {
+            let hasChanged = false;
+            const nextColors = { ...prev };
+
+            // 1. Ensure all system fonts have colors
+            systemFonts.forEach(font => {
+                if (!nextColors[font.id]) {
+                    nextColors[font.id] = getNextUniqueColor(nextColors);
+                    hasChanged = true;
+                }
+            });
+
+            // 2. Ensure all custom fonts have colors
+            customFonts.forEach(font => {
+                if (!nextColors[font.id]) {
+                    nextColors[font.id] = getNextUniqueColor(nextColors);
+                    hasChanged = true;
+                }
+            });
+
+            // 3. Detection of duplicates and re-assignment
+            const seenColors = new Set();
+            const duplicates = [];
+
+            Object.entries(nextColors).forEach(([id, color]) => {
+                if (seenColors.has(color)) {
+                    duplicates.push(id);
+                } else {
+                    seenColors.add(color);
+                }
+            });
+
+            if (duplicates.length > 0) {
+                duplicates.forEach(id => {
+                    nextColors[id] = getNextUniqueColor(nextColors);
+                });
+                hasChanged = true;
+            }
+
+            return hasChanged ? nextColors : prev;
+        });
+    }, [isInitialized, customFonts]); // Removed fontColors from dependencies
 
     // Persistence: Save Config (Debounced)
     useEffect(() => {
