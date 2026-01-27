@@ -1,22 +1,21 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import FontSwapModal from './FontSwapModal';
-import { useTypo } from '../../../shared/context/useTypo';
-// Unused import removed
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
+import { useUI } from '../../../shared/context/UIContext';
 import { useTextRenderer } from '../../../shared/hooks/useTextRenderer';
 import { useFontStack } from '../../../shared/hooks/useFontStack';
 import { calculateNumericLineHeight } from '../../../shared/utils/fontUtils';
 import MetricGuidesOverlay from '../../../shared/components/MetricGuidesOverlay';
 
 const FontComparisonView = ({ fontIds, onClose, onSwapFont }) => {
-    const {
-        fonts,
-        supportedLanguages, // Contains sample sentences
-        activeStyle, // Access global style configuration
-        showAlignmentGuides,
-        toggleAlignmentGuides,
-        getEffectiveFontSettingsForStyle,
-        activeFontStyleId
-    } = useTypo();
+    const { fonts, fontStyles, activeFontStyleId } = useFontManagement();
+    const { supportedLanguages } = useLanguageMapping();
+    const { getEffectiveFontSettingsForStyle } = useTypography();
+    const { showAlignmentGuides, toggleAlignmentGuides } = useUI();
+
+    const activeStyle = fontStyles[activeFontStyleId] || fontStyles.primary;
 
     // Unused hook removedd
 

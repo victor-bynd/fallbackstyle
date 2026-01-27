@@ -1,28 +1,35 @@
 import { useMemo } from 'react';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
 import { useUI } from '../../../shared/context/UIContext';
 import { useTextRenderer } from '../../../shared/hooks/useTextRenderer.jsx';
 import MetricGuidesOverlay from '../../../shared/components/MetricGuidesOverlay';
 import { calculateNumericLineHeight } from '../../../shared/utils/fontUtils';
 
 const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
+    // Font Management Context
     const {
-        // Unused variable removed
         fontStyles,
-        // colors removed from here
-        showAlignmentGuides,
-        showBrowserGuides,
         getFontsForStyle,
         getPrimaryFontFromStyle,
-        getPrimaryFontOverrideForStyle,
-        getEffectiveFontSettingsForStyle,
-        getFallbackFontOverrideForStyle,
         activeFontStyleId,
-        headerFontStyleMap,
-        textOverrides
-    } = useTypo();
+    } = useFontManagement();
 
-    const { colors } = useUI();
+    // Language Mapping Context
+    const {
+        getPrimaryFontOverrideForStyle,
+        getFallbackFontOverrideForStyle,
+    } = useLanguageMapping();
+
+    // Typography Context
+    const {
+        getEffectiveFontSettingsForStyle,
+        headerFontStyleMap,
+        textOverrides,
+    } = useTypography();
+
+    const { colors, showAlignmentGuides, showBrowserGuides, showFallbackColors } = useUI();
 
     const contentToRender = textOverrides[language.id] || language.sampleSentence;
 
@@ -66,15 +73,16 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
         const pSettings = getEffectiveFontSettingsForStyle(styleIdForTag, pFont?.id || 'primary') || {
             baseFontSize: style?.baseFontSize ?? 16,
             scale: style?.fontScales?.active ?? 100,
-            lineHeight: style?.lineHeight ?? 1.2,
+            lineHeight: style?.lineHeight ?? 'normal',
             weight: 400
         };
 
         const styleBaseRem = pSettings.baseFontSize;
 
-        let sizePx = headerStyle.scale * styleBaseRem;
+        const fontScale = (pSettings.scale || 100) / 100;
+        let sizePx = headerStyle.scale * styleBaseRem * fontScale;
         if (tag === 'h1' && pFont?.isPrimaryOverride && pSettings?.h1Rem) {
-            sizePx = pSettings.h1Rem * styleBaseRem;
+            sizePx = pSettings.h1Rem * styleBaseRem * fontScale;
         }
 
         const hasLineHeightOverride = pFont?.isPrimaryOverride && (
@@ -89,9 +97,9 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
             ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
             : undefined;
 
-        const effLineHeight = primaryOverrideLineHeight ?? headerStyle.lineHeight ?? forcedLineHeight ?? style?.lineHeight ?? 1.2;
+        const effLineHeight = primaryOverrideLineHeight ?? headerStyle.lineHeight ?? forcedLineHeight ?? style?.lineHeight ?? 'normal';
 
-        const numLineHeight = calculateNumericLineHeight(effLineHeight, pFont?.fontObject);
+        const numLineHeight = calculateNumericLineHeight(effLineHeight, pFont?.fontObject, pSettings);
 
         // Fix: Use explicit 'normal' for CSS if the effective setting is 'normal' or if we have overrides that might rely on it.
         const cssIsNormal = effLineHeight === 'normal' ||
@@ -117,7 +125,7 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
             : (!isGlobalPrimary && primaryFont
                 ? `'FallbackFont-${styleIdForTag}-${primaryFont.id}'`
                 : `UploadedFont-${styleIdForTag}`),
-        color: primaryFont?.color || colors.primary,
+        color: showFallbackColors ? (primaryFont?.color || colors.primary) : colors.primary,
         fontSize: `${finalSizePx}px`,
         fontWeight: primarySettings.weight || 400,
         fontVariationSettings: primaryFont?.isVariable ? `'wght' ${primarySettings.weight || 400}` : undefined,
@@ -145,7 +153,12 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
                 style={combinedStyle}
                 className="break-words"
             >
-                <div className="relative z-20">{renderedContent}</div>
+                <div
+                    className="relative z-20"
+                    style={{ lineHeight: 'inherit' }}
+                >
+                    {renderedContent}
+                </div>
                 {/* Guides Overlay */}
                 <MetricGuidesOverlay
                     fontObject={primaryFont?.fontObject}

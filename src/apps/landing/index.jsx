@@ -6,24 +6,15 @@ import multiLanguageVersion from '../multi-language/version.json';
 import brandFontVersion from '../brand-font/version.json';
 
 import { useState } from 'react';
-import { clear as clearIdb } from 'idb-keyval';
-import { PersistenceService } from '../../shared/services/PersistenceService';
+import { usePersistence } from '../../shared/context/usePersistence';
 import ResetConfirmModal from '../../shared/components/ResetConfirmModal';
 
 const LandingPage = () => {
+    const { resetApp } = usePersistence();
     const [showResetModal, setShowResetModal] = useState(false);
 
     const handleGlobalReset = async () => {
-        try {
-            await PersistenceService.clear();
-            await clearIdb();
-            localStorage.clear();
-            window.location.reload();
-        } catch (error) {
-            console.error("Reset failed", error);
-            // Force reload anyway as fallback
-            window.location.reload();
-        }
+        await resetApp();
     };
 
     return (

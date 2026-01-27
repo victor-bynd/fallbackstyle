@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 import clsx from 'clsx';
 import InfoTooltip from '../../../shared/components/InfoTooltip';
 
 const FallbackFontAdder = ({ onClose, onAdd }) => {
-    const { addFallbackFont, addFallbackFonts, fonts } = useTypo();
+    const { addFallbackFont, addFallbackFonts, fonts } = useFontManagement();
     const [mode, setMode] = useState('upload'); // 'name' or 'upload'
     const [fontName, setFontName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);

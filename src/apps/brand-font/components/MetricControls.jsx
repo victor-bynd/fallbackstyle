@@ -10,9 +10,6 @@ const MetricControls = ({
     overrides,
     handleManualUpdate,
     selectedFallback,
-    primaryMetrics,
-    calculateOverrides,
-    setOverrides,
     isSidebar = false, // New prop
     fontColors = {}
 }) => {

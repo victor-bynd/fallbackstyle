@@ -37,7 +37,8 @@ export const parseFontFile = async (file) => {
                 // If variable but no weight axis found (unlikely but possible), treat as static
                 // If weight axis found, we can use the default as a starting point.
 
-                resolve({ font, metadata });
+                // Return buffer alongside font for persistence
+                resolve({ font, metadata, buffer });
             } catch (err) {
                 reject(err);
             }
@@ -49,4 +50,14 @@ export const parseFontFile = async (file) => {
 
 export const createFontUrl = (file) => {
     return URL.createObjectURL(file);
+};
+
+/**
+ * Revoke a font blob URL to free memory
+ * @param {string} url - The blob URL to revoke
+ */
+export const revokeFontUrl = (url) => {
+    if (url && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+    }
 };

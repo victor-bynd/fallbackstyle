@@ -16,12 +16,12 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { useTypo } from '../../../shared/context/useTypo';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import LanguageList from './LanguageList';
 import SortableFontRow from './SortableFontRow';
 
 const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings = {} }) => {
-    const { languages } = useTypo();
+    const { supportedLanguages: languages } = useLanguageMapping();
     const [fonts, setFonts] = useState(() =>
         pendingFonts.map((f, i) => ({ ...f, id: `pending-${i}` }))
     );

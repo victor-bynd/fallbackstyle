@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
 
 const FontComparisonSelectorModal = ({ isOpen, onClose, onCompare }) => {
-    const { fonts } = useTypo();
+    const { fonts } = useFontManagement();
     const [selectedFonts, setSelectedFonts] = useState([]);
 
     if (!isOpen) return null;

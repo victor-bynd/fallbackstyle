@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { usePersistence } from '../../../shared/context/usePersistence';
 import FontUploader from './FontUploader';
 import LanguageList from './LanguageList';
 import LanguageSetupModal from './LanguageSetupModal';
@@ -48,15 +50,16 @@ const Onboarding = ({ importConfig }) => {
     const [primaryLanguages, setPrimaryLanguages] = useState(['en-US']);
     const [showResetModal, setShowResetModal] = useState(false);
 
+    // Font Management Context
+    const { loadFont, fontObject } = useFontManagement();
+
+    // Language Mapping Context
     const {
-        loadFont,
-        batchAddConfiguredLanguages,
         batchAddFontsAndMappings,
-        // Unused context values removed
-        fontObject,
-        togglePrimaryLanguage,
-        resetApp
-    } = useTypo();
+    } = useLanguageMapping();
+
+    // Persistence Context
+    const { resetApp } = usePersistence();
 
     const toggleLanguage = (id) => {
         setSelectedLanguages(prev => {
@@ -170,48 +173,53 @@ const Onboarding = ({ importConfig }) => {
                     isVariable: primaryLoadedData.isVariable,
                     staticWeight: primaryLoadedData.staticWeight
                 };
-                loadFont(primaryLoadedData.fontObject, primaryLoadedData.fontUrl, primaryLoadedData.name, metadata);
+                loadFont(primaryLoadedData.fontObject, primaryLoadedData.fontUrl, primaryLoadedData.name, metadata, primaryLoadedData.fontBuffer);
             }
-            // Fallback: If NO primary exists at all (empty state) and no explicit choice, pick first from pool if available.
-            // This prevents "Empty App" state if user just verified a pool.
-            else if (!fontObject && loadedFontsRegister.length > 0 && primarySelection.type !== 'current') {
+            // Fallback: If NO primary exists at all picking first from what we have
+            else if (!fontObject && loadedFontsRegister.length > 0 && primarySelection?.type !== 'current') {
                 const primaryCandidate = loadedFontsRegister[0];
                 const metadata = {
                     axes: primaryCandidate.axes,
                     isVariable: primaryCandidate.isVariable,
                     staticWeight: primaryCandidate.staticWeight
                 };
-                loadFont(primaryCandidate.fontObject, primaryCandidate.fontUrl, primaryCandidate.name, metadata);
+                loadFont(primaryCandidate.fontObject, primaryCandidate.fontUrl, primaryCandidate.name, metadata, primaryCandidate.fontBuffer);
             }
 
-            // 4. Prepare Mappings map
+            // 4. Prepare Mappings Map and Fallback Font Register (Exclude primary font from fallbacks to avoid duplicates)
             const mappings = {};
+            const fallbacksToRegister = loadedFontsRegister.filter(f => {
+                // If this is the font we just loaded as primary font, don't add it as a fallback
+                if (primaryLoadedData && f.id === primaryLoadedData.id) return false;
+                // Double check by filename/name match in case IDs differ but content is same
+                if (primaryLoadedData && (f.fileName === primaryLoadedData.fileName)) return false;
+                return true;
+            });
+
             Object.entries(setupMap).forEach(([langId, state]) => {
                 if ((state.type === 'upload' || state.type === 'pool') && state.file) {
-                    mappings[langId] = state.file.name;
+                    // Check if mapping to the newly loaded primary font
+                    if (primaryLoadedData && state.file.name === primaryLoadedData.fileName) {
+                        // Mapping to primary font: We don't need a fallback override if it's the primary language
+                        // But if it's a different language, we might want to map it to 'primary'
+                        mappings[langId] = 'primary';
+                    } else {
+                        mappings[langId] = state.file.name;
+                    }
                 }
             });
 
-            // 5. Batch Update
-            if (loadedFontsRegister.length > 0 || Object.keys(mappings).length > 0) {
-                batchAddFontsAndMappings({
-                    fonts: loadedFontsRegister,
-                    mappings: mappings,
-                    languageIds: importedLanguages // PASS ALL IMPORTED LANGUAGES
-                });
-            } else {
-                // If no fonts, just enable languages
-                batchAddConfiguredLanguages(importedLanguages);
-            }
-
-            // 6. Set Primary Language
-            if (primaryLanguages.length > 0) {
-                // We assume single primary selection
-                togglePrimaryLanguage(primaryLanguages[0]);
-            }
+            // 5. Batch Update All Mappings and Fonts
+            batchAddFontsAndMappings({
+                fonts: fallbacksToRegister,
+                mappings: mappings,
+                languageIds: importedLanguages,
+                primaryLanguages: primaryLanguages,
+                sourcePrimaryFontId: 'primary'
+            });
         }
         setSetupData(null);
-        setStep('initial'); // Or consider 'done' / redirect? Usually App state change causes rerender elsewhere.
+        setStep('initial');
     };
 
     const onConfigInputChange = (e) => {

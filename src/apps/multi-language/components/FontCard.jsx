@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
 import { useUI } from '../../../shared/context/UIContext';
 import { useFontStack } from '../../../shared/hooks/useFontStack';
 import { buildWeightSelectOptions, resolveWeightToAvailableOption } from '../../../shared/utils/weightUtils';
@@ -16,8 +18,6 @@ const FontCardContent = ({
     getFontColor,
     updateFontColor,
     getEffectiveFontSettings,
-    updateFallbackFontOverride,
-    updateFontWeight,
     // duplicate removed
     // unused onRemoveOverride removed
     // unused onSelectLanguage removed
@@ -42,21 +42,33 @@ const FontCardContent = ({
     highlitLanguageId,
     suppressInheritedOverlay = false
 }) => {
+    // Font Management Context
+    const {
+        fonts,
+        toggleFontVisibility,
+        addLanguageSpecificFont,
+        updateFontProperty,
+        updateLanguageSpecificSetting,
+    } = useFontManagement();
+
+    // Language Mapping Context
     const {
         primaryLanguages,
         primaryFontOverrides,
         fallbackFontOverrides,
-        setLetterSpacing,
-        setBaseRem,
-        // weightOptions removed - calculated locally
-        addLanguageSpecificFont,
+        mapLanguageToFont,
         addLanguageSpecificPrimaryFont,
-        updateLanguageSpecificSetting, // Added this
-        fonts, // Kept as it's used later
-        baseRem: contextBaseRem, // Kept as it's used later
-        toggleFontVisibility, // Kept as it's used later
-        mapLanguageToFont // Kept as it's used later
-    } = useTypo();
+    } = useLanguageMapping();
+
+    // Typography Context
+    const {
+        setLetterSpacing,
+        setBaseFontSize,
+        setBaseRem,
+        setWeight,
+        baseRem: contextBaseRem,
+    } = useTypography();
+
     const { activeConfigTab, setActiveConfigTab } = useUI();
     const { buildFallbackFontStackForStyle } = useFontStack();
     const baseRem = contextBaseRem || 16;
@@ -279,31 +291,31 @@ const FontCardContent = ({
 
     // Handle Scoped Updates
     const handleScopedUpdate = (property, value) => {
+        // Map UI property names to font object property names if needed
+        let targetProperty = property;
+        if (property === 'weight') targetProperty = 'weightOverride';
+
         if (editScope === 'ALL') {
-            // Global Update
-            if (property === 'lineHeight') {
-                if (font.isPrimaryOverride) updateFallbackFontOverride(font.id, 'lineHeight', value);
-                else setGlobalLineHeight?.(value);
-            } else if (property === 'letterSpacing') {
-                if (font.type === 'primary' && !font.isPrimaryOverride) setLetterSpacing(value);
-                else updateFallbackFontOverride(font.id, 'letterSpacing', value);
-            } else if (property === 'weight') {
-                updateFontWeight(value);
-            } else if (property === 'baseFontSize') {
-                setBaseRem?.(value);
-            } else {
-                updateFallbackFontOverride(font.id, property, value);
+            // Global Update: Update the font object directly in FontManagementContext
+            updateFontProperty(font.id, targetProperty, value);
+
+            // SYNC: Also update global Typography settings for primary font if applicable
+            if (font.type === 'primary' && !font.isPrimaryOverride) {
+                if (property === 'lineHeight') {
+                    setGlobalLineHeight?.(value);
+                } else if (property === 'letterSpacing') {
+                    setLetterSpacing?.(value);
+                } else if (property === 'baseFontSize') {
+                    setBaseFontSize?.(value);
+                    setBaseRem?.(value);
+                } else if (property === 'weight') {
+                    setWeight?.(value);
+                }
             }
         } else {
             // Scoped Update (Specific Language)
-            if (property === 'weight') property = 'weightOverride';
-            if (property === 'scale') property = 'scale';
-
-            // Check against current scoped value (Safe to keep or remove? Let's remove to be consistent with ALL scope)
-            // const currentScopedValue = scopeFontSettings?.[property];
-            // if (currentScopedValue === value) return;
-
-            updateLanguageSpecificSetting(font.id, editScope, property, value);
+            // Use updateLanguageSpecificSetting which find the clone for this font and language
+            updateLanguageSpecificSetting(font.id, editScope, targetProperty, value);
         }
     };
 

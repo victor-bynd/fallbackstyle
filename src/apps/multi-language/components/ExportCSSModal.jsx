@@ -1,18 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
 import { useFontStack } from '../../../shared/hooks/useFontStack';
 
 const ExportCSSModal = ({ onClose }) => {
+    const { fontStyles, getFontsForStyle, getPrimaryFontFromStyle } = useFontManagement();
     const {
         configuredLanguages,
-        fontStyles,
-        getEffectiveFontSettingsForStyle,
-        getFontsForStyle,
-        getPrimaryFontFromStyle,
-        getPrimaryFontOverrideForStyle,
         hiddenLanguageIds,
-        // Unused variables removed
-    } = useTypo();
+        getPrimaryFontOverrideForStyle,
+    } = useLanguageMapping();
+    const { getEffectiveFontSettingsForStyle } = useTypography();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
     const [useLangAttribute, setUseLangAttribute] = useState(true);

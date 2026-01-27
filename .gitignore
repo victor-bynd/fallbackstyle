@@ -23,4 +23,25 @@ dist-ssr
 *.sln
 *.sw?
 
+# Debug/test files
+*debug*.js
+*reproduce*.js
+test_*.js
+lint_output.txt
+lint_report*.txt
+test_output.txt
 
+# Temporary images
+uploaded_*.png
+
+# Duplicate files (with parentheses)
+*(*).js
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

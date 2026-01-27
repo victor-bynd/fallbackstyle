@@ -1,4 +1,4 @@
-import { useTypo } from '../../../shared/context/useTypo';
+import { useTypography } from '../../../shared/context/useTypography';
 import InfoTooltip from '../../../shared/components/InfoTooltip';
 
 const SidebarHeaderConfig = ({ onBack }) => {
@@ -10,7 +10,7 @@ const SidebarHeaderConfig = ({ onBack }) => {
         resetAllHeaderStyles,
         baseRem,
         setBaseRem
-    } = useTypo();
+    } = useTypography();
 
     const handleScaleChange = (tag, value) => {
         updateHeaderStyle(tag, 'scale', parseFloat(value));

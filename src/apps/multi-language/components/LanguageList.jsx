@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import { getGroupedLanguages } from '../../../shared/utils/languageUtils';
 
 const LanguageList = ({
@@ -14,7 +14,7 @@ const LanguageList = ({
     onTogglePrimary,
     filterGroup = null
 }) => {
-    const { languages } = useTypo();
+    const { supportedLanguages: languages } = useLanguageMapping();
 
     const groups = useMemo(() => {
         const grouped = getGroupedLanguages(languages, searchTerm);

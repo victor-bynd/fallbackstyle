@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import { useUI } from '../../../shared/context/UIContext';
 
 import languagesData from '../../../shared/data/languages.json';
@@ -24,21 +25,23 @@ const SidebarLanguages = ({
     setExpandedGroups,
     fontFilter // New prop
 }) => {
+    // Font Management Context
+    const { fonts } = useFontManagement();
+
+    // Language Mapping Context
     const {
         configuredLanguages,
         primaryFontOverrides,
         fallbackFontOverrides,
         removeConfiguredLanguage,
-        supportedLanguageIds, // Adding this if it was missing or just keeping context clean
+        supportedLanguageIds,
         mappedLanguageIds,
         supportedLanguages,
-        languages,
-        primaryLanguages, // New
-        fonts, // Needed for font filter check
+        primaryLanguages,
         hiddenLanguageIds,
         unhideAllLanguages,
         toggleLanguageHidden
-    } = useTypo();
+    } = useLanguageMapping();
 
     const { activeConfigTab, setActiveConfigTab } = useUI();
 
@@ -240,7 +243,7 @@ const SidebarLanguages = ({
                                 if (setHighlitLanguageId) setHighlitLanguageId(null);
                             }}
                             supportedLanguages={supportedLanguages}
-                            mappedLanguages={languages?.filter(l => mappedLanguageIds?.includes(l.id))}
+                            mappedLanguages={supportedLanguages?.filter(l => mappedLanguageIds?.includes(l.id))}
                             configuredLanguages={configuredLanguages}
                             primaryFontOverrides={primaryFontOverrides}
                             fallbackFontOverrides={fallbackFontOverrides}

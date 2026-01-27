@@ -11,7 +11,6 @@ const MetricGuidesOverlay = ({
     topOffset = '0px',
     ascentOverride,
     descentOverride,
-    lineGapOverride,
     browserGuideColor = '#3B82F6', // Default to blue
     guideColor = '#000000', // Default to black/primary
 }) => {
@@ -144,6 +143,7 @@ const MetricGuidesOverlay = ({
                 pointerEvents: 'none',
                 zIndex: fullWidth ? 20 : 10, // Increased to show above text
                 fontSize: `${fontSizePx}px`,
+                lineHeight: lineHeight,
                 ...browserGuideStyle,
                 ...alignmentStyle
             }}

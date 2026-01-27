@@ -16,26 +16,31 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { normalizeFontName } from '../../../shared/utils/fontNameUtils';
 import FallbackFontAdder from './FallbackFontAdder';
 import SortableFontRow from './SortableFontRow';
 import LanguageList from './LanguageList';
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 
 const FontManagerModal = ({ onClose }) => {
+    // Font Management Context
     const {
         fonts,
         reorderFonts,
         removeFallbackFont,
-        languages,
+        toggleFontGlobalStatus,
+        loadFont,
+    } = useFontManagement();
+
+    // Language Mapping Context
+    const {
+        supportedLanguages: languages,
         fallbackFontOverrides,
         primaryFontOverrides,
-        // Unused context values removed
-        toggleFontGlobalStatus,
-        normalizeFontName,
         assignFontToMultipleLanguages,
-        loadFont
-    } = useTypo();
+    } = useLanguageMapping();
 
     const [activeId, setActiveId] = useState(null);
     const [view, setView] = useState('list'); // 'list' or 'picker'
@@ -112,7 +117,7 @@ const FontManagerModal = ({ onClose }) => {
         }
 
         return combined;
-    }, [fonts, normalizeFontName, searchTerm]);
+    }, [fonts, searchTerm]);
 
     // Compute Mappings map: fontId/Name/FileName -> [langId, ...]
     const Mappings = useMemo(() => {
@@ -162,7 +167,7 @@ const FontManagerModal = ({ onClose }) => {
         });
 
         return map;
-    }, [fallbackFontOverrides, primaryFontOverrides, fonts, normalizeFontName]);
+    }, [fallbackFontOverrides, primaryFontOverrides, fonts]);
 
     const handleDragStart = (event) => {
         setActiveId(event.active.id);
@@ -248,9 +253,9 @@ const FontManagerModal = ({ onClose }) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-            const { font, metadata } = await parseFontFile(file);
+            const { font, metadata, buffer } = await parseFontFile(file);
             const url = createFontUrl(file);
-            loadFont(font, url, file.name, metadata);
+            loadFont(font, url, file.name, metadata, buffer);
         } catch (err) {
             console.error('Error replacing primary font:', err);
             alert('Error replacing primary font: ' + err.message);

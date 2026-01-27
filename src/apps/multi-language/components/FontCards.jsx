@@ -1,7 +1,10 @@
 import { useRef, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
-// Unused import removed
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
+import { useUI } from '../../../shared/context/UIContext';
+import { normalizeFontName } from '../../../shared/utils/fontNameUtils';
 
 import LanguageSingleSelectModal from './LanguageSingleSelectModal';
 import LanguageMultiSelectModal from './LanguageMultiSelectModal';
@@ -16,42 +19,49 @@ import { TOOLTIPS } from '../../../shared/constants/tooltips';
 
 
 const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHighlitLanguageId, readOnly = false }) => {
+    // Font Management Context
     const {
         fonts: rawFonts,
         activeFont,
         setActiveFont,
         updateFontWeight,
         toggleFontVisibility,
-        updateFallbackFontOverride,
-        resetFallbackFontOverrides,
         addFallbackFonts,
         addStrictlyMappedFonts,
-
-        weight,
-        fontScales,
-        lineHeight,
         getFontColor,
         updateFontColor,
-        getEffectiveFontSettings,
-        fallbackFontOverrides,
-        primaryFontOverrides,
         addLanguageSpecificPrimaryFont,
         addLanguageSpecificFont,
-        setFontScales,
-        setIsFallbackLinked,
-        setLineHeight,
-        setActiveConfigTab,
-        fallbackFont,
-        setFallbackFont,
+    } = useFontManagement();
+
+    // Language Mapping Context
+    const {
+        fallbackFontOverrides,
+        primaryFontOverrides,
         systemFallbackOverrides,
         updateSystemFallbackOverride,
         resetSystemFallbackOverride,
-
-        normalizeFontName,
-        // Unused variable removed
         setFallbackFontOverride,
+        updateFallbackFontOverride,
+        resetFallbackFontOverrides,
         linkFontToLanguage,
-    } = useTypo() || {}; // Safety: protect against null context
+    } = useLanguageMapping();
+
+    // Typography Context
+    const {
+        weight,
+        fontScales,
+        lineHeight,
+        getEffectiveFontSettings,
+        setFontScales,
+        setIsFallbackLinked,
+        setLineHeight,
+        fallbackFont,
+        setFallbackFont,
+    } = useTypography();
+
+    // UI Context
+    const { setActiveConfigTab } = useUI();
 
     const fonts = useMemo(() => rawFonts || [], [rawFonts]);
 
@@ -268,7 +278,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
         if (isAllTab) {
             // "ALL" Tab: Mapped are those mapped to ANY language
-            // FIX: Only show strictly language-specific fonts OR Primary Overrides in "Mapped" section. 
+            // FIX: Only show strictly language-specific fonts OR Primary Overrides in "Mapped" section.
             // Global fonts that are mapped should stay in "General Fallbacks" and use the Tab UI.
             // Use allFallbacks to include Clones (language-specific overrides)
             let targeted = allFallbacks.filter(f => mappedFontIds.has(f.id));
@@ -323,7 +333,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
             // while allowing the single card to show tags for ALL its IDs.
             const uniqueTargeted = [];
             const targetedNames = new Map(); // Name -> Representative Font
-            // We use universalIdsMap for the tags, but we still need to know which ones are "Mapped" 
+            // We use universalIdsMap for the tags, but we still need to know which ones are "Mapped"
             // for the current view's grouping logic if we were filtering them.
             // But actually, we can just use universalIdsMap[f.id] directly in the render!
 
@@ -479,8 +489,6 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         const targetedNames = new Set(fullUnifiedList.map(f => (f.fileName || f.name || "").toLowerCase()));
 
         // Get Primary Font Name (normalized)
-        // Unused variable removed
-
         const seenInheritedNames = new Set();
         inheritedFallbacks = inheritedFallbacks.filter(f => {
             const name = (f.fileName || f.name || "");
@@ -541,7 +549,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
             consolidatedIdsMap: universalIdsMap, // Use universal map
             isLanguageSpecificList: true
         };
-    }, [fonts, activeTab, isAllTab, primaryFontOverrides, fallbackFontOverrides, selectedGroup, normalizeFontName]);
+    }, [fonts, activeTab, isAllTab, primaryFontOverrides, fallbackFontOverrides, selectedGroup]);
 
 
 

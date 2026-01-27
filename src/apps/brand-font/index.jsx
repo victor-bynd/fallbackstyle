@@ -13,6 +13,9 @@ import { calculateOverrides, extractFontMetrics } from '../../shared/utils/Metri
 import { parseFontFile, createFontUrl } from '../../shared/services/FontLoader';
 import systemFonts from '../../shared/constants/systemFonts.json';
 import InfoTooltip from '../../shared/components/InfoTooltip';
+import { usePersistence } from '../../shared/context/usePersistence';
+import ResetConfirmModal from '../../shared/components/ResetConfirmModal';
+import ResetLoadingScreen from '../../shared/components/ResetLoadingScreen';
 // import { DEFAULT_PALETTE } from '../../shared/data/constants'; // This import is no longer needed
 
 // High-contrast palette for easy distinction with 35% alpha (#RRGGBB59)
@@ -42,6 +45,7 @@ const getInitialFontColors = () => {
 };
 
 const BrandFontFallback = () => {
+    const { resetApp, isAppResetting } = usePersistence();
     const [primaryFont, setPrimaryFont] = useState(null);
     const [primaryMetrics, setPrimaryMetrics] = useState(null);
     const [selectedFallback, setSelectedFallback] = useState(systemFonts.find(f => f.id === 'arial'));
@@ -50,6 +54,7 @@ const BrandFontFallback = () => {
     // Replace isAuto with configMode: 'auto' | 'default' | 'manual'
     const [configMode, setConfigMode] = useState('default');
     const [showBrowserGuides, setShowBrowserGuides] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
     const [showPrimaryGuides, setShowPrimaryGuides] = useState(false);
     const [limitToSizeAdjust, setLimitToSizeAdjust] = useState(false);
 
@@ -443,24 +448,9 @@ const BrandFontFallback = () => {
         }
     };
 
-    const handleResetApp = () => {
-        setPrimaryFont(null);
-        setPrimaryMetrics(null);
-        setSelectedFallback(systemFonts.find(f => f.id === 'arial'));
-        setCustomFonts([]);
-        setOverrides(null);
-        setConfigMode('default');
-        setShowBrowserGuides(false);
-        setShowPrimaryGuides(false);
-        setLimitToSizeAdjust(false);
-
-        setFontColors(getInitialFontColors());
-        setFontDisplay('auto');
-
-        // Clear Persistence
-        del('brand-font-file');
-        localStorage.removeItem('brand-font-config');
-    }
+    const handleResetApp = async () => {
+        await resetApp();
+    };
 
 
 
@@ -652,7 +642,7 @@ const BrandFontFallback = () => {
                 onAddCustomFont={handleAddCustomFont}
                 onRemoveFallback={handleRemoveCustomFont}
                 onCopyOverrides={handleCopyOverrides}
-                onResetApp={handleResetApp}
+                onResetApp={() => setShowResetModal(true)}
                 onReplacePrimaryFont={handleFontLoaded}
                 fontColors={fontColors}
                 onUpdateFontColor={handleUpdateFontColor}
@@ -742,6 +732,14 @@ const BrandFontFallback = () => {
                     </div>
                 )}
             </div>
+
+            <ResetConfirmModal
+                isOpen={showResetModal}
+                onClose={() => setShowResetModal(false)}
+                onConfirm={handleResetApp}
+            />
+
+            {isAppResetting && <ResetLoadingScreen />}
         </div>
     );
 };

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
-import { useTypo } from '../../shared/context/useTypo';
+import { useFontManagement } from '../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
+import { usePersistence } from '../../shared/context/usePersistence';
 import { useUI } from '../../shared/context/UIContext';
 import Schema from '../../shared/components/Schema';
 import Onboarding from './components/Onboarding';
@@ -50,25 +52,31 @@ const MainContent = ({
   fontFilter, // Lifted Prop
   setFontFilter // Lifted Prop
 }) => {
+  // Font Management Context
   const {
     fontObject,
+    fonts,
+    fontStyles,
+  } = useFontManagement();
+
+  // Language Mapping Context
+  const {
     primaryFontOverrides,
     fallbackFontOverrides,
     addConfiguredLanguage,
     addLanguageSpecificPrimaryFontFromId,
-    // isLanguageMapped - UNUSED
-    supportedLanguages, // New export
+    supportedLanguages,
     mappedLanguageIds,
     configuredLanguages,
-    primaryLanguages, // New
+    primaryLanguages,
+    hiddenLanguageIds,
+  } = useLanguageMapping();
 
-
+  // Persistence Context
+  const {
     resetApp,
     isSessionLoading,
-    fonts, // Added for filtering
-    fontStyles,
-    hiddenLanguageIds, // New
-  } = useTypo();
+  } = usePersistence();
 
   const {
     showFallbackColors,
@@ -340,7 +348,9 @@ const MainContent = ({
     };
   }, [activeConfigTab, highlitLanguageId, primaryLanguages]);
 
-  const { getExportConfiguration, addLanguageSpecificFallbackFont, loadFont } = useTypo();
+  const { getExportConfiguration } = usePersistence();
+  const { addLanguageSpecificFallbackFont } = useLanguageMapping();
+  const { loadFont } = useFontManagement();
 
   const handleExport = () => {
     const config = getExportConfiguration();
@@ -416,7 +426,8 @@ const MainContent = ({
         primaryItem.font,
         primaryItem.url,
         primaryItem.file.name,
-        primaryItem.metadata
+        primaryItem.metadata,
+        primaryItem.buffer
       );
     }
 
@@ -947,7 +958,9 @@ function MultiLanguageFallback() {
   const [fontFilter, setFontFilter] = useState([]); // Lifted State (Multi-select)
   // Force HMR Update
 
-  const { resetApp, isAppResetting, fontObject, configuredLanguages, fontStyles } = useTypo();
+  const { resetApp, isAppResetting } = usePersistence();
+  const { fontObject, fontStyles } = useFontManagement();
+  const { configuredLanguages } = useLanguageMapping();
 
   const isLandingPage = !fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name;
 

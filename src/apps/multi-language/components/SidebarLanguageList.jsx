@@ -31,7 +31,6 @@ const SidebarLanguageList = ({
     const formatLanguageName = (name) => {
         const parts = name.split(' - ');
         if (parts.length < 2) return name;
-        // eslint-disable-next-line no-control-regex
         const isLatin1 = /^[\u0000-\u00FF\s]+$/.test(parts[0]);
         return !isLatin1 ? parts[1] : name;
     };
