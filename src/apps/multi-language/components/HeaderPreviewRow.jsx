@@ -97,7 +97,21 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
             ? getEffectiveFontSettingsForStyle(styleIdForTag, currentFallbackFontId)?.lineHeight
             : undefined;
 
-        const effLineHeight = primaryOverrideLineHeight ?? headerStyle.lineHeight ?? forcedLineHeight ?? style?.lineHeight ?? 'normal';
+        // Line-height precedence:
+        // 1. Primary font override line-height (if set)
+        // 2. Forced line-height from fallback font override
+        // 3. Header-specific line-height (only if NOT 'normal' - i.e., manually overridden)
+        // 4. Primary font's line-height from style (this is the main control)
+        // 5. Default to 'normal'
+        //
+        // This ensures the primary font's line-height slider affects headers
+        // unless the header has a specific non-normal override.
+        const headerHasExplicitLineHeight = headerStyle.lineHeight !== undefined && headerStyle.lineHeight !== 'normal';
+        const effLineHeight = primaryOverrideLineHeight
+            ?? forcedLineHeight
+            ?? (headerHasExplicitLineHeight ? headerStyle.lineHeight : undefined)
+            ?? style?.lineHeight
+            ?? 'normal';
 
         const numLineHeight = calculateNumericLineHeight(effLineHeight, pFont?.fontObject, pSettings);
 

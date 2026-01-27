@@ -296,14 +296,20 @@ const FontCardContent = ({
         if (property === 'weight') targetProperty = 'weightOverride';
 
         if (editScope === 'ALL') {
+            // For primary font lineHeight, ONLY update the style's lineHeight (not the font object)
+            // This ensures the style.lineHeight is the source of truth for primary font line-height
+            // and allows fallback fonts to properly inherit or use their own line-gap-override
+            if (font.type === 'primary' && !font.isPrimaryOverride && property === 'lineHeight') {
+                setGlobalLineHeight?.(value);
+                return; // Don't update font object's lineHeight for primary
+            }
+
             // Global Update: Update the font object directly in FontManagementContext
             updateFontProperty(font.id, targetProperty, value);
 
             // SYNC: Also update global Typography settings for primary font if applicable
             if (font.type === 'primary' && !font.isPrimaryOverride) {
-                if (property === 'lineHeight') {
-                    setGlobalLineHeight?.(value);
-                } else if (property === 'letterSpacing') {
+                if (property === 'letterSpacing') {
                     setLetterSpacing?.(value);
                 } else if (property === 'baseFontSize') {
                     setBaseFontSize?.(value);

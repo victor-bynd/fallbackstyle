@@ -1,10 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { DEFAULT_PALETTE } from '../data/constants';
 import languagesData from '../data/languages.json';
 import sampleSentences from '../data/sampleSentences.json';
 import { normalizeFontName } from '../utils/fontNameUtils';
 import { createLogger } from '../services/Logger';
 import { useFontManagement } from './useFontManagement';
+import { getNextUniqueColor } from './FontManagementContext';
 
 const logger = createLogger('LanguageMapping');
 
@@ -42,7 +43,6 @@ export const LanguageMappingProvider = ({ children }) => {
         fontStyles,
         updateStyleState,
         setFonts,
-        addFallbackFonts,
     } = fontContext;
 
     // Check if reset is in progress ONCE on mount and persist the decision
@@ -113,6 +113,28 @@ export const LanguageMappingProvider = ({ children }) => {
     // ========== CONFIGURATION & VISIBILITY ==========
 
     /**
+     * Reset handler scoped to language mapping state.
+     * Listens for 'fallbackstyle:reset' custom event to allow
+     * centralized reset flows (landing page) to trigger scoped resets.
+     */
+    useEffect(() => {
+        const handler = (e) => {
+            const scope = e?.detail?.scope || 'all';
+            if (scope === 'all' || scope === 'multi-language') {
+                logger.debug('Reset event received (LanguageMapping) - scope:', scope);
+
+                // Note: Don't update state here - the page will reload anyway
+                // State updates would trigger auto-save which we want to avoid
+                // The storage has already been cleared by PersistenceContext
+            }
+        };
+
+        window.addEventListener('fallbackstyle:reset', handler);
+        return () => window.removeEventListener('fallbackstyle:reset', handler);
+    }, []);
+
+
+    /**
      * Set language visibility
      * @param {string|'__batch__'} langId - Language ID or '__batch__' for batch operation
      * @param {boolean|Array<string>} visible - Visibility boolean or array of language IDs for batch
@@ -120,7 +142,7 @@ export const LanguageMappingProvider = ({ children }) => {
     const setLanguageVisibility = useCallback((langId, visible) => {
         // Handle batch mode (used for config restoration)
         if (langId === '__batch__' && Array.isArray(visible)) {
-            logger.debug('Batch setting language visibility:', visible.length);
+            // logger.debug('Batch setting language visibility:', visible.length);
             const sortedVisible = languages.map(l => l.id).filter(id => visible.includes(id));
             setVisibleLanguageIds(sortedVisible);
             return;
@@ -725,45 +747,79 @@ export const LanguageMappingProvider = ({ children }) => {
         mappings,
         languageIds,
         primaryLanguages: selectedPrimaryLanguages,
-        sourcePrimaryFontId
+        sourcePrimaryFontId,
+        primaryFontData
     }) => {
         logger.debug('Batch adding fonts and mappings');
 
-        // 1. Add fallback fonts to management
-        if (fontsToAdd && fontsToAdd.length > 0) {
-            addFallbackFonts(fontsToAdd);
-        }
-
-        // 2. Register languages as configured
-        if (languageIds && languageIds.length > 0) {
-            batchAddConfiguredLanguages(languageIds);
-        }
-
-        // 3. Create overrides in style state
+        // Combined atomic update of style state
         updateStyleState(activeFontStyleId, prev => {
             const nextFallbackOverrides = { ...prev.fallbackFontOverrides };
             const nextPrimaryOverrides = { ...prev.primaryFontOverrides };
             const nextConfigured = new Set(prev.configuredLanguages || []);
             const nextPrimaryLanguages = selectedPrimaryLanguages || prev.primaryLanguages || [];
 
-            // A. Process Fallback Mappings
+            // 1. Prepare nextFonts array starting with previous ones
+            let nextFonts = [...(prev.fonts || [])];
+
+            // 1.5. Add or update primary font if provided
+            if (primaryFontData) {
+                const existingPrimaryIndex = nextFonts.findIndex(f => f && f.type === 'primary');
+                const newPrimary = {
+                    ...(existingPrimaryIndex >= 0 ? nextFonts[existingPrimaryIndex] : {}),
+                    id: 'primary',
+                    type: 'primary',
+                    fontObject: primaryFontData.fontObject,
+                    fontUrl: primaryFontData.fontUrl,
+                    fontBuffer: primaryFontData.fontBuffer,
+                    fileName: primaryFontData.fileName,
+                    name: primaryFontData.name,
+                    axes: primaryFontData.axes || null,
+                    isVariable: primaryFontData.isVariable || false,
+                    staticWeight: primaryFontData.staticWeight || 400,
+                    color: (existingPrimaryIndex >= 0 ? nextFonts[existingPrimaryIndex].color : null) || DEFAULT_PALETTE[0]
+                };
+
+                if (existingPrimaryIndex >= 0) {
+                    nextFonts[existingPrimaryIndex] = newPrimary;
+                } else {
+                    nextFonts.unshift(newPrimary);
+                }
+            }
+
+            // 2. Add Fallback Fonts from fontsToAdd
+            if (fontsToAdd && fontsToAdd.length > 0) {
+                const primaryFont = nextFonts.find(f => f && f.type === 'primary');
+                const pName = primaryFont ? normalizeFontName(primaryFont.fileName || primaryFont.name) : null;
+                const existingNames = new Set(nextFonts.filter(f => f && f.type === 'fallback').map(f => normalizeFontName(f.fileName || f.name)));
+
+                fontsToAdd.forEach(fontData => {
+                    const nName = normalizeFontName(fontData.fileName || fontData.name);
+                    if (pName && nName === pName) return;
+                    if (existingNames.has(nName)) return;
+
+                    nextFonts.push({
+                        ...fontData,
+                        type: 'fallback',
+                        color: fontData.color || getNextUniqueColor(nextFonts)
+                    });
+                    existingNames.add(nName);
+                });
+            }
+
+            // 3. Register explicit languageIds as configured
+            if (languageIds) {
+                languageIds.forEach(id => nextConfigured.add(id));
+            }
+
+            // 4. Process Fallback Mappings
             if (mappings) {
                 Object.entries(mappings).forEach(([langId, fontIdentifier]) => {
-                    // Try direct ID match first (important for 'primary' or specific IDs)
-                    let targetFont = (prev.fonts || []).find(f => f.id === fontIdentifier);
+                    let targetFont = nextFonts.find(f => f.id === fontIdentifier);
 
                     if (!targetFont) {
                         const normalizedTarget = normalizeFontName(fontIdentifier);
-                        // Find by name in state fonts
-                        targetFont = (prev.fonts || []).find(f =>
-                            normalizeFontName(f.fileName || f.name) === normalizedTarget
-                        );
-                    }
-
-                    if (!targetFont) {
-                        const normalizedTarget = normalizeFontName(fontIdentifier);
-                        // Find by name in newly added fonts
-                        targetFont = fontsToAdd?.find(f =>
+                        targetFont = nextFonts.find(f =>
                             normalizeFontName(f.fileName || f.name) === normalizedTarget
                         );
                     }
@@ -775,17 +831,38 @@ export const LanguageMappingProvider = ({ children }) => {
                 });
             }
 
-            // B. Process Primary Language Assignments
-            // If we have selected primary languages, they shouldn't have fallback overrides
-            if (selectedPrimaryLanguages) {
-                selectedPrimaryLanguages.forEach(id => {
-                    delete nextFallbackOverrides[id];
-                    nextConfigured.add(id);
+            // 5. Process Primary Language Assignments & Clones
+            if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
+                const sourceFid = sourcePrimaryFontId || 'primary';
+                const sourceFont = nextFonts.find(f => f && f.id === sourceFid);
+
+                selectedPrimaryLanguages.forEach(langId => {
+                    // Remove fallback if setting as primary
+                    delete nextFallbackOverrides[langId];
+                    nextConfigured.add(langId);
+
+                    // Create Clone for primary override
+                    if (sourceFont) {
+                        const cloneId = `lang-primary-${langId}-${Date.now()}`;
+                        const newClone = {
+                            ...sourceFont,
+                            id: cloneId,
+                            type: 'primary',
+                            isPrimaryOverride: true,
+                            isClone: true,
+                            parentId: sourceFont.id,
+                            color: sourceFont.color
+                        };
+                        // Add clone and record mapping
+                        nextFonts = [...nextFonts.filter(f => !f.id.startsWith(`lang-primary-${langId}`)), newClone];
+                        nextPrimaryOverrides[langId] = cloneId;
+                    }
                 });
             }
 
             return {
                 ...prev,
+                fonts: nextFonts,
                 configuredLanguages: Array.from(nextConfigured),
                 fallbackFontOverrides: nextFallbackOverrides,
                 primaryFontOverrides: nextPrimaryOverrides,
@@ -793,25 +870,20 @@ export const LanguageMappingProvider = ({ children }) => {
             };
         });
 
-        // 4. Handle clones for Primary Overrides (Special case, as it needs to refer to potentially new primary font)
-        // If we want to create clones for the primary languages mentioned...
-        if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
-            // We use a small delay or trust that the next render will have the primary font loaded
-            // Actually, for a single batch call from UI, we might want to do it here
-            // But FontManagementContext's addLanguageSpecificFont relies on `prev` fonts.
-            // Best approach: If we just loaded a primary font via loadFont, it's ID is 'primary'.
-            selectedPrimaryLanguages.forEach(langId => {
-                // If we explicitly want to clone the primary font for this language
-                //We call it with 'primary' or the provided sourcePrimaryFontId
-                addLanguageSpecificPrimaryFontFromId(sourcePrimaryFontId || 'primary', langId);
+        // Ensure visibility is updated
+        if (languageIds || selectedPrimaryLanguages) {
+            const allToVisible = [...(languageIds || []), ...(selectedPrimaryLanguages || [])];
+            setVisibleLanguageIds(prev => {
+                const nextSet = new Set([...prev, ...allToVisible]);
+                return languages.map(l => l.id).filter(id => nextSet.has(id));
             });
         }
-    }, [activeFontStyleId, batchAddConfiguredLanguages, updateStyleState, addFallbackFonts, addLanguageSpecificPrimaryFontFromId]);
+    }, [activeFontStyleId, updateStyleState, setVisibleLanguageIds]); // Added setVisibleLanguageIds to deps
 
     /**
      * Add a language-specific fallback font (uploads new font and maps it)
      */
-    const addLanguageSpecificFallbackFont = useCallback((font, url, name, metadata, langId) => {
+    const addLanguageSpecificFallbackFont = useCallback((font, url, name, metadata, langId, buffer) => {
         logger.debug('Adding language-specific fallback font:', name, 'for', langId);
 
         const fontId = `lang-fallback-${langId}-${Date.now()}`;
@@ -822,6 +894,7 @@ export const LanguageMappingProvider = ({ children }) => {
             type: 'fallback',
             fontObject: font,
             fontUrl: url,
+            fontBuffer: buffer,
             fileName: name,
             name: name,
             axes: metadata?.axes || null,

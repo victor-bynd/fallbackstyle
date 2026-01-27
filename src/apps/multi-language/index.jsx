@@ -74,7 +74,6 @@ const MainContent = ({
 
   // Persistence Context
   const {
-    resetApp,
     isSessionLoading,
   } = usePersistence();
 
@@ -397,9 +396,9 @@ const MainContent = ({
     for (const file of files) {
       try {
         console.log(`[App] Parsing resolved file: ${file.name}`);
-        const { font, metadata } = await safeParseFontFile(file);
+        const { font, metadata, buffer } = await safeParseFontFile(file);
         const url = createFontUrl(file);
-        processed.push({ font, metadata, url, file });
+        processed.push({ font, metadata, buffer, url, file });
         console.log(`[App] Successfully parsed: ${file.name}`);
       } catch (err) {
         console.error("Error parsing during import resolution:", err);
@@ -442,7 +441,8 @@ const MainContent = ({
           item.url,
           item.file.name,
           item.metadata,
-          target
+          target,
+          item.buffer
         );
       }
     });
@@ -535,7 +535,7 @@ const MainContent = ({
         /* Regular Main Content */
         isSessionLoading ? (
           <LoadingScreen />
-        ) : (!fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name) ? (
+        ) : (!fontObject && !fontStyles?.primary?.fonts?.[0]?.name) ? (
           <Onboarding importConfig={importConfig} />
         ) : (
           <div
@@ -792,26 +792,7 @@ const MainContent = ({
                         </div>
                       )}
 
-                      {/* Danger Zone */}
-                      <div>
-                        <div className="px-1 mb-3 text-[10px] font-bold text-slate-400 tracking-wider flex items-center justify-between">
-                          <span>Danger Zone</span>
-                          <div className="h-px flex-1 bg-slate-100 ml-3" />
-                        </div>
-                        <button
-                          onClick={() => {
-                            resetApp();
-                            setShowListSettings(false);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-white text-rose-500 border border-slate-200 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 transition-all"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                          </svg>
-                          Reset Application
-                        </button>
-                      </div>
+
                     </div>
                     <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-300 text-center tracking-widest uppercase">
                       v{__APP_VERSION__}
@@ -960,9 +941,9 @@ function MultiLanguageFallback() {
 
   const { resetApp, isAppResetting } = usePersistence();
   const { fontObject, fontStyles } = useFontManagement();
-  const { configuredLanguages } = useLanguageMapping();
 
-  const isLandingPage = !fontObject && configuredLanguages.length === 0 && !fontStyles?.primary?.fonts?.[0]?.name;
+  // Show onboarding if no font has been loaded (check font name, not configuredLanguages which has defaults)
+  const isLandingPage = !fontObject && !fontStyles?.primary?.fonts?.[0]?.name;
 
   // Live Preview Mode
 
@@ -973,7 +954,7 @@ function MultiLanguageFallback() {
   };
 
   const handleResetApp = async () => {
-    await resetApp();
+    await resetApp('multi-language'); // Reset only multi-language tool
   };
 
   return (

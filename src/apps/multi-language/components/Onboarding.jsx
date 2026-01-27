@@ -81,7 +81,7 @@ const Onboarding = ({ importConfig }) => {
     };
 
     const handleReset = () => {
-        resetApp();
+        resetApp('multi-language'); // Reset only multi-language tool
     };
 
     // Ref references for invisible inputs
@@ -90,11 +90,15 @@ const Onboarding = ({ importConfig }) => {
 
     const handleFontSelect = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            console.log("Onboarding: handleFontSelect", e.target.files);
             setDroppedFiles(Array.from(e.target.files));
             // Don't change step, stay on initial page but let FontUploader handle it
             e.target.value = ''; // Reset input to allow re-selection
         }
+    };
+
+    const handleFontsProcessed = () => {
+        // Clear dropped files after they've been processed
+        setDroppedFiles([]);
     };
 
     const handleSetupReady = ({ languages, fonts }) => {
@@ -136,7 +140,7 @@ const Onboarding = ({ importConfig }) => {
 
             for (const [filename, file] of uniqueFiles.entries()) {
                 try {
-                    const { font, metadata } = await parseFontFile(file);
+                    const { font, metadata, buffer } = await parseFontFile(file);
                     const url = createFontUrl(file);
                     const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -145,6 +149,7 @@ const Onboarding = ({ importConfig }) => {
                         type: 'fallback',
                         fontObject: font,
                         fontUrl: url,
+                        fontBuffer: buffer,
                         fileName: file.name,
                         name: file.name,
                         axes: metadata.axes,
@@ -323,29 +328,30 @@ const Onboarding = ({ importConfig }) => {
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-12">
-                    {/* Option 2: Start with Languages (Primary) */}
-                    <InitialOptionCard
-                        primary={true}
-                        onClick={() => setStep('languages')}
-                        title="Start with Languages"
-                        description="Add the countries/regions you want to support then add fonts as you go."
-                        icon={(
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
-                            </svg>
-                        )}
-                    />
+                <div className="flex justify-center max-w-3xl mx-auto mb-12">
+                    {/* Option 2: Start with Languages (Primary) - HIDDEN FOR DEBUGGING */}
+                    <div className="hidden">
+                        <InitialOptionCard
+                            primary={true}
+                            onClick={() => setStep('languages')}
+                            title="Start with Languages"
+                            description="Add the countries/regions you want to support then add fonts as you go."
+                            icon={(
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                                </svg>
+                            )}
+                        />
+                    </div>
 
                     {/* Option 1: Start with Fonts (Secondary) - Drag & Drop Area */}
                     <div
-                        className="group relative flex flex-col items-center justify-start p-8 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 transition-all duration-300 w-full text-center hover:bg-white hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer"
+                        className="group relative flex flex-col items-center justify-start p-8 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 transition-all duration-300 w-full max-w-md text-center hover:bg-white hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer"
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         onDrop={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                console.log("Onboarding: onDrop", e.dataTransfer.files);
                                 setDroppedFiles(Array.from(e.dataTransfer.files));
                             }
                         }}
@@ -407,6 +413,7 @@ const Onboarding = ({ importConfig }) => {
                     preselectedLanguages={null}
                     initialFiles={droppedFiles}
                     renderDropzone={false}
+                    onFilesProcessed={handleFontsProcessed}
                 />
 
 

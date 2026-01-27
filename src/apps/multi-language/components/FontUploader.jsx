@@ -9,12 +9,11 @@ import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoade
 import FontLanguageModal from './FontLanguageModal';
 import LanguageSetupModal from './LanguageSetupModal';
 
-const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles = [], renderDropzone = true, onSetupReady = null }) => {
+const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles = [], renderDropzone = true, onSetupReady = null, onFilesProcessed = null }) => {
     const { loadFont, fonts, fontObject } = useFontManagement();
     const {
         batchAddConfiguredLanguages,
         batchAddFontsAndMappings,
-        togglePrimaryLanguage,
     } = useLanguageMapping();
 
     // Removed internal useConfigImport to use prop from App.jsx
@@ -39,7 +38,6 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
     // Effect: Handle initial files passed via props (e.g. dropped on landing page)
 
     const handleFiles = useCallback(async (fileList) => {
-        console.log("handleFiles called with:", fileList);
         if (!fileList || fileList.length === 0) return;
 
         const files = Array.from(fileList);
@@ -206,12 +204,16 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
         if (errorCount > 0) {
             alert(`Failed to parse ${errorCount} font file(s).`);
         }
-    }, [importConfig]); // Removed fonts and pendingFonts to break loop
+
+        // Notify parent that files have been processed
+        if (onFilesProcessed) {
+            onFilesProcessed();
+        }
+    }, [importConfig, onFilesProcessed]); // Removed fonts and pendingFonts to break loop
 
     // Effect: Handle initial files passed via props (e.g. dropped on landing page)
     useEffect(() => {
         if (initialFiles && initialFiles.length > 0) {
-            console.log("FontUploader: Received initialFiles", initialFiles);
             // Use short timeout to ensure state is ready if mounting
             setTimeout(() => handleFiles(initialFiles), 0);
         }
@@ -375,8 +377,6 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
             // Handle Primary Language Selection from Modal
             if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
                 // We assume single selection as enforced in modal
-                const pLangId = selectedPrimaryLanguages[0];
-                togglePrimaryLanguage(pLangId);
             }
 
             const primaryItem = orderedFonts[0];
@@ -384,8 +384,6 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
 
             // 1. Process All Fonts
             orderedFonts.forEach((item, index) => {
-                // if (index === 0) return; // FIX: Don't skip primary font for language gathering
-
                 const fontData = {
                     id: `uploaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     type: 'fallback',
@@ -404,17 +402,15 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                 }
 
                 const Mapping = mappings[item.file.name];
-                if ((Mapping === 'auto' || (Array.isArray(Mapping) && Mapping.length === 0)) && index > 0) {
-                    // Only treat as auto-font if it's not the primary (primary is handled via loadFont)
-                    autoFonts.push(item);
-                } else if (Array.isArray(Mapping)) {
+
+                // Track languages for this font
+                if (Array.isArray(Mapping)) {
                     Mapping.forEach(langId => {
                         if (langId === 'auto') {
                             if (index > 0) autoFonts.push(item);
                         } else {
-                            // Always add to configure set (so it shows up in sidebar)
+                            // Always add to configure set
                             languageIdsToConfigure.add(langId);
-
                             // Only map override if NOT primary
                             if (index > 0) {
                                 languageMappings[langId] = item.file.name;
@@ -424,27 +420,48 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                 } else if (Mapping && Mapping !== 'auto') {
                     // Always add to configure set
                     languageIdsToConfigure.add(Mapping);
-
                     // Only map override if NOT primary
                     if (index > 0) {
                         languageMappings[Mapping] = item.file.name;
                     }
+                } else if (Mapping === 'auto' && index > 0) {
+                    autoFonts.push(item);
                 }
             });
 
-            // 2. Load the designated Primary font first
-            if (primaryItem) {
-                loadFont(primaryItem.font, primaryItem.url, primaryItem.file.name, primaryItem.metadata, primaryItem.buffer);
+            // Add selected primary languages to the configure set
+            if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
+                selectedPrimaryLanguages.forEach(langId => languageIdsToConfigure.add(langId));
             }
 
-            // 3. Batch Add Fallbacks, Mappings, and Primary Overrides
-            // This consolidated call handles deduplication, inheritance, and cloning atomically
+            // Default fallback: If NO languages are configured and we loaded a font,
+            // the app will be "empty" and might stay on landing page.
+            // We MUST ensure at least one language (en-US) is configured if this is the first setup.
+            if (languageIdsToConfigure.size === 0) {
+                languageIdsToConfigure.add('en-US');
+            }
+
+            // 2. Prepare primary font data for atomic batch operation
+            const primaryFontData = primaryItem ? {
+                fontObject: primaryItem.font,
+                fontUrl: primaryItem.url,
+                fontBuffer: primaryItem.buffer,
+                fileName: primaryItem.file.name,
+                name: primaryItem.file.name,
+                axes: primaryItem.metadata.axes,
+                isVariable: primaryItem.metadata.isVariable,
+                staticWeight: primaryItem.metadata.staticWeight ?? 400
+            } : null;
+
+            // 3. Batch Add Primary Font, Fallbacks, Mappings, and Primary Overrides atomically
+            // This consolidated call handles everything in a single state update
             batchAddFontsAndMappings({
                 fonts: fontObjectsToRegister,
                 mappings: languageMappings,
                 languageIds: Array.from(languageIdsToConfigure),
                 primaryLanguages: selectedPrimaryLanguages,
-                sourcePrimaryFontId: 'primary'
+                sourcePrimaryFontId: 'primary',
+                primaryFontData
             });
 
         } catch (error) {

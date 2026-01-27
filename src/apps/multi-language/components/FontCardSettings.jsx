@@ -20,7 +20,6 @@ const FontCardSettings = ({
     setShowAdvanced,
     isLineHeightLocked
 }) => {
-    // console.log('[FontCardSettings] Condition Check', { isPrimary, isPrimaryOverride: font.isPrimaryOverride, editScope });
     return (
         <div className="space-y-2">
             {/* Size Control: Show ONLY for global primary or primary overrides */}

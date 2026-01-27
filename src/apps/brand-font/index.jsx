@@ -519,7 +519,7 @@ const BrandFontFallback = () => {
     };
 
     const handleResetApp = async () => {
-        await resetApp();
+        await resetApp('brand-font'); // Reset only brand-font tool
     };
 
 

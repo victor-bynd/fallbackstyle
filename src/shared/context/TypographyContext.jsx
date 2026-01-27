@@ -431,6 +431,13 @@ export const TypographyProvider = ({ children }) => {
 
     /**
      * Get effective font settings for a specific style and font
+     *
+     * Line-height behavior:
+     * - Primary font: uses style.lineHeight (defaults to 'normal')
+     * - Fallback fonts:
+     *   - If primary lineHeight is NOT 'normal', fallback inherits primary's lineHeight
+     *   - If primary lineHeight IS 'normal', fallback can use its own lineHeight
+     *     (allowing line-gap-override to work)
      */
     const getEffectiveFontSettingsForStyle = useCallback((styleId, fontId) => {
         const style = fontStyles[styleId];
@@ -441,12 +448,33 @@ export const TypographyProvider = ({ children }) => {
 
         const isPrimary = font.type === 'primary';
         const scales = style.fontScales || { active: 100, fallback: 100 };
-        const sLineHeight = (isPrimary ? style.lineHeight : style.fallbackLineHeight) || 'normal';
+        
+        // Primary font line-height (from style, defaults to 'normal')
+        const primaryLineHeight = style.lineHeight ?? 'normal';
+        
+        // Determine effective line-height based on font type
+        let effectiveLineHeight;
+        if (isPrimary) {
+            // Primary font uses style's lineHeight
+            effectiveLineHeight = primaryLineHeight;
+        } else {
+            // Fallback font behavior:
+            // - If primary lineHeight is NOT 'normal', fallback inherits it
+            // - If primary lineHeight IS 'normal', fallback can use its own lineHeight
+            //   (this allows line-gap-override to work properly)
+            if (primaryLineHeight !== 'normal') {
+                // Primary has explicit line-height, fallback inherits it
+                effectiveLineHeight = font.lineHeight ?? primaryLineHeight;
+            } else {
+                // Primary is 'normal', fallback can use its own settings
+                effectiveLineHeight = font.lineHeight ?? style.fallbackLineHeight ?? 'normal';
+            }
+        }
 
         return {
             baseFontSize: font.baseFontSize ?? style.baseFontSize ?? 16,
             scale: font.scale ?? (isPrimary ? scales.active : scales.fallback) ?? 100,
-            lineHeight: font.lineHeight ?? sLineHeight,
+            lineHeight: effectiveLineHeight,
             letterSpacing: font.letterSpacing ?? (isPrimary ? style.letterSpacing : style.fallbackLetterSpacing) ?? 0,
             weight: font.weightOverride ?? style.weight ?? 400,
             ascentOverride: font.ascentOverride,

@@ -7,15 +7,7 @@ import { createLogger } from '../services/Logger';
 
 const logger = createLogger('FontManagement');
 
-const getNextUniqueColor = (fonts) => {
-    const usedColors = new Set(fonts.filter(f => f && f.color).map(f => f.color));
-    for (let i = 0; i < DEFAULT_PALETTE.length; i++) {
-        const color = DEFAULT_PALETTE[i];
-        if (!usedColors.has(color)) return color;
-    }
-    // Fallback: cycle if exhausted (unlikely with 53 colors)
-    return DEFAULT_PALETTE[fonts.length % DEFAULT_PALETTE.length];
-};
+import { getNextUniqueColor } from '../utils/colorUtils';
 
 /**
  * FontManagementContext
@@ -44,7 +36,23 @@ const createEmptyFontState = () => ({
             staticWeight: null,
             color: DEFAULT_PALETTE[0]
         }
-    ]
+    ],
+    // Default typography settings
+    lineHeight: 'normal',
+    previousLineHeight: 1.2,
+    baseFontSize: 16,
+    baseRem: 16,
+    weight: 400,
+    fontScales: { active: 100, fallback: 100 },
+    isFallbackLinked: true,
+    letterSpacing: 0,
+    fallbackFont: 'sans-serif',
+    fallbackLineHeight: 'normal',
+    fallbackLetterSpacing: null,
+    lineHeightOverrides: {},
+    fallbackScaleOverrides: {},
+    missingColor: '#b8b8b8',
+    missingBgColor: '#f1f5f9'
 });
 
 export const FontManagementProvider = ({ children }) => {
@@ -66,6 +74,9 @@ export const FontManagementProvider = ({ children }) => {
     // Core state updater for a specific style
     const updateStyleState = useCallback((styleId, updater) => {
         setFontStyles(prev => {
+            if (styleId === '__batch__') {
+                return typeof updater === 'function' ? updater(prev) : updater;
+            }
             const style = prev[styleId] || createEmptyFontState();
             const updated = typeof updater === 'function' ? updater(style) : { ...style, ...updater };
             return {
@@ -204,7 +215,10 @@ export const FontManagementProvider = ({ children }) => {
             const isSystem = isSystemFont(fontData);
             const firstSystemIndex = prev.findIndex(f => f && f.type === 'fallback' && isSystemFont(f));
 
+            // Ensure a stable unique id for persistence
+            const newFontId = fontData.id || `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const newFont = {
+                id: newFontId,
                 ...fontData,
                 type: 'fallback',
                 color: fontData.color || getNextUniqueColor(prev)
@@ -249,8 +263,10 @@ export const FontManagementProvider = ({ children }) => {
                     existingNames.add(nName);
                     return true;
                 })
-                .reduce((acc, fontData) => {
+                .reduce((acc, fontData, i) => {
+                    const id = fontData.id || `fallback-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 6)}`;
                     const newFont = {
+                        id,
                         ...fontData,
                         type: 'fallback',
                         color: fontData.color || getNextUniqueColor([...prev, ...acc])
@@ -680,6 +696,37 @@ export const FontManagementProvider = ({ children }) => {
         isSystemFont,
         updateStyleState
     ]);
+
+    /**
+     * Reset handler: clears all font uploads/config and revokes blob URLs.
+     * Listens for a global CustomEvent 'fallbackstyle:reset' so other parts
+     * of the app can trigger a scoped reset without importing the context.
+     */
+    useEffect(() => {
+        const handler = (e) => {
+            const scope = e?.detail?.scope || 'all';
+            if (scope === 'all' || scope === 'brand-font') {
+                logger.debug('Reset event received (FontManagement) - scope:', scope);
+
+                // Revoke all blob URLs across styles
+                Object.values(fontStyles).forEach(style => {
+                    style.fonts?.forEach(font => {
+                        if (font?.fontUrl) revokeFontUrl(font.fontUrl);
+                    });
+                });
+
+                // Clear persisted ids
+                persistedFontIds.current.clear();
+
+                // Reset in-memory font state to default single primary
+                // Note: Don't update state here - the page will reload anyway
+                // setFontStyles({ primary: createEmptyFontState() });
+            }
+        };
+
+        window.addEventListener('fallbackstyle:reset', handler);
+        return () => window.removeEventListener('fallbackstyle:reset', handler);
+    }, [fontStyles]);
 
     return (
         <FontManagementContext.Provider value={value}>

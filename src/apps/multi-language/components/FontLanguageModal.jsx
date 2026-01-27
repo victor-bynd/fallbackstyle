@@ -81,12 +81,13 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
                 continue;
             }
             try {
-                const { font, metadata } = await safeParseFontFile(file);
+                const { font, metadata, buffer } = await safeParseFontFile(file);
                 const url = createFontUrl(file);
                 // Create a pending font object structure matching FontUploader
                 newFonts.push({
                     font,
                     metadata,
+                    buffer,
                     url,
                     file,
                     id: `pending-added-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`

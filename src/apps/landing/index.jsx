@@ -14,7 +14,7 @@ const LandingPage = () => {
     const [showResetModal, setShowResetModal] = useState(false);
 
     const handleGlobalReset = async () => {
-        await resetApp();
+        await resetApp('all'); // Reset both multi-language and brand-font tools
     };
 
     return (

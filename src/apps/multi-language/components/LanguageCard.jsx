@@ -377,12 +377,13 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         mainViewEffectiveFont = getPrimaryFontFromStyle(mainViewStyleId);
     }
 
-    const mainViewSettings = getEffectiveFontSettingsForStyle(mainViewStyleId, mainViewEffectiveFont?.id || 'primary');
+    // Get effective settings - getEffectiveFontSettingsForStyle is recreated when fontStyles changes
+    const mainViewSettings = useMemo(() => {
+        return getEffectiveFontSettingsForStyle(mainViewStyleId, mainViewEffectiveFont?.id || 'primary');
+    }, [getEffectiveFontSettingsForStyle, mainViewStyleId, mainViewEffectiveFont?.id]);
+    
     const mainViewFontSize = (mainViewSettings?.baseFontSize || 16) * (mainViewSettings?.scale || 100) / 100;
     const mainViewLineHeight = mainViewSettings?.lineHeight || 'normal';
-
-
-
 
     const useNormalLineHeight = (mainViewLineHeight === 'normal');
 

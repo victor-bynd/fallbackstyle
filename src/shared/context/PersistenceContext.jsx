@@ -40,19 +40,18 @@ export const PersistenceProvider = ({ children }) => {
      * Get complete export configuration from all contexts
      */
     const getExportConfiguration = useCallback(() => {
-        logger.debug('Generating export configuration');
 
         const { fontStyles, activeFontStyleId } = fontContext;
         const {
             visibleLanguageIds,
             hiddenLanguageIds
-        } = languageContext;
+        } = languageContext || {};
         const {
             headerStyles,
             headerOverrides,
             headerFontStyleMap,
             textOverrides
-        } = typographyContext;
+        } = typographyContext || {};
         const {
             viewMode,
             textCase,
@@ -63,7 +62,7 @@ export const PersistenceProvider = ({ children }) => {
             showBrowserGuides,
             showFallbackOrder,
             colors
-        } = uiContext;
+        } = uiContext || {};
 
         const config = {
             // Font Management
@@ -104,7 +103,6 @@ export const PersistenceProvider = ({ children }) => {
      * Restore configuration to all contexts
      */
     const restoreConfiguration = useCallback(async (config) => {
-        logger.info('Restoring configuration');
         isResetting.current = true;
 
         try {
@@ -137,7 +135,7 @@ export const PersistenceProvider = ({ children }) => {
                                             fontUrl: fontUrl,
                                             fontBuffer: storedData.fontBuffer
                                         };
-                                        logger.debug('Hydrated font:', font.id);
+                                        fontContext.persistedFontIds.current.add(font.id);
                                     }
                                 } catch (error) {
                                     logger.error('Failed to hydrate font:', font.id, error);
@@ -163,18 +161,20 @@ export const PersistenceProvider = ({ children }) => {
                 languageContext.setHiddenLanguageIds(normalized.hiddenLanguageIds);
             }
 
-            // Restore Typography
-            if (normalized.headerStyles) {
-                typographyContext.setHeaderStyles(normalized.headerStyles);
-            }
-            if (normalized.headerOverrides) {
-                typographyContext.setHeaderOverrides(normalized.headerOverrides);
-            }
-            if (normalized.headerFontStyleMap) {
-                typographyContext.setHeaderFontStyleMap(normalized.headerFontStyleMap);
-            }
-            if (normalized.textOverrides) {
-                typographyContext.setTextOverrides(normalized.textOverrides);
+            // Restore Typography (only if context is available)
+            if (typographyContext) {
+                if (normalized.headerStyles && typographyContext.setHeaderStyles) {
+                    typographyContext.setHeaderStyles(normalized.headerStyles);
+                }
+                if (normalized.headerOverrides && typographyContext.setHeaderOverrides) {
+                    typographyContext.setHeaderOverrides(normalized.headerOverrides);
+                }
+                if (normalized.headerFontStyleMap && typographyContext.setHeaderFontStyleMap) {
+                    typographyContext.setHeaderFontStyleMap(normalized.headerFontStyleMap);
+                }
+                if (normalized.textOverrides && typographyContext.setTextOverrides) {
+                    typographyContext.setTextOverrides(normalized.textOverrides);
+                }
             }
 
             // Restore UI State
@@ -195,8 +195,6 @@ export const PersistenceProvider = ({ children }) => {
                 uiContext.setShowFallbackOrder(normalized.showFallbackOrder);
             }
             if (normalized.colors) uiContext.setColors(normalized.colors);
-
-            logger.info('Configuration restored successfully');
         } catch (error) {
             logger.error('Failed to restore configuration:', error);
             throw error;
@@ -207,9 +205,10 @@ export const PersistenceProvider = ({ children }) => {
 
     /**
      * Reset app to initial state
+     * @param {string} scope - 'all', 'multi-language', or 'brand-font'
      */
-    const resetApp = useCallback(async () => {
-        logger.warn('Resetting app to initial state');
+    const resetApp = useCallback(async (scope = 'all') => {
+        logger.warn('Resetting app - scope:', scope);
 
         setIsAppResetting(true);
         isResetting.current = true;
@@ -219,50 +218,63 @@ export const PersistenceProvider = ({ children }) => {
             // This flag survives the clear and will be checked on reload
             sessionStorage.setItem('__app_reset_in_progress__', 'true');
 
-            // Clear PersistenceService IndexedDB (multi-language app storage)
-            await PersistenceService.clear();
-            logger.debug('PersistenceService cleared');
+            // Dispatch custom event to notify contexts to reset their state
+            window.dispatchEvent(new CustomEvent('fallbackstyle:reset', { detail: { scope } }));
 
-            // Clear idb-keyval storage (brand-font app storage)
-            try {
-                const { clear: clearIdbKeyval } = await import('idb-keyval');
-                await clearIdbKeyval();
-                logger.debug('idb-keyval storage cleared');
-            } catch (err) {
-                logger.warn('Failed to clear idb-keyval storage:', err);
+            if (scope === 'all' || scope === 'multi-language') {
+                // Clear PersistenceService IndexedDB (multi-language app storage)
+                await PersistenceService.clear();
+                logger.debug('PersistenceService cleared');
             }
 
-            // Delete all IndexedDB databases to be absolutely sure
-            try {
-                const databases = await indexedDB.databases();
-                for (const db of databases) {
-                    if (db.name) {
-                        logger.debug('Deleting database:', db.name);
-                        await new Promise((resolve, reject) => {
-                            const request = indexedDB.deleteDatabase(db.name);
-                            request.onsuccess = () => resolve();
-                            request.onerror = () => reject(request.error);
-                            request.onblocked = () => {
-                                logger.warn('Database deletion blocked:', db.name);
-                                resolve(); // Continue anyway
-                            };
-                        });
-                    }
+            if (scope === 'all' || scope === 'brand-font') {
+                // Clear idb-keyval storage (brand-font app storage)
+                try {
+                    const { clear: clearIdbKeyval } = await import('idb-keyval');
+                    await clearIdbKeyval();
+                    logger.debug('idb-keyval storage cleared');
+                } catch (err) {
+                    logger.warn('Failed to clear idb-keyval storage:', err);
                 }
-            } catch (err) {
-                logger.warn('Failed to enumerate/delete IndexedDB databases:', err);
+
+                // Clear brand-font localStorage config
+                localStorage.removeItem('brand-font-config');
+                logger.debug('brand-font localStorage cleared');
             }
 
-            // Clear localStorage AFTER setting sessionStorage flag
-            localStorage.clear();
+            if (scope === 'all') {
+                // Delete all IndexedDB databases to be absolutely sure
+                try {
+                    const databases = await indexedDB.databases();
+                    for (const db of databases) {
+                        if (db.name) {
+                            logger.debug('Deleting database:', db.name);
+                            await new Promise((resolve, reject) => {
+                                const request = indexedDB.deleteDatabase(db.name);
+                                request.onsuccess = () => resolve();
+                                request.onerror = () => reject(request.error);
+                                request.onblocked = () => {
+                                    logger.warn('Database deletion blocked:', db.name);
+                                    resolve(); // Continue anyway
+                                };
+                            });
+                        }
+                    }
+                } catch (err) {
+                    logger.warn('Failed to enumerate/delete IndexedDB databases:', err);
+                }
+
+                // Clear localStorage AFTER setting sessionStorage flag
+                localStorage.clear();
+            }
 
             // Small delay to ensure all async operations complete
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            logger.info('App reset complete, redirecting to multi-language app...');
+            logger.info('App reset complete, reloading...');
 
-            // Force full page reload at the multi-language route
-            window.location.replace('/multi-language');
+            // Force full page reload
+            window.location.reload();
         } catch (error) {
             logger.error('Failed to reset app:', error);
             sessionStorage.removeItem('__app_reset_in_progress__');
@@ -303,8 +315,6 @@ export const PersistenceProvider = ({ children }) => {
                         persistedFontIds.current.add(font.id);
                     }
                 }
-
-                logger.debug('Auto-save complete');
             } catch (error) {
                 logger.error('Auto-save failed:', error);
             }
@@ -317,27 +327,34 @@ export const PersistenceProvider = ({ children }) => {
         };
     }, [
         fontContext.fontStyles,
-        languageContext.visibleLanguageIds,
-        languageContext.hiddenLanguageIds,
-        typographyContext.headerStyles,
-        typographyContext.textOverrides,
-        uiContext.viewMode,
-        uiContext.colors,
+        languageContext?.visibleLanguageIds,
+        languageContext?.hiddenLanguageIds,
+        typographyContext?.headerStyles,
+        typographyContext?.textOverrides,
+        uiContext?.viewMode,
+        uiContext?.colors,
         isSessionLoading,
         getExportConfiguration,
         fontContext
     ]);
 
+    // Track if session has been loaded to prevent re-loading
+    const sessionLoadedRef = useRef(false);
+
     /**
      * Load session on mount
      */
     useEffect(() => {
+        // Prevent re-loading session if already loaded
+        if (sessionLoadedRef.current) {
+            return;
+        }
+
         const loadSession = async () => {
             // Check if app reset is in progress
             const resetInProgress = sessionStorage.getItem('__app_reset_in_progress__');
 
             if (resetInProgress) {
-                logger.info('Reset detected, skipping session load and ensuring clean state');
                 // Clear the flag
                 sessionStorage.removeItem('__app_reset_in_progress__');
 
@@ -345,37 +362,33 @@ export const PersistenceProvider = ({ children }) => {
                 try {
                     const checkConfig = await PersistenceService.loadConfig();
                     if (checkConfig) {
-                        logger.warn('Found lingering config after reset, clearing again');
                         await PersistenceService.clear();
                     }
-                } catch (err) {
-                    logger.debug('Config check after reset:', err);
+                } catch {
+                    // Silently handle - expected during reset
                 }
 
                 setIsSessionLoading(false);
+                sessionLoadedRef.current = true;
                 return;
             }
-
-            logger.info('Loading session from storage');
 
             try {
                 const savedConfig = await PersistenceService.loadConfig();
 
                 if (savedConfig) {
                     await restoreConfiguration(savedConfig);
-                    logger.info('Session loaded successfully');
-                } else {
-                    logger.info('No saved session found, using defaults');
                 }
             } catch (error) {
                 logger.error('Failed to load session:', error);
             } finally {
                 setIsSessionLoading(false);
+                sessionLoadedRef.current = true;
             }
         };
 
         loadSession();
-    }, [restoreConfiguration]); // Empty dependency array - run once on mount
+    }, [restoreConfiguration]);
 
     // Create context value
     const value = useMemo(() => ({
