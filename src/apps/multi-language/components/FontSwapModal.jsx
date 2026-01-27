@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
 
 const FontSwapModal = ({ isOpen, onClose, onSelect }) => {
-    const { fonts } = useTypo();
+    const { fonts } = useFontManagement();
     const [searchQuery, setSearchQuery] = useState('');
 
     if (!isOpen) return null;

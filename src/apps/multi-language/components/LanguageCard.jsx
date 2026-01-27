@@ -1,6 +1,8 @@
 import { useMemo, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
 import { useUI } from '../../../shared/context/UIContext';
 import { useFontStack } from '../../../shared/hooks/useFontStack';
 import { useTextRenderer } from '../../../shared/hooks/useTextRenderer.jsx';
@@ -13,26 +15,34 @@ import { calculateNumericLineHeight } from '../../../shared/utils/fontUtils';
 import { TOOLTIPS } from '../../../shared/constants/tooltips';
 
 const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHighlitLanguageId }) => {
+    // Font Management Context
+    const {
+        getFontsForStyle,
+        getPrimaryFontFromStyle,
+        activeFontStyleId,
+    } = useFontManagement();
+
+    // Language Mapping Context
     const {
         primaryLanguages,
+        removeConfiguredLanguage,
+        mapLanguageToFont,
+        unmapLanguage,
+        getPrimaryFontOverrideForStyle,
+        getFallbackFontOverrideForStyle,
+        setFallbackFontOverrideForStyle,
+        addLanguageSpecificFallbackFont,
+    } = useLanguageMapping();
 
+    // Typography Context
+    const {
         headerStyles,
         textOverrides,
         setTextOverride,
-        addLanguageSpecificFallbackFont,
-        getFontsForStyle,
-        getPrimaryFontFromStyle,
-        getEffectiveFontSettingsForStyle,
-        setFallbackFontOverrideForStyle,
-        getPrimaryFontOverrideForStyle,
-        getFallbackFontOverrideForStyle,
-        removeConfiguredLanguage,
-        headerFontStyleMap,
-        activeFontStyleId,
         resetTextOverride,
-        mapLanguageToFont,
-        unmapLanguage
-    } = useTypo();
+        headerFontStyleMap,
+        getEffectiveFontSettingsForStyle,
+    } = useTypography();
 
     const {
         viewMode,
@@ -40,7 +50,8 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         setActiveConfigTab,
         showBrowserGuides,
         showAlignmentGuides,
-        showFallbackOrder
+        showFallbackOrder,
+        showFallbackColors
     } = useUI();
 
     const { buildFallbackFontStackForStyle } = useFontStack();
@@ -366,39 +377,15 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         mainViewEffectiveFont = getPrimaryFontFromStyle(mainViewStyleId);
     }
 
-    const mainViewSettings = getEffectiveFontSettingsForStyle(mainViewStyleId, mainViewEffectiveFont?.id || 'primary');
-    const mainViewFontSize = mainViewSettings?.baseFontSize || 16;
-    const mainViewLineHeight = mainViewSettings?.lineHeight || 1.2;
+    // Get effective settings - getEffectiveFontSettingsForStyle is recreated when fontStyles changes
+    const mainViewSettings = useMemo(() => {
+        return getEffectiveFontSettingsForStyle(mainViewStyleId, mainViewEffectiveFont?.id || 'primary');
+    }, [getEffectiveFontSettingsForStyle, mainViewStyleId, mainViewEffectiveFont?.id]);
+    
+    const mainViewFontSize = (mainViewSettings?.baseFontSize || 16) * (mainViewSettings?.scale || 100) / 100;
+    const mainViewLineHeight = mainViewSettings?.lineHeight || 'normal';
 
-
-
-    const hasVerticalMetricOverrides = mainViewSettings && (
-        (mainViewSettings.lineGapOverride !== undefined && mainViewSettings.lineGapOverride !== '') ||
-        (mainViewSettings.ascentOverride !== undefined && mainViewSettings.ascentOverride !== '') ||
-        (mainViewSettings.descentOverride !== undefined && mainViewSettings.descentOverride !== '')
-    );
-
-
-
-    // FIX: If any fallback font has overrides, we must force 'normal' line-height.
-    // We removed the (!primaryFullyCovers) check because we want to ensure that if the user
-    // explicitly sets an override on a fallback, the system respects it even if we think
-    // the primary font covers everything (coverage check might be imperfect or text might change).
-    const hasFallbackMetricOverrides = metricsFallbackFontStack.some(f => {
-        const s = f.settings;
-        return s && (
-            (s.lineGapOverride !== undefined && s.lineGapOverride !== '') ||
-            (s.ascentOverride !== undefined && s.ascentOverride !== '') ||
-            (s.descentOverride !== undefined && s.descentOverride !== '')
-        );
-    });
-
-    const hasLineGapOverride = mainViewSettings && (mainViewSettings.lineGapOverride !== undefined && mainViewSettings.lineGapOverride !== '');
-
-    const useNormalLineHeight = (mainViewLineHeight === 'normal') ||
-        (!mainViewEffectiveFont?.fontObject && hasVerticalMetricOverrides) ||
-        hasLineGapOverride ||
-        hasFallbackMetricOverrides;
+    const useNormalLineHeight = (mainViewLineHeight === 'normal');
 
     const mainViewNumericLineHeight = useMemo(() => {
         // If we are forcing normal line height for rendering, we must also calculate the numeric value as 'normal'
@@ -473,14 +460,20 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                 {/* Standard Body Text View (Fallback for 'simple', 'paragraph', or any non-header mode) */}
                 {!viewMode.startsWith('h') && viewMode !== 'all' && (
                     <div
+                        id={`language-card-text-${language.id}`}
                         dir={language.dir || 'ltr'}
                         style={{
                             fontSize: `${mainViewFontSize}px`,
                             lineHeight: useNormalLineHeight ? 'normal' : mainViewNumericLineHeight,
-                            position: 'relative' // Needed for absolute positioning of overlay
+                            fontWeight: mainViewSettings?.weight || 400,
+                            color: showFallbackColors ? (mainViewSettings?.color || 'inherit') : 'inherit',
+                            position: 'relative'
                         }}
                     >
-                        <div className="relative z-20">
+                        <div
+                            className="relative z-20"
+                            style={{ lineHeight: 'inherit' }}
+                        >
                             {renderedContent}
                         </div>
                         {/* Guides Overlay */}

@@ -90,5 +90,51 @@
       "xHeight": 0.5,
       "capHeight": 0.7001953125
     }
+  },
+  {
+    "id": "helvetica-neue",
+    "name": "Helvetica Neue",
+    "fullName": "Helvetica Neue Roman",
+    "postscriptName": "HelveticaNeue-Roman",
+    "category": "sans-serif",
+    "filename": "HelveticaNeue.otf",
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 714,
+      "descent": -198,
+      "lineGap": 83,
+      "xHeight": 500,
+      "capHeight": 700
+    },
+    "normalized": {
+      "ascent": 0.714,
+      "descent": 0.198,
+      "lineGap": 0.083,
+      "xHeight": 0.5,
+      "capHeight": 0.7
+    }
+  },
+  {
+    "id": "tahoma",
+    "name": "Tahoma",
+    "fullName": "Tahoma",
+    "postscriptName": "Tahoma",
+    "category": "sans-serif",
+    "filename": "tahoma.ttf",
+    "metrics": {
+      "unitsPerEm": 2048,
+      "ascent": 2049,
+      "descent": -423,
+      "lineGap": 59,
+      "xHeight": 1117,
+      "capHeight": 1489
+    },
+    "normalized": {
+      "ascent": 1.00048828125,
+      "descent": 0.20654296875,
+      "lineGap": 0.02880859375,
+      "xHeight": 0.54541015625,
+      "capHeight": 0.72705078125
+    }
   }
 ]

@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 import LanguageList from './LanguageList';
 import FontSelectionModal from './FontSelectionModal';
 
 const AddLanguageModal = ({ onClose, onConfirm, filterGroup = null }) => {
-    const { fonts, addFallbackFonts } = useTypo();
+    const { fonts, addFallbackFonts } = useFontManagement();
 
     // State
     const [selectedLangId, setSelectedLangId] = useState(null);

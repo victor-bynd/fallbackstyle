@@ -90,17 +90,17 @@ export const PersistenceService = {
     },
 
     /**
-     * Save a font file (Blob).
+     * Save a font file with metadata.
      * @param {string} id - Unique identifier for the font (e.g. filename or unique ID)
-     * @param {Blob} blob - The font file content
+     * @param {Object} fontData - Object containing {fontObject, fontUrl, fileName}
      */
-    saveFont: async (id, blob) => {
+    saveFont: async (id, fontData) => {
         try {
             const db = await PersistenceService.initDB();
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction([STORE_FONTS], 'readwrite');
                 const store = transaction.objectStore(STORE_FONTS);
-                const request = store.put(blob, id);
+                const request = store.put(fontData, id);
 
                 request.onsuccess = () => resolve();
                 request.onerror = (e) => {
@@ -118,9 +118,9 @@ export const PersistenceService = {
     },
 
     /**
-     * Get a font file.
-     * @param {string} id 
-     * @returns {Promise<Blob|undefined>}
+     * Get a font file with metadata.
+     * @param {string} id
+     * @returns {Promise<Object|undefined>} Object containing {fontObject, fontUrl, fileName}
      */
     getFont: async (id) => {
         try {

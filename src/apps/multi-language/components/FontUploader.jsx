@@ -1,25 +1,20 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { normalizeFontName } from '../../../shared/utils/fontNameUtils';
 
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 
 import FontLanguageModal from './FontLanguageModal';
 import LanguageSetupModal from './LanguageSetupModal';
 
-const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles = [], renderDropzone = true, onSetupReady = null }) => {
+const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles = [], renderDropzone = true, onSetupReady = null, onFilesProcessed = null }) => {
+    const { loadFont, fonts, fontObject } = useFontManagement();
     const {
-        loadFont,
         batchAddConfiguredLanguages,
         batchAddFontsAndMappings,
-        // Unused context values removed
-        fonts,
-        normalizeFontName,
-        addPrimaryLanguageOverrides,
-        primaryLanguages,
-        fontObject,
-        togglePrimaryLanguage
-    } = useTypo();
+    } = useLanguageMapping();
 
     // Removed internal useConfigImport to use prop from App.jsx
     const [pendingFonts, setPendingFonts] = useState([]);
@@ -43,7 +38,6 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
     // Effect: Handle initial files passed via props (e.g. dropped on landing page)
 
     const handleFiles = useCallback(async (fileList) => {
-        console.log("handleFiles called with:", fileList);
         if (!fileList || fileList.length === 0) return;
 
         const files = Array.from(fileList);
@@ -189,14 +183,14 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
             }
 
             try {
-                const { font, metadata } = await parseFontFile(file);
+                const { font, metadata, buffer } = await parseFontFile(file);
                 // 3. Double Check: Check if internal font name matches an existing one?
-                // This is stricter. Sometimes filenames differ but font is same. 
+                // This is stricter. Sometimes filenames differ but font is same.
                 // Let's rely on Filename for now as per user request "prevent uploading the same font more than once".
                 // But if we wanted to be super smart, we could check font.names.fontFamily.en...
 
                 const url = createFontUrl(file);
-                processedFonts.push({ font, metadata, url, file });
+                processedFonts.push({ font, metadata, url, file, buffer });
             } catch (err) {
                 console.error(`Error parsing font ${file.name}: `, err);
                 errorCount++;
@@ -210,12 +204,16 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
         if (errorCount > 0) {
             alert(`Failed to parse ${errorCount} font file(s).`);
         }
-    }, [importConfig, normalizeFontName]); // Removed fonts and pendingFonts to break loop
+
+        // Notify parent that files have been processed
+        if (onFilesProcessed) {
+            onFilesProcessed();
+        }
+    }, [importConfig, onFilesProcessed]); // Removed fonts and pendingFonts to break loop
 
     // Effect: Handle initial files passed via props (e.g. dropped on landing page)
     useEffect(() => {
         if (initialFiles && initialFiles.length > 0) {
-            console.log("FontUploader: Received initialFiles", initialFiles);
             // Use short timeout to ensure state is ready if mounting
             setTimeout(() => handleFiles(initialFiles), 0);
         }
@@ -289,7 +287,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
 
                 for (const [filename, file] of uniqueFiles.entries()) {
                     try {
-                        const { font, metadata } = await parseFontFile(file);
+                        const { font, metadata, buffer } = await parseFontFile(file);
                         const url = createFontUrl(file);
                         const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -298,6 +296,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                             type: 'fallback',
                             fontObject: font,
                             fontUrl: url,
+                            fontBuffer: buffer,
                             fileName: file.name,
                             name: file.name,
                             axes: metadata.axes,
@@ -326,7 +325,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                         isVariable: primaryLoadedData.isVariable,
                         staticWeight: primaryLoadedData.staticWeight
                     };
-                    loadFont(primaryLoadedData.fontObject, primaryLoadedData.fontUrl, primaryLoadedData.name, metadata);
+                    loadFont(primaryLoadedData.fontObject, primaryLoadedData.fontUrl, primaryLoadedData.name, metadata, primaryLoadedData.fontBuffer);
                 }
                 // Fallback: If NO primary exists at all (empty state) and no explicit choice, pick first from pool if available.
                 // This prevents "Empty App" state if user just verified a pool.
@@ -337,7 +336,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                         isVariable: primaryCandidate.isVariable,
                         staticWeight: primaryCandidate.staticWeight
                     };
-                    loadFont(primaryCandidate.fontObject, primaryCandidate.fontUrl, primaryCandidate.name, metadata);
+                    loadFont(primaryCandidate.fontObject, primaryCandidate.fontUrl, primaryCandidate.name, metadata, primaryCandidate.fontBuffer);
                 }
 
                 // 4. Prepare Mappings map
@@ -378,8 +377,6 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
             // Handle Primary Language Selection from Modal
             if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
                 // We assume single selection as enforced in modal
-                const pLangId = selectedPrimaryLanguages[0];
-                togglePrimaryLanguage(pLangId);
             }
 
             const primaryItem = orderedFonts[0];
@@ -387,13 +384,12 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
 
             // 1. Process All Fonts
             orderedFonts.forEach((item, index) => {
-                // if (index === 0) return; // FIX: Don't skip primary font for language gathering
-
                 const fontData = {
                     id: `uploaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     type: 'fallback',
                     fontObject: item.font,
                     fontUrl: item.url,
+                    fontBuffer: item.buffer,
                     fileName: item.file.name,
                     name: item.file.name,
                     axes: item.metadata.axes,
@@ -406,17 +402,15 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                 }
 
                 const Mapping = mappings[item.file.name];
-                if ((Mapping === 'auto' || (Array.isArray(Mapping) && Mapping.length === 0)) && index > 0) {
-                    // Only treat as auto-font if it's not the primary (primary is handled via loadFont)
-                    autoFonts.push(item);
-                } else if (Array.isArray(Mapping)) {
+
+                // Track languages for this font
+                if (Array.isArray(Mapping)) {
                     Mapping.forEach(langId => {
                         if (langId === 'auto') {
                             if (index > 0) autoFonts.push(item);
                         } else {
-                            // Always add to configure set (so it shows up in sidebar)
+                            // Always add to configure set
                             languageIdsToConfigure.add(langId);
-
                             // Only map override if NOT primary
                             if (index > 0) {
                                 languageMappings[langId] = item.file.name;
@@ -426,45 +420,49 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                 } else if (Mapping && Mapping !== 'auto') {
                     // Always add to configure set
                     languageIdsToConfigure.add(Mapping);
-
                     // Only map override if NOT primary
                     if (index > 0) {
                         languageMappings[Mapping] = item.file.name;
                     }
+                } else if (Mapping === 'auto' && index > 0) {
+                    autoFonts.push(item);
                 }
             });
 
-            // 2. Load the designated Primary font first (Special handling currently)
-            if (primaryItem) {
-                loadFont(primaryItem.font, primaryItem.url, primaryItem.file.name, primaryItem.metadata);
-                // Also ensure primary language is mapped (usually handled by addPrimaryLanguageOverrides)
+            // Add selected primary languages to the configure set
+            if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
+                selectedPrimaryLanguages.forEach(langId => languageIdsToConfigure.add(langId));
             }
 
-            // 3. Batch Add Fallbacks and Mappings
-            // This consolidated call handles deduplication and inheritance triggers
+            // Default fallback: If NO languages are configured and we loaded a font,
+            // the app will be "empty" and might stay on landing page.
+            // We MUST ensure at least one language (en-US) is configured if this is the first setup.
+            if (languageIdsToConfigure.size === 0) {
+                languageIdsToConfigure.add('en-US');
+            }
+
+            // 2. Prepare primary font data for atomic batch operation
+            const primaryFontData = primaryItem ? {
+                fontObject: primaryItem.font,
+                fontUrl: primaryItem.url,
+                fontBuffer: primaryItem.buffer,
+                fileName: primaryItem.file.name,
+                name: primaryItem.file.name,
+                axes: primaryItem.metadata.axes,
+                isVariable: primaryItem.metadata.isVariable,
+                staticWeight: primaryItem.metadata.staticWeight ?? 400
+            } : null;
+
+            // 3. Batch Add Primary Font, Fallbacks, Mappings, and Primary Overrides atomically
+            // This consolidated call handles everything in a single state update
             batchAddFontsAndMappings({
                 fonts: fontObjectsToRegister,
                 mappings: languageMappings,
-                languageIds: Array.from(languageIdsToConfigure)
+                languageIds: Array.from(languageIdsToConfigure),
+                primaryLanguages: selectedPrimaryLanguages,
+                sourcePrimaryFontId: 'primary',
+                primaryFontData
             });
-
-            // 4. Ensure Primary Language is mapped to Primary Font
-            if (selectedPrimaryLanguages && selectedPrimaryLanguages.length > 0) {
-                addPrimaryLanguageOverrides(selectedPrimaryLanguages);
-                selectedPrimaryLanguages.forEach(id => languageIdsToConfigure.add(id));
-            }
-
-            // 5. Ensure at least en-US if nothing else
-            setTimeout(() => {
-                if (languageIdsToConfigure.size === 0) {
-                    batchAddConfiguredLanguages(['en-US']);
-                    if (!primaryLanguages || primaryLanguages.length === 0) {
-                        togglePrimaryLanguage('en-US');
-                    }
-                } else {
-                    batchAddConfiguredLanguages(Array.from(languageIdsToConfigure));
-                }
-            }, 50);
 
         } catch (error) {
             console.error("Error in font modal confirm:", error);

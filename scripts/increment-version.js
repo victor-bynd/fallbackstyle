@@ -6,8 +6,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const APPS_DIR = path.join(__dirname, '../src/apps');
-const APPS = ['brand-font', 'multi-language'];
+const ROOT_DIR = path.join(__dirname, '..');
+const PACKAGE_JSON_PATH = path.join(ROOT_DIR, 'package.json');
+const SHARED_VERSION_PATH = path.join(ROOT_DIR, 'src/shared/version.json');
 
 function getStagedFiles() {
     try {
@@ -21,79 +22,57 @@ function getStagedFiles() {
 
 function incrementVersion(version) {
     const parts = version.split('.');
-    if (parts.length !== 3) return version; // Fallback or error?
+    if (parts.length !== 3) return version;
     parts[2] = parseInt(parts[2], 10) + 1;
     return parts.join('.');
 }
 
-function updateAppVersion(appName) {
-    const versionFilePath = path.join(APPS_DIR, appName, 'version.json');
-
-    if (!fs.existsSync(versionFilePath)) {
-        console.warn(`Version file not found for ${appName} at ${versionFilePath}`);
-        return;
-    }
-
+function updateVersions() {
     try {
-        const versionData = JSON.parse(fs.readFileSync(versionFilePath, 'utf-8'));
-        const oldVersion = versionData.version;
+        // Read package.json as source of truth
+        const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf-8'));
+        const oldVersion = pkg.version;
         const newVersion = incrementVersion(oldVersion);
 
-        versionData.version = newVersion;
+        // Update package.json
+        pkg.version = newVersion;
+        fs.writeFileSync(PACKAGE_JSON_PATH, JSON.stringify(pkg, null, 2) + '\n');
+        console.log(`Updated package.json: ${oldVersion} -> ${newVersion}`);
 
-        fs.writeFileSync(versionFilePath, JSON.stringify(versionData, null, 2) + '\n');
-        console.log(`Updated ${appName} version: ${oldVersion} -> ${newVersion}`);
+        // Update shared version.json
+        if (fs.existsSync(SHARED_VERSION_PATH)) {
+            const sharedVersionData = { version: newVersion };
+            fs.writeFileSync(SHARED_VERSION_PATH, JSON.stringify(sharedVersionData, null, 2) + '\n');
+            console.log(`Updated shared version.json: ${newVersion}`);
+        }
 
-        // Add the updated version file back to the commit
-        execSync(`git add "${versionFilePath}"`);
+        // Add the updated files back to the commit
+        execSync(`git add "${PACKAGE_JSON_PATH}" "${SHARED_VERSION_PATH}"`);
 
     } catch (error) {
-        console.error(`Error updating version for ${appName}:`, error);
+        console.error(`Error updating versions:`, error);
         process.exit(1);
     }
 }
 
 function main() {
     const stagedFiles = getStagedFiles();
-    const appsToUpdate = new Set();
-    let updateAll = false;
 
-    // Define what constitutes a "shared" change that affects multiple apps
-    const isSharedFile = (file) => {
-        return file.startsWith('src/shared/') ||
-            file === 'src/App.jsx' ||
-            file === 'src/main.jsx' ||
-            file === 'src/index.css';
-    };
+    // Check if any source files are changed
+    const hasSourceChanges = stagedFiles.some(file =>
+        file.startsWith('src/') ||
+        file === 'package.json' ||
+        file === 'vite.config.js' ||
+        file === 'index.html'
+    );
 
-    for (const file of stagedFiles) {
-        if (isSharedFile(file)) {
-            updateAll = true;
-            // No need to check other files if we already know we update all
-            break;
-        }
-
-        if (file.startsWith('src/apps/brand-font/')) {
-            appsToUpdate.add('brand-font');
-        } else if (file.startsWith('src/apps/multi-language/')) {
-            appsToUpdate.add('multi-language');
-        }
-    }
-
-    if (updateAll) {
-        console.log('Shared files changed. updating ALL apps.');
-        appsToUpdate.add('brand-font');
-        appsToUpdate.add('multi-language');
-    }
-
-    if (appsToUpdate.size === 0) {
-        console.log('No app changes detected. Skipping version increment.');
+    if (!hasSourceChanges) {
+        console.log('No source changes detected. Skipping version increment.');
         return;
     }
 
-    appsToUpdate.forEach(appName => {
-        updateAppVersion(appName);
-    });
+    console.log('Source changes detected, incrementing global version.');
+    updateVersions();
 }
 
 main();

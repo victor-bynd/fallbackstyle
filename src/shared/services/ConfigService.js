@@ -40,10 +40,12 @@ export const ConfigService = {
             cleanFontStyles[styleId] = {
                 ...style,
                 fonts: (style.fonts || []).map(font => {
-                    // Filter out fontObject (Opentype object) and URL which might be blob
+                    // Filter out fontObject (Opentype object), fontBuffer (ArrayBuffer), and URL which might be blob
                     const serializableFont = { ...font };
                     delete serializableFont.fontObject;
                     delete serializableFont.fontUrl;
+                    delete serializableFont.fontBuffer;
+                    // Store font ID as reference - actual font data is in IndexedDB
                     return serializableFont;
                 })
             };

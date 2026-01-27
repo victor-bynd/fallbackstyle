@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { useTypography } from '../../../shared/context/useTypography';
 
 const OverridesModal = ({ isOpen, onClose, groupedOverrides, headerOverrideList, totalCount, actions }) => {
     if (!isOpen) return null;
@@ -170,26 +172,31 @@ const OverridesModal = ({ isOpen, onClose, groupedOverrides, headerOverrideList,
 
 const OverridesManager = ({ iconMode = false }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Font Management
+    const { fontStyles, getFontsForStyle } = useFontManagement();
+
+    // Language Mapping
     const {
-        languages,
+        supportedLanguages: languages,
         visibleLanguageIds,
-        fontStyles,
-        getFontsForStyle,
-        resetFallbackFontOverridesForStyle,
-        resetGlobalFallbackScaleForStyle,
-        resetAllFallbackFontOverridesForStyle,
-        resetAllLineHeightOverridesForStyle,
+        primaryFontOverrides,
+        clearPrimaryFontOverride,
+        systemFallbackOverrides,
+        resetSystemFallbackOverride,
         clearFallbackFontOverrideForStyle,
-        updateLineHeightOverrideForStyle,
+        resetAllFallbackFontOverridesForStyle,
+    } = useLanguageMapping();
+
+    // Typography
+    const {
         headerOverrides,
         headerStyles,
         resetHeaderStyle,
         resetAllHeaderStyles,
-        primaryFontOverrides,
-        clearPrimaryFontOverride,
-        systemFallbackOverrides,
-        resetSystemFallbackOverride
-    } = useTypo();
+        resetGlobalFallbackScaleForStyle,
+        resetAllLineHeightOverridesForStyle,
+    } = useTypography();
 
     // 1. Grouping Logic
     const getGroupedOverrides = (styleId) => {

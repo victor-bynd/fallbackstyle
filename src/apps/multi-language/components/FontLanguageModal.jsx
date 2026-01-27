@@ -16,12 +16,12 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { useTypo } from '../../../shared/context/useTypo';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import LanguageList from './LanguageList';
 import SortableFontRow from './SortableFontRow';
 
 const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings = {} }) => {
-    const { languages } = useTypo();
+    const { supportedLanguages: languages } = useLanguageMapping();
     const [fonts, setFonts] = useState(() =>
         pendingFonts.map((f, i) => ({ ...f, id: `pending-${i}` }))
     );
@@ -81,12 +81,13 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
                 continue;
             }
             try {
-                const { font, metadata } = await safeParseFontFile(file);
+                const { font, metadata, buffer } = await safeParseFontFile(file);
                 const url = createFontUrl(file);
                 // Create a pending font object structure matching FontUploader
                 newFonts.push({
                     font,
                     metadata,
+                    buffer,
                     url,
                     file,
                     id: `pending-added-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`

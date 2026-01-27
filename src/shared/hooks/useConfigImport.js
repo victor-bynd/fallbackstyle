@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import { useTypo } from '../context/useTypo';
+import { useFontManagement } from '../context/useFontManagement';
+import { useLanguageMapping } from '../context/useLanguageMapping';
+import { usePersistence } from '../context/usePersistence';
 import { ConfigService } from '../services/ConfigService';
 
 export const useConfigImport = () => {
-    const { restoreConfiguration, fontStyles, batchAddConfiguredLanguages } = useTypo();
+    const { fontStyles } = useFontManagement();
+    const { batchAddConfiguredLanguages } = useLanguageMapping();
+    const { restoreConfiguration } = usePersistence();
     const [missingFonts, setMissingFonts] = useState(null);
     const [existingFiles, setExistingFiles] = useState([]);
     const [parsedMappings, setParsedMappings] = useState({});

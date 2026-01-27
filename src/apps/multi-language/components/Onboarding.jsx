@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useFontManagement } from '../../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
+import { usePersistence } from '../../../shared/context/usePersistence';
 import FontUploader from './FontUploader';
 import LanguageList from './LanguageList';
 import LanguageSetupModal from './LanguageSetupModal';
@@ -48,15 +50,16 @@ const Onboarding = ({ importConfig }) => {
     const [primaryLanguages, setPrimaryLanguages] = useState(['en-US']);
     const [showResetModal, setShowResetModal] = useState(false);
 
+    // Font Management Context
+    const { loadFont, fontObject } = useFontManagement();
+
+    // Language Mapping Context
     const {
-        loadFont,
-        batchAddConfiguredLanguages,
         batchAddFontsAndMappings,
-        // Unused context values removed
-        fontObject,
-        togglePrimaryLanguage,
-        resetApp
-    } = useTypo();
+    } = useLanguageMapping();
+
+    // Persistence Context
+    const { resetApp } = usePersistence();
 
     const toggleLanguage = (id) => {
         setSelectedLanguages(prev => {
@@ -78,7 +81,7 @@ const Onboarding = ({ importConfig }) => {
     };
 
     const handleReset = () => {
-        resetApp();
+        resetApp('multi-language'); // Reset only multi-language tool
     };
 
     // Ref references for invisible inputs
@@ -87,11 +90,15 @@ const Onboarding = ({ importConfig }) => {
 
     const handleFontSelect = (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            console.log("Onboarding: handleFontSelect", e.target.files);
             setDroppedFiles(Array.from(e.target.files));
             // Don't change step, stay on initial page but let FontUploader handle it
             e.target.value = ''; // Reset input to allow re-selection
         }
+    };
+
+    const handleFontsProcessed = () => {
+        // Clear dropped files after they've been processed
+        setDroppedFiles([]);
     };
 
     const handleSetupReady = ({ languages, fonts }) => {
@@ -133,7 +140,7 @@ const Onboarding = ({ importConfig }) => {
 
             for (const [filename, file] of uniqueFiles.entries()) {
                 try {
-                    const { font, metadata } = await parseFontFile(file);
+                    const { font, metadata, buffer } = await parseFontFile(file);
                     const url = createFontUrl(file);
                     const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -142,6 +149,7 @@ const Onboarding = ({ importConfig }) => {
                         type: 'fallback',
                         fontObject: font,
                         fontUrl: url,
+                        fontBuffer: buffer,
                         fileName: file.name,
                         name: file.name,
                         axes: metadata.axes,
@@ -170,48 +178,53 @@ const Onboarding = ({ importConfig }) => {
                     isVariable: primaryLoadedData.isVariable,
                     staticWeight: primaryLoadedData.staticWeight
                 };
-                loadFont(primaryLoadedData.fontObject, primaryLoadedData.fontUrl, primaryLoadedData.name, metadata);
+                loadFont(primaryLoadedData.fontObject, primaryLoadedData.fontUrl, primaryLoadedData.name, metadata, primaryLoadedData.fontBuffer);
             }
-            // Fallback: If NO primary exists at all (empty state) and no explicit choice, pick first from pool if available.
-            // This prevents "Empty App" state if user just verified a pool.
-            else if (!fontObject && loadedFontsRegister.length > 0 && primarySelection.type !== 'current') {
+            // Fallback: If NO primary exists at all picking first from what we have
+            else if (!fontObject && loadedFontsRegister.length > 0 && primarySelection?.type !== 'current') {
                 const primaryCandidate = loadedFontsRegister[0];
                 const metadata = {
                     axes: primaryCandidate.axes,
                     isVariable: primaryCandidate.isVariable,
                     staticWeight: primaryCandidate.staticWeight
                 };
-                loadFont(primaryCandidate.fontObject, primaryCandidate.fontUrl, primaryCandidate.name, metadata);
+                loadFont(primaryCandidate.fontObject, primaryCandidate.fontUrl, primaryCandidate.name, metadata, primaryCandidate.fontBuffer);
             }
 
-            // 4. Prepare Mappings map
+            // 4. Prepare Mappings Map and Fallback Font Register (Exclude primary font from fallbacks to avoid duplicates)
             const mappings = {};
+            const fallbacksToRegister = loadedFontsRegister.filter(f => {
+                // If this is the font we just loaded as primary font, don't add it as a fallback
+                if (primaryLoadedData && f.id === primaryLoadedData.id) return false;
+                // Double check by filename/name match in case IDs differ but content is same
+                if (primaryLoadedData && (f.fileName === primaryLoadedData.fileName)) return false;
+                return true;
+            });
+
             Object.entries(setupMap).forEach(([langId, state]) => {
                 if ((state.type === 'upload' || state.type === 'pool') && state.file) {
-                    mappings[langId] = state.file.name;
+                    // Check if mapping to the newly loaded primary font
+                    if (primaryLoadedData && state.file.name === primaryLoadedData.fileName) {
+                        // Mapping to primary font: We don't need a fallback override if it's the primary language
+                        // But if it's a different language, we might want to map it to 'primary'
+                        mappings[langId] = 'primary';
+                    } else {
+                        mappings[langId] = state.file.name;
+                    }
                 }
             });
 
-            // 5. Batch Update
-            if (loadedFontsRegister.length > 0 || Object.keys(mappings).length > 0) {
-                batchAddFontsAndMappings({
-                    fonts: loadedFontsRegister,
-                    mappings: mappings,
-                    languageIds: importedLanguages // PASS ALL IMPORTED LANGUAGES
-                });
-            } else {
-                // If no fonts, just enable languages
-                batchAddConfiguredLanguages(importedLanguages);
-            }
-
-            // 6. Set Primary Language
-            if (primaryLanguages.length > 0) {
-                // We assume single primary selection
-                togglePrimaryLanguage(primaryLanguages[0]);
-            }
+            // 5. Batch Update All Mappings and Fonts
+            batchAddFontsAndMappings({
+                fonts: fallbacksToRegister,
+                mappings: mappings,
+                languageIds: importedLanguages,
+                primaryLanguages: primaryLanguages,
+                sourcePrimaryFontId: 'primary'
+            });
         }
         setSetupData(null);
-        setStep('initial'); // Or consider 'done' / redirect? Usually App state change causes rerender elsewhere.
+        setStep('initial');
     };
 
     const onConfigInputChange = (e) => {
@@ -315,29 +328,30 @@ const Onboarding = ({ importConfig }) => {
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-12">
-                    {/* Option 2: Start with Languages (Primary) */}
-                    <InitialOptionCard
-                        primary={true}
-                        onClick={() => setStep('languages')}
-                        title="Start with Languages"
-                        description="Add the countries/regions you want to support then add fonts as you go."
-                        icon={(
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
-                            </svg>
-                        )}
-                    />
+                <div className="flex justify-center max-w-3xl mx-auto mb-12">
+                    {/* Option 2: Start with Languages (Primary) - HIDDEN FOR DEBUGGING */}
+                    <div className="hidden">
+                        <InitialOptionCard
+                            primary={true}
+                            onClick={() => setStep('languages')}
+                            title="Start with Languages"
+                            description="Add the countries/regions you want to support then add fonts as you go."
+                            icon={(
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                                </svg>
+                            )}
+                        />
+                    </div>
 
                     {/* Option 1: Start with Fonts (Secondary) - Drag & Drop Area */}
                     <div
-                        className="group relative flex flex-col items-center justify-start p-8 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 transition-all duration-300 w-full text-center hover:bg-white hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer"
+                        className="group relative flex flex-col items-center justify-start p-8 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 transition-all duration-300 w-full max-w-md text-center hover:bg-white hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer"
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         onDrop={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                console.log("Onboarding: onDrop", e.dataTransfer.files);
                                 setDroppedFiles(Array.from(e.dataTransfer.files));
                             }
                         }}
@@ -399,6 +413,7 @@ const Onboarding = ({ importConfig }) => {
                     preselectedLanguages={null}
                     initialFiles={droppedFiles}
                     renderDropzone={false}
+                    onFilesProcessed={handleFontsProcessed}
                 />
 
 

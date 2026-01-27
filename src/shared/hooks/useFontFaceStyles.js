@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import { useTypo } from '../context/useTypo';
+import { useFontManagement } from '../context/useFontManagement';
+import { useTypography } from '../context/useTypography';
 
 export const useFontFaceStyles = () => {
-    const { fontStyles, getEffectiveFontSettingsForStyle } = useTypo();
+    const { fontStyles } = useFontManagement();
+    const { getEffectiveFontSettingsForStyle } = useTypography();
 
     const fontFaceStyles = useMemo(() => {
         return Object.keys(fontStyles || {})

@@ -1,14 +1,13 @@
 import { useCallback } from 'react';
-import { useTypo } from '../context/useTypo';
+import { useFontManagement } from '../context/useFontManagement';
+import { useLanguageMapping } from '../context/useLanguageMapping';
+import { useTypography } from '../context/useTypography';
+import { normalizeFontName } from '../utils/fontNameUtils';
 
 export const useFontStack = () => {
-    const {
-        fontStyles,
-        getFontsForStyle,
-        getFallbackFontOverrideForStyle,
-        getEffectiveFontSettingsForStyle,
-        normalizeFontName
-    } = useTypo();
+    const { fontStyles, getFontsForStyle } = useFontManagement();
+    const { getFallbackFontOverrideForStyle } = useLanguageMapping();
+    const { getEffectiveFontSettingsForStyle } = useTypography();
 
     const buildFallbackFontStackForStyle = useCallback((styleId, languageId) => {
         const style = fontStyles?.[styleId];
@@ -176,7 +175,7 @@ export const useFontStack = () => {
         }
 
         return fontStack;
-    }, [fontStyles, getFontsForStyle, getFallbackFontOverrideForStyle, getEffectiveFontSettingsForStyle, normalizeFontName]);
+    }, [fontStyles, getFontsForStyle, getFallbackFontOverrideForStyle, getEffectiveFontSettingsForStyle]);
 
     return { buildFallbackFontStackForStyle };
 };

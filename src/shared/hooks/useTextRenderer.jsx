@@ -1,17 +1,13 @@
-import { useTypo } from '../context/useTypo';
+import { useFontManagement } from '../context/useFontManagement';
+import { useLanguageMapping } from '../context/useLanguageMapping';
+import { useTypography } from '../context/useTypography';
 import { useUI } from '../context/UIContext';
 import { useFontStack } from './useFontStack';
 
 export const useTextRenderer = () => {
-    const {
-        fontStyles,
-        getFontsForStyle,
-        getPrimaryFontFromStyle,
-        getPrimaryFontOverrideForStyle,
-        getEffectiveFontSettingsForStyle,
-        systemFallbackOverrides,
-        missingColor
-    } = useTypo();
+    const { fontStyles, getFontsForStyle, getPrimaryFontFromStyle } = useFontManagement();
+    const { getPrimaryFontOverrideForStyle, systemFallbackOverrides } = useLanguageMapping();
+    const { getEffectiveFontSettingsForStyle, missingColor } = useTypography();
 
     const {
         colors,
@@ -85,7 +81,7 @@ export const useTextRenderer = () => {
         const style = fontStyles?.[styleId];
         const baseFontSize = fontSize ?? style?.baseFontSize ?? 16;
         const fontScales = style?.fontScales || { active: 100, fallback: 100 };
-        const effectiveLineHeight = lineHeight ?? style?.lineHeight ?? 1.2;
+        const effectiveLineHeight = lineHeight ?? style?.lineHeight ?? 'normal';
 
         const fallbackFontStack = buildFallbackFontStackForStyle(styleId, languageId);
         const fallbackFontStackString = fallbackFontStack.length > 0
@@ -101,7 +97,7 @@ export const useTextRenderer = () => {
         };
 
         // Ensure we use the provided color if context doesn't have it or we want to force it
-        const effectivePrimaryColor = color || primarySettings.color || colors.primary;
+        const effectivePrimaryColor = color || (showFallbackColors ? primarySettings.color : null) || colors.primary;
 
         // Determine the correct font family alias
         const isGlobalPrimary = effectivePrimaryFont?.type === 'primary' && !effectivePrimaryFont?.isPrimaryOverride;
@@ -128,15 +124,21 @@ export const useTextRenderer = () => {
             // as we can't switch the container's font-size mid-string without spans.
 
             return (
-                <span style={{
-                    fontFamily: isHidden
-                        ? fallbackFontStackString
-                        : `${primaryFamily}, ${fallbackFontStackString}`,
-                    color: effectivePrimaryColor,
-                    verticalAlign: 'baseline',
-                    letterSpacing: `${primarySettings.letterSpacing}em`,
-                    // fontWeight: primarySettings.weight // Let CSS handle weight selection or use variation settings
-                }}>
+                <span
+                    style={{
+                        fontFamily: isHidden
+                            ? fallbackFontStackString
+                            : `${primaryFamily}, ${fallbackFontStackString}`,
+                        color: effectivePrimaryColor,
+                        verticalAlign: 'baseline',
+                        letterSpacing: `${primarySettings.letterSpacing}em`,
+                        lineHeight: 'inherit',
+                        fontWeight: primarySettings.weight || 400,
+                        fontVariationSettings: (effectivePrimaryFont?.isVariable || effectivePrimaryFont?.axes?.weight)
+                            ? `'wght' ${primarySettings.weight || 400}`
+                            : undefined
+                    }}
+                >
                     {processedContent}
                 </span>
             );
@@ -178,7 +180,7 @@ export const useTextRenderer = () => {
                 const fallbackSettings = getEffectiveFontSettingsForStyle(styleId, usedFallback.fontId) || {
                     baseFontSize,
                     scale: fontScales.fallback,
-                    lineHeight: 1.2,
+                    lineHeight: 'normal',
                     letterSpacing: 0,
                     weight: 400
                 };
@@ -238,7 +240,7 @@ export const useTextRenderer = () => {
                 borderRadius: '2px'
             } : {};
 
-            const finalColor = showFallbackColors ? effectivePrimaryColor : effectivePrimaryColor;
+            const finalColor = showFallbackColors ? (effectivePrimaryFont?.color || effectivePrimaryColor) : effectivePrimaryColor;
 
             return (
                 <span
@@ -248,6 +250,7 @@ export const useTextRenderer = () => {
                         color: finalColor,
                         verticalAlign: 'baseline',
                         letterSpacing: `${primarySettings.letterSpacing}em`,
+                        lineHeight: 'inherit',
                         ...inlineBoxStyle
                     }}
                 >

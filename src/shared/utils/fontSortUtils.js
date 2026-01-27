@@ -1,4 +1,5 @@
 import languages from '../data/languages.json';
+import { normalizeFontName } from './fontNameUtils';
 
 const languageOrderMap = new Map();
 languages.forEach((l, i) => languageOrderMap.set(l.id, i));
@@ -62,40 +63,6 @@ export const groupAndSortFonts = (fonts, fallbackOverridesMap, primaryOverridesM
             };
             return getMinIndex(a.languages) - getMinIndex(b.languages);
         });
-
-    // Helper to normalize font names for comparison (consistent with TypoContext)
-    const normalizeFontName = (name) => {
-        if (!name) return '';
-        let n = name.trim().toLowerCase();
-
-        // Remove extension
-        const lastDot = n.lastIndexOf('.');
-        if (lastDot > 0) {
-            n = n.substring(0, lastDot);
-        }
-
-        // Remove common suffixes
-        const suffixes = [
-            '-regular', ' regular', '_regular',
-            '-bold', ' bold', '_bold',
-            '-italic', ' italic', '_italic',
-            '-medium', ' medium', '_medium',
-            '-light', ' light', '_light',
-            '-thin', ' thin', '_thin',
-            '-black', ' black', '_black',
-            '-semibold', ' semibold', '_semibold',
-            '-extrabold', ' extrabold', '_extrabold',
-            '-extralight', ' extralight', '_extralight'
-        ];
-
-        for (const suffix of suffixes) {
-            if (n.endsWith(suffix)) {
-                n = n.substring(0, n.length - suffix.length);
-            }
-        }
-
-        return n.replace(/[-_]/g, ' ').trim();
-    };
 
     const primaryName = primary ? normalizeFontName(primary.fileName || primary.name) : null;
 

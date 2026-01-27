@@ -12,6 +12,7 @@ const MetricGuidesOverlay = ({
     ascentOverride,
     descentOverride,
     lineGapOverride,
+    sizeAdjust = 1,
     browserGuideColor = '#3B82F6', // Default to blue
     guideColor = '#000000', // Default to black/primary
 }) => {
@@ -22,53 +23,45 @@ const MetricGuidesOverlay = ({
         const upm = fontObject.unitsPerEm;
 
         // PRIORITIZE HHEA metrics as browsers (especially Chrome/Safari on Mac) often favor them.
-        // Fallback to OS/2, then root properties.
         const hhea = fontObject.tables?.hhea;
         const os2 = fontObject.tables?.os2;
 
         let ascender = fontObject.ascender;
         let descender = fontObject.descender;
-        // lineGap removed
-
+        let lineGap = 0;
 
         // helper to check if valid number
-        const isValid = (n) => n !== undefined && n !== null;
+        const isValid = (n) => n !== undefined && n !== null && n !== '';
 
         if (isValid(hhea?.ascender)) {
             ascender = hhea.ascender;
             descender = hhea.descender;
-            // lineGap removed
-
+            lineGap = hhea.lineGap || 0;
         } else if (isValid(os2?.sTypoAscender)) {
             ascender = os2.sTypoAscender;
             descender = os2.sTypoDescender;
-            // lineGap removed
-
+            lineGap = os2.sTypoLineGap || 0;
         }
 
         // Apply overrides if present (these take absolute precedence)
-        // Overrides are 0-1 ratios (e.g. 0.8), but font units are based on upm
-        if (ascentOverride !== undefined && ascentOverride !== '') {
+        if (isValid(ascentOverride)) {
             ascender = Number(ascentOverride) * upm;
         }
-        if (descentOverride !== undefined && descentOverride !== '') {
-            // descentOverride is a positive height magnitude (e.g. 0.2)
-            // in font tables, descent is a negative Y coordinate.
+        if (isValid(descentOverride)) {
             descender = -1 * Math.abs(Number(descentOverride) * upm);
         }
+        if (isValid(lineGapOverride)) {
+            lineGap = Number(lineGapOverride) * upm;
+        }
 
-        const xHeight = os2?.sxHeight || 0;
-        const capHeight = os2?.sCapHeight || 0;
+        // Apply sizeAdjust multiplier
+        const adj = Number(sizeAdjust) || 1;
+        ascender *= adj;
+        descender *= adj;
+        lineGap *= adj;
 
-        const contentHeightUnits = ascender - descender; // descender is usually negative
-
-        // Calculate total height based on line height multiplier
-        // If overrides are present, the "normal" line height is the sum of (ascent + descent + lineGap).
-        // However, if the user provided an explicit lineHeight (like 1.5), the box is fixed.
-        let totalHeightUnits = upm * lineHeight;
-
-        // If we are simulating "normal" behavior with overrides, we might need to adjust this.
-        // For now, we assume fixed line-height from the preview settings.
+        const xHeight = (os2?.sxHeight || 0) * adj;
+        const capHeight = (os2?.sCapHeight || 0) * adj;
 
         // Prevent division by zero
         if (fontSizePx <= 0) return {};
@@ -81,12 +74,18 @@ const MetricGuidesOverlay = ({
         const dashLen = 4 * scale;
         const dashArrayUnits = `${dashLen} ${dashLen}`;
 
-        // Center the content area within the line box
-        // Ideally: (totalHeight - contentHeight) / 2 is the top leading
-        const halfLeadingUnits = (totalHeightUnits - contentHeightUnits) / 2;
+        // Standard browser line box calculation:
+        // Total Height = (ascent - descender) + lineGap
+        // Half Leading = (lineHeightUnits - TotalHeight) / 2
+        // Baseline = Half Leading + ascent + (lineGap / 2) if using sTypo metrics, 
+        // but browsers usually distribute lineGap evenly above and below the (ascender-descender) box.
 
-        // Baseline is at top + halfLeading + ascender
-        const baselineYUnits = halfLeadingUnits + ascender;
+        const lineHeightUnits = upm * lineHeight;
+        const contentHeightUnits = ascender - descender + lineGap;
+        const halfLeadingUnits = (lineHeightUnits - contentHeightUnits) / 2;
+
+        // Baseline relative to top of line box
+        const baselineYUnits = halfLeadingUnits + ascender + (lineGap / 2);
 
         const guideLines = [
             { y: baselineYUnits, color: guideColor, width: strokeWidthUnits * 1.5, dash: null }, // Baseline - SOLID
@@ -105,7 +104,7 @@ const MetricGuidesOverlay = ({
             return `<line x1="0" y1="${line.y}" x2="${tileWidthUnits}" y2="${line.y}" stroke="${line.color}" stroke-width="${line.width}" ${dashAttr} />`;
         }).join('');
 
-        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${tileWidthUnits}' height='${totalHeightUnits}' viewBox='0 0 ${tileWidthUnits} ${totalHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
+        const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${tileWidthUnits}' height='${lineHeightUnits}' viewBox='0 0 ${tileWidthUnits} ${lineHeightUnits}' preserveAspectRatio='none'>${paths}</svg>`;
         const base64Svg = btoa(svgString);
 
         return {
@@ -114,7 +113,7 @@ const MetricGuidesOverlay = ({
             backgroundRepeat: 'repeat',
             backgroundPosition: '0 0'
         };
-    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride, guideColor]);
+    }, [showAlignmentGuides, fontObject, lineHeight, fontSizePx, ascentOverride, descentOverride, lineGapOverride, sizeAdjust, guideColor]);
 
     // Browser Guides (Line Box View)
     const browserGuideStyle = useMemo(() => showBrowserGuides ? {
@@ -144,6 +143,7 @@ const MetricGuidesOverlay = ({
                 pointerEvents: 'none',
                 zIndex: fullWidth ? 20 : 10, // Increased to show above text
                 fontSize: `${fontSizePx}px`,
+                lineHeight: lineHeight,
                 ...browserGuideStyle,
                 ...alignmentStyle
             }}

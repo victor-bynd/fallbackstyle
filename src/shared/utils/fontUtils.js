@@ -8,8 +8,9 @@
  * @returns {number|string} The calculated numeric line height (or 'normal')
  */
 export const calculateNumericLineHeight = (lineHeight, fontObject, overrides = {}) => {
-    // ...
     let numLineHeight = parseFloat(lineHeight);
+
+    const sizeAdjust = Number(overrides?.sizeAdjust) || 1;
 
     // Check if any vertical metric overrides are active
     const hasActiveOverrides = overrides && (
@@ -20,7 +21,6 @@ export const calculateNumericLineHeight = (lineHeight, fontObject, overrides = {
 
     if (lineHeight === 'normal' || (typeof lineHeight === 'number' && isNaN(lineHeight)) || hasActiveOverrides) {
         if (fontObject) {
-            // ...
             // MATCH LOGIC WITH MetricGuidesOverlay: Prioritize hhea
             const hhea = fontObject.tables?.hhea;
             const os2 = fontObject.tables?.os2;
@@ -49,41 +49,28 @@ export const calculateNumericLineHeight = (lineHeight, fontObject, overrides = {
                 ascender = overrides.ascentOverride * upem;
             }
             if (isValid(overrides.descentOverride)) {
-                // Descent override is a positive magnitude in CSS (height of descent)
-                // In font tables, descender is usually negative.
-                // Our formula below uses Math.abs(), so we can set it as positive magnitude or negative, 
-                // but let's treat it as the 'height' component directly.
                 descender = -1 * Math.abs(overrides.descentOverride * upem);
             }
             if (isValid(overrides.lineGapOverride)) {
                 lineGap = overrides.lineGapOverride * upem;
             }
 
-            // 3. Calculate Base Metrics (What 'normal' would look like without overrides)
-            // const baseAscender = hhea?.ascender ?? os2?.sTypoAscender ?? fontObject.ascender;
-            // const baseDescender = Math.abs(hhea?.descender ?? os2?.sTypoDescender ?? fontObject.descender);
-            // const baseLineGap = hhea?.lineGap ?? os2?.sTypoLineGap ?? 0;
-            // const baseMetricHeight = (Math.abs(baseAscender) + Math.abs(baseDescender) + baseLineGap) / upem;
-
-            // 4. Calculate New Metrics (With Overrides)
-            const newMetricHeight = (Math.abs(ascender) + Math.abs(descender) + lineGap) / upem;
+            // 3. Calculate New Metrics (With Overrides)
+            // sizeAdjust scales the glyphs and metrics associated with the font
+            const newMetricHeight = ((Math.abs(ascender) + Math.abs(descender) + lineGap) / upem) * sizeAdjust;
 
             if (typeof lineHeight === 'number' && !isNaN(lineHeight)) {
                 // If user provided a specific line height (e.g. 1.2), we ensure the override
                 // is sufficient. If the override results in TALLER line height, we use it.
-                // If the user's line height is already TALLER, we respect the user's spacious setting.
                 numLineHeight = Math.max(lineHeight, newMetricHeight);
             } else {
                 // If 'normal' or 'auto', use the full metric height
                 numLineHeight = newMetricHeight;
             }
         } else {
-            // If fontObject is missing (e.g. System Font), we cannot calculate exact metrics.
-            // We should default to the user's setting.
             if (typeof lineHeight === 'number' && !isNaN(lineHeight)) {
                 numLineHeight = lineHeight;
             } else {
-                // Return 'normal' to allow the browser to determine height (and respect CSS overrides like line-gap-override)
                 numLineHeight = 'normal';
             }
         }

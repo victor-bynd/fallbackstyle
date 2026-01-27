@@ -1,4 +1,8 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+# Run linting
+npm run lint
 
+# Increment version
 node scripts/increment-version.js
+
+# Stage the version update
+git add package.json

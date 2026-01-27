@@ -2,6 +2,8 @@ export const fallbackOptions = [
     { label: 'System Sans', value: 'system-ui, sans-serif' },
     { label: 'System Serif', value: 'ui-serif, serif' },
     { label: 'Arial', value: 'Arial, sans-serif' },
+    { label: 'Helvetica Neue', value: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
+    { label: 'Tahoma', value: 'Tahoma, Verdana, sans-serif' },
     { label: 'Times New Roman', value: '"Times New Roman", serif' },
     { label: 'Noto Sans', value: '"Noto Sans", sans-serif' },
 ];

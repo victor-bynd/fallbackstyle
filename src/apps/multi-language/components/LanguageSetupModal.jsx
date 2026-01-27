@@ -1,8 +1,8 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 
 const LanguageSetupRow = ({ langId, state, onChange, pooledFonts = [], isPrimaryLanguage = false }) => {
-    const { languages } = useTypo();
+    const { supportedLanguages: languages } = useLanguageMapping();
     const fileInputRef = useRef(null);
     const { type, file } = state || { type: 'inherit', file: null };
 

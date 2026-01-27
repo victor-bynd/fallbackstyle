@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useTypo } from '../../../shared/context/useTypo';
+import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import LanguageList from './LanguageList';
 
 const LanguageSelectorModal = ({ onClose }) => {
     const {
-        languages,
+        supportedLanguages: languages,
         visibleLanguageIds,
         toggleLanguageVisibility,
         showAllLanguages,
         hideAllLanguages,
-
-        primaryLanguages, // New
-        togglePrimaryLanguage // New
-    } = useTypo();
+        primaryLanguages,
+        togglePrimaryLanguage,
+    } = useLanguageMapping();
 
     const [searchTerm, setSearchTerm] = useState('');
 
