@@ -794,9 +794,6 @@ const MainContent = ({
 
 
                     </div>
-                    <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-300 text-center tracking-widest uppercase">
-                      v{__APP_VERSION__}
-                    </div>
                   </div>
                 )}
               </div>

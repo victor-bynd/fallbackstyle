@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
-import appVersion from '../version.json';
+import appVersion from '../../../shared/version.json';
 import systemFonts from '../../../shared/constants/systemFonts.json';
 import { parseFontFile, createFontUrl } from '../../../shared/services/FontLoader';
 import InfoTooltip from '../../../shared/components/InfoTooltip';

@@ -1,20 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
-import multiLanguageVersion from '../multi-language/version.json';
-import brandFontVersion from '../brand-font/version.json';
+import { get as getStoredItem } from 'idb-keyval';
+import appVersion from '../../shared/version.json';
 
-import { useState } from 'react';
 import { usePersistence } from '../../shared/context/usePersistence';
+import { PersistenceService } from '../../shared/services/PersistenceService';
 import ResetConfirmModal from '../../shared/components/ResetConfirmModal';
 
 const LandingPage = () => {
     const { resetApp } = usePersistence();
     const [showResetModal, setShowResetModal] = useState(false);
+    const [sessions, setSessions] = useState({
+        multiLanguage: false,
+        brandFont: false
+    });
+
+    useEffect(() => {
+        const checkSessions = async () => {
+            // Check Multi-language session (IndexedDB)
+            const mlConfig = await PersistenceService.loadConfig();
+
+            // Check Brand Font session (localStorage + idb-keyval)
+            const bfConfig = localStorage.getItem('brand-font-config');
+            const bfFile = await getStoredItem('brand-font-file');
+
+            setSessions({
+                multiLanguage: !!mlConfig,
+                brandFont: !!bfConfig || !!bfFile
+            });
+        };
+
+        checkSessions();
+    }, []);
 
     const handleGlobalReset = async () => {
         await resetApp('all'); // Reset both multi-language and brand-font tools
+        setSessions({ multiLanguage: false, brandFont: false });
     };
 
     return (
@@ -51,9 +74,11 @@ const LandingPage = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                                     </svg>
                                 </div>
-                                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wide">
-                                    v{multiLanguageVersion.version}
-                                </span>
+                                {sessions.multiLanguage && (
+                                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wide">
+                                        Active Session
+                                    </span>
+                                )}
                             </div>
 
                             <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">
@@ -91,9 +116,11 @@ const LandingPage = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                     </svg>
                                 </div>
-                                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide">
-                                    v{brandFontVersion.version}
-                                </span>
+                                {sessions.brandFont && (
+                                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide">
+                                        Active Session
+                                    </span>
+                                )}
                             </div>
 
                             <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-emerald-600 transition-colors">
@@ -119,9 +146,14 @@ const LandingPage = () => {
                 </div>
 
                 <div className="fixed bottom-0 left-0 right-0 w-full py-6 px-8 border-t border-slate-200 bg-slate-50 z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-slate-400 text-sm">
-                        © {new Date().getFullYear()} Fallback Style. All rights reserved.
-                    </p>
+                    <div className="flex items-center gap-4">
+                        <p className="text-slate-400 text-sm">
+                            © {new Date().getFullYear()} Fallback Style. All rights reserved.
+                        </p>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                            v{appVersion.version}
+                        </span>
+                    </div>
                     <button
                         onClick={() => setShowResetModal(true)}
                         className="p-2 text-slate-300 hover:text-rose-500 transition-colors rounded-full hover:bg-rose-50"

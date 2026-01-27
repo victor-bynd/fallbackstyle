@@ -8,7 +8,7 @@ import languagesData from '../../../shared/data/languages.json';
 import { getLanguageGroup } from '../../../shared/utils/languageUtils';
 import LanguageGroupFilter from './LanguageGroupFilter';
 import SidebarLanguageList from './SidebarLanguageList';
-import pkg from '../version.json';
+import pkg from '../../../shared/version.json';
 
 const SidebarLanguages = ({
     selectedGroup,
