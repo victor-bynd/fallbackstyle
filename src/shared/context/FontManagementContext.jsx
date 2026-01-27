@@ -454,10 +454,20 @@ export const FontManagementProvider = ({ children }) => {
         logger.debug('Updating font color:', fontId, color);
 
         setFontStyles(prev => {
-            // Find the font in the current state to get its name
-            const activeStyle = prev[activeFontStyleId] || prev.primary;
-            const font = activeStyle?.fonts?.find(f => f && f.id === fontId);
-            if (!font) return prev;
+            // Find the font across ALL styles to get its name (not just active style)
+            let font = null;
+            for (const styleId of Object.keys(prev)) {
+                const style = prev[styleId];
+                if (style && style.fonts) {
+                    font = style.fonts.find(f => f && f.id === fontId);
+                    if (font) break;
+                }
+            }
+            
+            if (!font) {
+                logger.debug('Font not found for color update:', fontId);
+                return prev;
+            }
 
             const targetName = normalizeFontName(font.fileName || font.name);
 
@@ -481,7 +491,7 @@ export const FontManagementProvider = ({ children }) => {
 
             return nextStyles;
         });
-    }, [activeFontStyleId]);
+    }, []);
 
     /**
      * Get font color with fallback to parent

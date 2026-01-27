@@ -37,7 +37,7 @@ const FontCardHeader = ({
                             <input
                                 type="color"
                                 value={getFontColor(font.id)}
-                                onInput={(e) => updateFontColor(font.id, e.target.value)}
+                                onChange={(e) => updateFontColor(font.id, e.target.value)}
                                 disabled={(isInherited && !isLineHeightLocked) || readOnly}
                                 className={`absolute inset-0 w-full h-full opacity-0 ${(isInherited && !isLineHeightLocked) || readOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                             />

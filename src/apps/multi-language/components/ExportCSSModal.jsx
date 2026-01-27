@@ -33,7 +33,7 @@ const ExportCSSModal = ({ onClose }) => {
             // Primary Font
             const primary = style.fonts?.find(f => f.type === 'primary');
             // Allow if fontUrl exists OR if it's a system font (name exists) AND has overrides
-            if (primary && !processedFonts.has(`primary - ${styleId} `)) {
+            if (primary && !processedFonts.has(`primary-${styleId}`)) {
                 const primarySettings = getEffectiveFontSettingsForStyle(styleId, primary.id);
 
                 const hasOverrides = (
@@ -43,45 +43,49 @@ const ExportCSSModal = ({ onClose }) => {
                 );
 
                 if (primary.fontUrl || (primary.name && hasOverrides)) {
+                    const sizeAdjust = (primarySettings?.scale && primarySettings.scale !== 100)
+                        ? `  size-adjust: ${primarySettings.scale}%;\n` : '';
+                    const variationSettings = (primary.isVariable || primary.axes?.weight)
+                        ? `  font-variation-settings: 'wght' ${primarySettings?.weight ?? 400};\n` : '';
                     const lineGap = (primarySettings?.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '')
-                        ? `  line - gap - override: ${primarySettings.lineGapOverride * 100}%; \n` : '';
+                        ? `  line-gap-override: ${primarySettings.lineGapOverride * 100}%;\n` : '';
                     const ascent = (primarySettings?.ascentOverride !== undefined && primarySettings.ascentOverride !== '')
-                        ? `  ascent - override: ${primarySettings.ascentOverride * 100}%; \n` : '';
+                        ? `  ascent-override: ${primarySettings.ascentOverride * 100}%;\n` : '';
                     const descent = (primarySettings?.descentOverride !== undefined && primarySettings.descentOverride !== '')
-                        ? `  descent - override: ${primarySettings.descentOverride * 100}%; \n` : '';
+                        ? `  descent-override: ${primarySettings.descentOverride * 100}%;\n` : '';
 
                     const src = primary.fontUrl ? `url('${primary.fontUrl}')` : `local('${primary.name}')`;
 
-                    css += `@font-face { \n  font - family: 'UploadedFont-${styleId}'; \n  src: ${src}; \n${lineGap}${ascent}${descent} } \n\n`;
-                    processedFonts.add(`primary - ${styleId} `);
+                    css += `@font-face {\n  font-family: 'UploadedFont-${styleId}';\n  src: ${src};\n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent}}\n\n`;
+                    processedFonts.add(`primary-${styleId}`);
                 }
             }
 
             // Fallback Fonts
             (style.fonts || []).forEach(font => {
                 if ((font.type === 'fallback' || font.type === 'primary') && (font.fontUrl || font.name)) {
-                    const key = `fallback - ${styleId} -${font.id} `;
+                    const key = `fallback-${styleId}-${font.id}`;
                     if (processedFonts.has(key)) return;
 
                     const settings = getEffectiveFontSettingsForStyle(styleId, font.id);
                     let scale = settings?.scale ?? 100;
-                    const sizeAdjust = (scale !== 100) ? `  size - adjust: ${scale}%; \n` : '';
+                    const sizeAdjust = (scale !== 100) ? `  size-adjust: ${scale}%;\n` : '';
 
                     const variationSettings = (font.isVariable || font.axes?.weight)
-                        ? `  font - variation - settings: 'wght' ${settings?.weight ?? 400}; \n` : '';
+                        ? `  font-variation-settings: 'wght' ${settings?.weight ?? 400};\n` : '';
 
                     const lineGap = (settings?.lineGapOverride !== undefined && settings.lineGapOverride !== '')
-                        ? `  line - gap - override: ${settings.lineGapOverride * 100}%; \n` : '';
+                        ? `  line-gap-override: ${settings.lineGapOverride * 100}%;\n` : '';
                     const ascent = (settings?.ascentOverride !== undefined && settings.ascentOverride !== '')
-                        ? `  ascent - override: ${settings.ascentOverride * 100}%; \n` : '';
+                        ? `  ascent-override: ${settings.ascentOverride * 100}%;\n` : '';
                     const descent = (settings?.descentOverride !== undefined && settings.descentOverride !== '')
-                        ? `  descent - override: ${settings.descentOverride * 100}%; \n` : '';
+                        ? `  descent-override: ${settings.descentOverride * 100}%;\n` : '';
 
                     // If no URL (local font), assume local()
                     // If URL, use url() 
                     const src = font.fontUrl ? `url('${font.fontUrl}')` : `local('${font.name}')`;
 
-                    css += `@font-face { \n  font - family: 'FallbackFont-${styleId}-${font.id}'; \n  src: ${src}; \n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent} } \n\n`;
+                    css += `@font-face {\n  font-family: 'FallbackFont-${styleId}-${font.id}';\n  src: ${src};\n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent}}\n\n`;
                     processedFonts.add(key);
                 }
             });
@@ -99,20 +103,20 @@ const ExportCSSModal = ({ onClose }) => {
                     sysOverrides.descentOverride !== undefined ||
                     sysOverrides.scale !== undefined
                 )) {
-                    const key = `SystemFallback - ${styleId} -${langId} `;
+                    const key = `SystemFallback-${styleId}-${langId}`;
                     if (!processedFonts.has(key)) {
                         const lineGap = (sysOverrides.lineGapOverride !== undefined && sysOverrides.lineGapOverride !== '')
-                            ? `  line - gap - override: ${sysOverrides.lineGapOverride * 100}%; \n` : '';
+                            ? `  line-gap-override: ${sysOverrides.lineGapOverride * 100}%;\n` : '';
                         const ascent = (sysOverrides.ascentOverride !== undefined && sysOverrides.ascentOverride !== '')
-                            ? `  ascent - override: ${sysOverrides.ascentOverride * 100}%; \n` : '';
+                            ? `  ascent-override: ${sysOverrides.ascentOverride * 100}%;\n` : '';
                         const descent = (sysOverrides.descentOverride !== undefined && sysOverrides.descentOverride !== '')
-                            ? `  descent - override: ${sysOverrides.descentOverride * 100}%; \n` : '';
+                            ? `  descent-override: ${sysOverrides.descentOverride * 100}%;\n` : '';
                         const sizeAdjust = (sysOverrides.scale !== undefined && sysOverrides.scale !== 100)
-                            ? `  size - adjust: ${sysOverrides.scale}%; \n` : '';
+                            ? `  size-adjust: ${sysOverrides.scale}%;\n` : '';
 
                         const fallbackName = style.fallbackFont || 'sans-serif';
 
-                        css += `@font-face { \n  font - family: '${key}'; \n  src: local('${fallbackName}'); \n${sizeAdjust}${lineGap}${ascent}${descent} } \n\n`;
+                        css += `@font-face {\n  font-family: '${key}';\n  src: local('${fallbackName}');\n${sizeAdjust}${lineGap}${ascent}${descent}}\n\n`;
                         processedFonts.add(key);
                     }
                 }
@@ -129,22 +133,22 @@ const ExportCSSModal = ({ onClose }) => {
                 const parts = [];
 
                 if (useLangAttribute) {
-                    const baseSelector = `: lang(${langId})`;
+                    const baseSelector = `:lang(${langId})`;
                     if (styleId === 'primary') {
                         parts.push(baseSelector);
                     } else {
-                        parts.push(`${baseSelector} .type - ${styleId} `);
-                        parts.push(`${baseSelector} ${styleId} `);
+                        parts.push(`${baseSelector} .type-${styleId}`);
+                        parts.push(`${baseSelector} ${styleId}`);
                     }
                 }
 
                 if (useUtilityClasses) {
-                    const classSelector = `.lang - ${langId} `;
+                    const classSelector = `.lang-${langId}`;
                     if (styleId === 'primary') {
                         parts.push(classSelector);
                     } else {
-                        parts.push(`${classSelector} .type - ${styleId} `);
-                        parts.push(`${classSelector} ${styleId} `);
+                        parts.push(`${classSelector} .type-${styleId}`);
+                        parts.push(`${classSelector} ${styleId}`);
                     }
                 }
 
@@ -186,17 +190,16 @@ const ExportCSSModal = ({ onClose }) => {
 
                 const forceNormalLineHeight = primaryHasOverrides || fallbackHasOverrides;
 
-                css += `${selector} {
-\n`;
-                css += `  font - family: ${fontFamily}; \n`;
+                css += `${selector} {\n`;
+                css += `  font-family: ${fontFamily};\n`;
                 if (styleId === 'primary') {
                     if (forceNormalLineHeight) {
-                        css += `  line - height: normal; \n`;
+                        css += `  line-height: normal;\n`;
                     } else if (settings && settings.lineHeight) {
-                        css += `  line - height: ${settings.lineHeight}; \n`;
+                        css += `  line-height: ${settings.lineHeight};\n`;
                     }
                 }
-                css += `} \n`;
+                css += `}\n`;
             });
         });
 
@@ -265,7 +268,7 @@ const ExportCSSModal = ({ onClose }) => {
                     {/* Options Toolbar */}
                     <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-6">
                         <label className="flex items-center gap-2 cursor-pointer group">
-                            <div className={`w - 4 h - 4 rounded border flex items - center justify - center transition - colors ${useLangAttribute ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-400'} `}>
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${useLangAttribute ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-400'}`}>
                                 {useLangAttribute && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-white"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                             </div>
                             <input type="checkbox" className="hidden" checked={useLangAttribute} onChange={(e) => setUseLangAttribute(e.target.checked)} />
@@ -273,7 +276,7 @@ const ExportCSSModal = ({ onClose }) => {
                         </label>
 
                         <label className="flex items-center gap-2 cursor-pointer group">
-                            <div className={`w - 4 h - 4 rounded border flex items - center justify - center transition - colors ${useUtilityClasses ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-400'} `}>
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${useUtilityClasses ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-400'}`}>
                                 {useUtilityClasses && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-white"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                             </div>
                             <input type="checkbox" className="hidden" checked={useUtilityClasses} onChange={(e) => setUseUtilityClasses(e.target.checked)} />
