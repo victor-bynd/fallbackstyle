@@ -364,7 +364,8 @@ export const PersistenceProvider = ({ children }) => {
                     if (checkConfig) {
                         await PersistenceService.clear();
                     }
-                } catch {
+                    // eslint-disable-next-line no-unused-vars
+                } catch (_err) {
                     // Silently handle - expected during reset
                 }
 

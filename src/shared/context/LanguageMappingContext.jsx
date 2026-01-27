@@ -5,7 +5,7 @@ import sampleSentences from '../data/sampleSentences.json';
 import { normalizeFontName } from '../utils/fontNameUtils';
 import { createLogger } from '../services/Logger';
 import { useFontManagement } from './useFontManagement';
-import { getNextUniqueColor } from './FontManagementContext';
+import { getNextUniqueColor } from '../utils/colorUtils';
 
 const logger = createLogger('LanguageMapping');
 

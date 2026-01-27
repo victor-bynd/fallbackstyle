@@ -5,9 +5,9 @@ import { normalizeFontName } from '../utils/fontNameUtils';
 import { revokeFontUrl } from '../services/FontLoader';
 import { createLogger } from '../services/Logger';
 
-const logger = createLogger('FontManagement');
-
 import { getNextUniqueColor } from '../utils/colorUtils';
+
+const logger = createLogger('FontManagement');
 
 /**
  * FontManagementContext
