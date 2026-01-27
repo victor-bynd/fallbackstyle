@@ -555,6 +555,9 @@ export const TypographyProvider = ({ children }) => {
         headerStyles,
         headerOverrides,
         headerFontStyleMap,
+        setHeaderStyles,
+        setHeaderOverrides,
+        setHeaderFontStyleMap,
         updateHeaderStyle,
         resetHeaderStyle,
         resetAllHeaderStyles,
@@ -572,6 +575,7 @@ export const TypographyProvider = ({ children }) => {
 
         // Text overrides
         textOverrides,
+        setTextOverrides,
         setTextOverride,
         resetTextOverride,
 

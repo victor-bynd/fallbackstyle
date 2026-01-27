@@ -195,7 +195,8 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 } else {
                     // It's a loaded fallback font - LINK IT (Map to itself)
                     // This enables inheritance until manually overridden
-                    linkFontToLanguage(mappingFontId, langId);
+                    // Note: linkFontToLanguage expects (langId, fontId) order
+                    linkFontToLanguage(langId, mappingFontId);
                 }
             } else {
                 // Fallback for unknown ID?
@@ -606,7 +607,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                 {fontScales.fallback !== 100 && (
                                     <button
                                         onClick={() => {
-                                            setFontScales(prev => ({ ...prev, fallback: 100 }));
+                                            setFontScales({ fallback: 100 });
                                             setIsFallbackLinked(false);
                                         }}
                                         className="text-[10px] text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors font-bold"
@@ -622,7 +623,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                         value={fontScales.fallback}
                                         onChange={(e) => {
                                             const val = parseInt(e.target.value);
-                                            setFontScales(prev => ({ ...prev, fallback: val }));
+                                            setFontScales({ fallback: val });
                                             setIsFallbackLinked(false);
                                         }}
                                         className="w-10 bg-transparent text-right outline-none text-indigo-600 font-mono text-xs font-bold border-b border-indigo-200 focus:border-indigo-500"
@@ -639,7 +640,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                             value={fontScales.fallback}
                             onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                setFontScales(prev => ({ ...prev, fallback: val }));
+                                setFontScales({ fallback: val });
                                 setIsFallbackLinked(false);
                             }}
                             className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"

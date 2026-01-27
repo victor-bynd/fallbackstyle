@@ -127,55 +127,57 @@ export const ConfigService = {
                 style.missingBgColor = data.colors.missingBg;
             }
 
-            if (!style.fallbackFontOverrides) return;
-
             const existingFontIds = new Set((style.fonts || []).map(f => f.id));
-            const validOverrides = {};
-            let hasChanges = false;
 
-            Object.entries(style.fallbackFontOverrides).forEach(([langId, overrideValue]) => {
-                // Case 1: Legacy/Flat overrides (String)
-                if (typeof overrideValue === 'string') {
-                    if (overrideValue === 'legacy' || overrideValue === 'cascade' || existingFontIds.has(overrideValue)) {
-                        validOverrides[langId] = overrideValue;
-                    } else {
-                        hasChanges = true;
-                        console.warn(`Removed orphaned override for language ${langId}: font ${overrideValue} not found.`);
-                    }
-                    return;
-                }
+            // Validate Fallback Font Overrides
+            if (style.fallbackFontOverrides) {
+                const validOverrides = {};
+                let hasChanges = false;
 
-                // Case 2: Granular/Nested overrides (Object: { [originalFontId]: overrideFontId })
-                if (typeof overrideValue === 'object' && overrideValue !== null) {
-                    const cleanNested = {};
-                    let nestedChanged = false;
-
-                    Object.entries(overrideValue).forEach(([origId, targetOverrideId]) => {
-                        // We check if targetOverrideId exists in our font stack.
-                        // Ideally we also check if origId exists, but the main goal is to ensure the target is valid.
-                        if (existingFontIds.has(targetOverrideId)) {
-                            cleanNested[origId] = targetOverrideId;
+                Object.entries(style.fallbackFontOverrides).forEach(([langId, overrideValue]) => {
+                    // Case 1: Legacy/Flat overrides (String)
+                    if (typeof overrideValue === 'string') {
+                        if (overrideValue === 'legacy' || overrideValue === 'cascade' || existingFontIds.has(overrideValue)) {
+                            validOverrides[langId] = overrideValue;
                         } else {
-                            nestedChanged = true;
-                            console.warn(`Removed orphaned granular override in language ${langId}: target font ${targetOverrideId} not found.`);
+                            hasChanges = true;
+                            console.warn(`Removed orphaned override for language ${langId}: font ${overrideValue} not found.`);
                         }
-                    });
-
-                    if (Object.keys(cleanNested).length > 0) {
-                        validOverrides[langId] = cleanNested;
-                        if (nestedChanged) hasChanges = true; // We modified the object content
-                    } else {
-                        hasChanges = true; // We dropped the whole language entry because it became empty
+                        return;
                     }
-                    return;
+
+                    // Case 2: Granular/Nested overrides (Object: { [originalFontId]: overrideFontId })
+                    if (typeof overrideValue === 'object' && overrideValue !== null) {
+                        const cleanNested = {};
+                        let nestedChanged = false;
+
+                        Object.entries(overrideValue).forEach(([origId, targetOverrideId]) => {
+                            // We check if targetOverrideId exists in our font stack.
+                            // Ideally we also check if origId exists, but the main goal is to ensure the target is valid.
+                            if (existingFontIds.has(targetOverrideId)) {
+                                cleanNested[origId] = targetOverrideId;
+                            } else {
+                                nestedChanged = true;
+                                console.warn(`Removed orphaned granular override in language ${langId}: target font ${targetOverrideId} not found.`);
+                            }
+                        });
+
+                        if (Object.keys(cleanNested).length > 0) {
+                            validOverrides[langId] = cleanNested;
+                            if (nestedChanged) hasChanges = true; // We modified the object content
+                        } else {
+                            hasChanges = true; // We dropped the whole language entry because it became empty
+                        }
+                        return;
+                    }
+
+                    // Invalid format
+                    hasChanges = true;
+                });
+
+                if (hasChanges) {
+                    style.fallbackFontOverrides = validOverrides;
                 }
-
-                // Invalid format
-                hasChanges = true;
-            });
-
-            if (hasChanges) {
-                style.fallbackFontOverrides = validOverrides;
             }
 
             // Validate Primary Font Overrides
