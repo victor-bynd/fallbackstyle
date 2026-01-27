@@ -5,11 +5,10 @@ import { useTypography } from '../../../shared/context/useTypography';
 import { useFontStack } from '../../../shared/hooks/useFontStack';
 
 const ExportCSSModal = ({ onClose }) => {
-    const { fontStyles, getFontsForStyle, getPrimaryFontFromStyle } = useFontManagement();
+    const { fontStyles, getPrimaryFontFromStyle } = useFontManagement();
     const {
         configuredLanguages,
         hiddenLanguageIds,
-        getPrimaryFontOverrideForStyle,
     } = useLanguageMapping();
     const { getEffectiveFontSettingsForStyle } = useTypography();
 
@@ -158,27 +157,22 @@ const ExportCSSModal = ({ onClose }) => {
                 const stack = buildFallbackFontStackForStyle(styleId, langId);
                 const fontFamily = stack.length > 0 ? stack.map(f => f.fontFamily).join(', ') : 'sans-serif';
 
-                // Get primary settings/color
-                const primaryFontOverride = getPrimaryFontOverrideForStyle(styleId, langId);
-                let effectivePrimaryFont = null;
-                const allFonts = getFontsForStyle(styleId);
-                if (primaryFontOverride) {
-                    effectivePrimaryFont = allFonts.find(f => f.id === primaryFontOverride);
-                }
-                if (!effectivePrimaryFont) {
-                    effectivePrimaryFont = getPrimaryFontFromStyle(styleId);
-                }
+                // Get the style's primary font settings
+                const globalPrimaryFont = getPrimaryFontFromStyle(styleId);
+                const primarySettings = getEffectiveFontSettingsForStyle(styleId, globalPrimaryFont?.id || 'primary');
+                
+                // Get the style-level line-height
+                const style = fontStyles[styleId];
+                const primaryLineHeight = style?.lineHeight ?? 'normal';
 
-                const settings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || 'primary');
-
-                // Check for overrides in primary settings
-                const primaryHasOverrides = settings && (
-                    (settings.lineGapOverride !== undefined && settings.lineGapOverride !== '') ||
-                    (settings.ascentOverride !== undefined && settings.ascentOverride !== '') ||
-                    (settings.descentOverride !== undefined && settings.descentOverride !== '')
+                // Check for metric overrides in primary settings
+                const primaryHasOverrides = primarySettings && (
+                    (primarySettings.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '') ||
+                    (primarySettings.ascentOverride !== undefined && primarySettings.ascentOverride !== '') ||
+                    (primarySettings.descentOverride !== undefined && primarySettings.descentOverride !== '')
                 );
 
-                // Check for overrides in fallback stack
+                // Check for metric overrides in fallback stack
                 const fallbackHasOverrides = stack.some(f => {
                     const s = f.settings;
                     return s && (
@@ -188,24 +182,35 @@ const ExportCSSModal = ({ onClose }) => {
                     );
                 });
 
-                const forceNormalLineHeight = primaryHasOverrides || fallbackHasOverrides;
+                // When metric overrides are used, line-height MUST be 'normal' for them to work
+                // The @font-face descriptors (ascent-override, descent-override, line-gap-override)
+                // only affect the browser's calculation of line-height when line-height: normal is set
+                const hasAnyMetricOverrides = primaryHasOverrides || fallbackHasOverrides;
 
                 css += `${selector} {\n`;
                 css += `  font-family: ${fontFamily};\n`;
-                if (styleId === 'primary') {
-                    if (forceNormalLineHeight) {
-                        css += `  line-height: normal;\n`;
-                    } else if (settings && settings.lineHeight) {
-                        css += `  line-height: ${settings.lineHeight};\n`;
-                    }
+                
+                // Export line-height
+                if (hasAnyMetricOverrides) {
+                    // Force 'normal' so metric overrides work
+                    css += `  line-height: normal;\n`;
+                } else if (primaryLineHeight !== undefined) {
+                    // Use the primary font's configured line-height
+                    css += `  line-height: ${primaryLineHeight};\n`;
                 }
+                
+                // Export letter-spacing from primary font settings
+                if (primarySettings?.letterSpacing && primarySettings.letterSpacing !== 0) {
+                    css += `  letter-spacing: ${primarySettings.letterSpacing}em;\n`;
+                }
+                
                 css += `}\n`;
             });
         });
 
         return css;
 
-    }, [configuredLanguages, hiddenLanguageIds, fontStyles, getEffectiveFontSettingsForStyle, getFontsForStyle, buildFallbackFontStackForStyle, getPrimaryFontFromStyle, getPrimaryFontOverrideForStyle, useLangAttribute, useUtilityClasses]);
+    }, [configuredLanguages, hiddenLanguageIds, fontStyles, getEffectiveFontSettingsForStyle, buildFallbackFontStackForStyle, getPrimaryFontFromStyle, useLangAttribute, useUtilityClasses]);
 
     const handleDownload = () => {
         const blob = new Blob([generateCSS], { type: 'text/css' });
