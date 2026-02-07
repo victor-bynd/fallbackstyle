@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import LanguageSelectorModal from '../../apps/multi-language/components/LanguageSelectorModal';
-import { useTypo } from '../../shared/context/useTypo';
+import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
 import { vi } from 'vitest';
-import { mockUseTypo } from '../test-utils';
+import { mockUseLanguageMapping } from '../test-utils';
 
 // Mock dependencies
-vi.mock('../../shared/context/useTypo');
+vi.mock('../../shared/context/useLanguageMapping');
 vi.mock('framer-motion', () => ({
     motion: {
         div: ({ children, ...props }) => <div {...props}>{children}</div>
@@ -19,7 +19,7 @@ describe('LanguageSelectorModal', () => {
     const mockOnSelect = vi.fn();
 
     beforeEach(() => {
-        useTypo.mockReturnValue(mockUseTypo());
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping());
     });
 
     it('should render when open', () => {
@@ -29,7 +29,7 @@ describe('LanguageSelectorModal', () => {
 
     it('should call toggleLanguageVisibility from context when a language is clicked', () => {
         const toggleLanguageVisibility = vi.fn();
-        useTypo.mockReturnValue(mockUseTypo({ toggleLanguageVisibility }));
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({ toggleLanguageVisibility }));
 
         render(<LanguageSelectorModal isOpen={true} onClose={mockOnClose} />);
 

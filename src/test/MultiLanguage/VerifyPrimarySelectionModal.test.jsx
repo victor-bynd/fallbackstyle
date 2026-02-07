@@ -2,10 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import FontLanguageModal from '../../apps/multi-language/components/FontLanguageModal';
-import { useTypo } from '../../shared/context/useTypo';
+import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
+import { mockUseLanguageMapping } from '../test-utils';
 
-// Mock TypoContext
-vi.mock('../../shared/context/useTypo');
+// Mock LanguageMappingContext
+vi.mock('../../shared/context/useLanguageMapping');
 
 describe('FontLanguageModal Primary Selection', () => {
     const mockLanguages = [
@@ -29,9 +30,9 @@ describe('FontLanguageModal Primary Selection', () => {
     const mockOnCancel = vi.fn();
 
     beforeEach(() => {
-        useTypo.mockReturnValue({
-            languages: mockLanguages
-        });
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({
+            supportedLanguages: mockLanguages
+        }));
         mockOnConfirm.mockClear();
     });
 

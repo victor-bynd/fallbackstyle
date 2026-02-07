@@ -194,6 +194,9 @@ export const LanguageMappingProvider = ({ children }) => {
 
         // Remove from hidden
         setHiddenLanguageIds(prev => prev.filter(id => id !== langId));
+
+        // Remove from visibleLanguageIds (Fix for UI update)
+        setVisibleLanguageIds(prev => prev.filter(id => id !== langId));
     }, [activeFontStyleId, setFonts, updateStyleState]);
 
     /**

@@ -1,12 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import MultiLanguageFallback from '../../apps/multi-language/index';
-import { useTypo } from '../../shared/context/useTypo';
+import { useFontManagement } from '../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
+import { usePersistence } from '../../shared/context/usePersistence';
 import { useUI } from '../../shared/context/UIContext';
 import { useConfigImport } from '../../shared/hooks/useConfigImport';
 import { useFontFaceStyles } from '../../shared/hooks/useFontFaceStyles';
 import { vi } from 'vitest';
-import { mockUseTypo, mockUseUI } from '../test-utils';
+import { mockUseFontManagement, mockUseLanguageMapping, mockUsePersistence, mockUseUI } from '../test-utils';
 import { MemoryRouter } from 'react-router-dom';
 
 // Mock the JSON data modules
@@ -20,7 +22,9 @@ vi.mock('../../shared/data/languageCharacters', () => ({
 }));
 
 // Mock all contexts and hooks used by the page
-vi.mock('../../shared/context/useTypo');
+vi.mock('../../shared/context/useFontManagement');
+vi.mock('../../shared/context/useLanguageMapping');
+vi.mock('../../shared/context/usePersistence');
 vi.mock('../../shared/context/UIContext');
 vi.mock('../../shared/hooks/useConfigImport');
 vi.mock('../../shared/hooks/useFontFaceStyles');
@@ -54,12 +58,26 @@ vi.mock('../../shared/components/LoadingScreen', () => ({
 
 describe('MultiLanguageFallback Page', () => {
     beforeEach(() => {
-        useTypo.mockReturnValue(mockUseTypo({
-            // Ensure we have some data so we don't hit Landing Page unless tested
+        useFontManagement.mockReturnValue(mockUseFontManagement({
             fontObject: { familyName: 'Test Font' },
-            configuredLanguages: ['en-US'],
-            resetApp: vi.fn()
+            fontStyles: {
+                primary: {
+                    fonts: [{ name: 'Test Font' }],
+                    configuredLanguages: ['en-US'],
+                    primaryLanguages: [],
+                    primaryFontOverrides: {},
+                    fallbackFontOverrides: {}
+                }
+            }
         }));
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({
+            configuredLanguages: ['en-US'],
+            primaryLanguages: ['en-US'],
+        }));
+        usePersistence.mockReturnValue(mockUsePersistence({
+            isSessionLoading: false
+        }));
+
         useUI.mockReturnValue(mockUseUI());
         useConfigImport.mockReturnValue({
             importConfig: vi.fn()
@@ -79,7 +97,7 @@ describe('MultiLanguageFallback Page', () => {
     });
 
     it('should render loading screen when session is loading', () => {
-        useTypo.mockReturnValue(mockUseTypo({ isSessionLoading: true }));
+        usePersistence.mockReturnValue(mockUsePersistence({ isSessionLoading: true }));
         render(
             <MemoryRouter>
                 <MultiLanguageFallback />
@@ -89,11 +107,17 @@ describe('MultiLanguageFallback Page', () => {
     });
 
     it('should render LandingPage when no fonts or languages configured', () => {
-        useTypo.mockReturnValue(mockUseTypo({
+        useFontManagement.mockReturnValue(mockUseFontManagement({
             fontObject: null,
+            fontStyles: { primary: { fonts: [] } }
+        }));
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({
             configuredLanguages: [],
+        }));
+        usePersistence.mockReturnValue(mockUsePersistence({
             isSessionLoading: false
         }));
+
         render(
             <MemoryRouter>
                 <MultiLanguageFallback />
