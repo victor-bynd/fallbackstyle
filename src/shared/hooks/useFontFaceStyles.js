@@ -2,6 +2,12 @@ import { useMemo } from 'react';
 import { useFontManagement } from '../context/useFontManagement';
 import { useTypography } from '../context/useTypography';
 
+/** Escape a string for safe use inside CSS url() or font-family quotes */
+const escapeCSSString = (str) => {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+};
+
 export const useFontFaceStyles = () => {
     const { fontStyles } = useFontManagement();
     const { getEffectiveFontSettingsForStyle } = useTypography();
@@ -45,7 +51,7 @@ export const useFontFaceStyles = () => {
                     ? `
           @font-face {
             font-family: 'UploadedFont-${styleId}';
-            src: ${primary.fontUrl ? `url('${primary.fontUrl}')` : `local('${primary.name}')`};
+            src: ${primary.fontUrl ? `url('${escapeCSSString(primary.fontUrl)}')` : `local('${escapeCSSString(primary.name)}')`};
             ${primarySizeAdjust}
             ${primaryVariationSettings}
             ${primaryLineGapOverride}
@@ -127,7 +133,7 @@ export const useFontFaceStyles = () => {
                             if (activeUrl) console.warn(`[useFontFaceStyles] Recovered URL for font ${font.id} from sibling ${sibling.id}`);
                         }
 
-                        const src = activeUrl ? `url('${activeUrl}')` : `local('${font.name}')`;
+                        const src = activeUrl ? `url('${escapeCSSString(activeUrl)}')` : `local('${escapeCSSString(font.name)}')`;
 
                         return `
             @font-face {
@@ -173,7 +179,7 @@ export const useFontFaceStyles = () => {
                     return `
             @font-face {
               font-family: 'SystemFallback-${styleId}-${langId}';
-              src: local('${fontName}');
+              src: local('${escapeCSSString(fontName)}');
               ${sizeAdjust}
               ${lineGapOverride}
               ${ascentOverride}

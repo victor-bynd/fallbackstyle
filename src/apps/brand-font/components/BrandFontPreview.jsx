@@ -78,8 +78,7 @@ const BrandFontPreview = ({
         styleTag.textContent = css;
 
         return () => {
-            // Cleanup? Maybe keep it for smooth transitions, but safer to remove if component unmounts
-            // styleTag.remove(); 
+            styleTag.remove();
         };
     }, [primaryFont, fallbackFont, overrides, limitToSizeAdjust]);
 
@@ -125,15 +124,17 @@ const BrandFontPreview = ({
         const startTime = Date.now();
         const durationMs = (loadDuration * 1000) + PAGE_LOAD_DELAY;
 
-        const timerInterval = setInterval(() => {
+        let rafId;
+        const tick = () => {
             const currentElapsed = Date.now() - startTime;
             if (currentElapsed >= durationMs) {
-                setElapsedTime(durationMs / 1000); // cap at duration
-                clearInterval(timerInterval);
+                setElapsedTime(durationMs / 1000);
             } else {
                 setElapsedTime(currentElapsed / 1000);
+                rafId = requestAnimationFrame(tick);
             }
-        }, 16); // ~60fps
+        };
+        rafId = requestAnimationFrame(tick);
 
         // Timer 1: Block Timeout
         let blockTimer = null;
@@ -147,7 +148,7 @@ const BrandFontPreview = ({
         setTimeout(() => {
             setIsLoading(false);
             if (blockTimer) clearTimeout(blockTimer);
-            clearInterval(timerInterval);
+            cancelAnimationFrame(rafId);
             setElapsedTime(durationMs / 1000);
 
             // Transition to 'finished' state

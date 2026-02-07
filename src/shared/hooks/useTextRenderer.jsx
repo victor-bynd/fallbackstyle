@@ -145,7 +145,7 @@ export const useTextRenderer = () => {
         }
         // --- OPTIMIZATION END ---
 
-        return processedContent.split('').map((char, index) => {
+        return [...processedContent].map((char, index) => {
             // Fix: If primaryFontObject is missing (e.g. System Font), assume character exists (index 1).
             // Only use 0 (missing) if we have an object and it returns 0.
             const glyphIndex = primaryFontObject ? primaryFontObject.charToGlyphIndex(char) : 1;
@@ -223,7 +223,7 @@ export const useTextRenderer = () => {
                             letterSpacing: `${fallbackSettings.letterSpacing}em`,
                             verticalAlign: 'baseline',
                             fontWeight: weight,
-                            fontVariationSettings: isVariable ? `'wght' ${weight} ` : undefined,
+                            fontVariationSettings: isVariable ? `'wght' ${weight}` : undefined,
                             fontSize: `${relativeScale}em`,
                             ...inlineBoxStyle
                         }}

@@ -54,6 +54,7 @@ export const useFontStack = () => {
             !f.hidden &&
             !f.isClone &&
             !f.isLangSpecific &&
+            !excludedFontIds.has(f.id) &&
             f.id !== primaryFont?.id && // Sanity check for ID duplication
             !(
                 // Robust Name match

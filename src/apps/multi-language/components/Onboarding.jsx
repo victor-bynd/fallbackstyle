@@ -142,7 +142,7 @@ const Onboarding = ({ importConfig }) => {
                 try {
                     const { font, metadata, buffer } = await parseFontFile(file);
                     const url = createFontUrl(file);
-                    const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
                     const fontData = {
                         id,

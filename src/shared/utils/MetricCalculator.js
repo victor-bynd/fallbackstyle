@@ -21,9 +21,9 @@ export const extractFontMetrics = (font) => {
     const hhea = font.tables.hhea;
     const os2 = font.tables.os2;
 
-    const ascender = hhea?.ascender || font.ascender;
-    const descender = hhea?.descender || font.descender;
-    const lineGap = hhea?.lineGap || os2?.sTypoLineGap || 0;
+    const ascender = hhea?.ascender ?? font.ascender;
+    const descender = hhea?.descender ?? font.descender;
+    const lineGap = hhea?.lineGap ?? os2?.sTypoLineGap ?? 0;
 
     // Measure x-height (approximate if missing)
     let xHeight = os2?.sxHeight;

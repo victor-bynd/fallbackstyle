@@ -7,6 +7,7 @@ import { useFontManagement } from './useFontManagement';
 import { useLanguageMapping } from './useLanguageMapping';
 import { useTypography } from './useTypography';
 import { useUI } from './UIContext';
+import packageJson from '../../../package.json';
 
 const logger = createLogger('Persistence');
 
@@ -91,7 +92,7 @@ export const PersistenceProvider = ({ children }) => {
             colors,
 
             // Metadata
-            version: '1.0.0',
+            version: packageJson.version,
             exportDate: new Date().toISOString()
         };
 

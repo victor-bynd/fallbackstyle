@@ -89,7 +89,6 @@ export const useConfigImport = () => {
         let data;
         try {
             data = ConfigService.normalizeConfig(rawConfig);
-            console.log("Normalized data:", data);
 
             // Extract mappings immediately when validating
             const mappings = extractMappings(rawConfig);
@@ -162,14 +161,12 @@ export const useConfigImport = () => {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const rawConfig = JSON.parse(event.target.result);
-                console.log("Raw config parsed:", rawConfig);
-                validateAndRestore(rawConfig);
+                await validateAndRestore(rawConfig);
             } catch (err) {
                 console.error("Failed to parse config", err);
-                alert(`Invalid configuration file: ${err.message}`);
             }
         };
         reader.readAsText(file);

@@ -26,9 +26,12 @@ class Logger {
         this.level = import.meta.env.PROD ? LOG_LEVELS.WARN : LOG_LEVELS.DEBUG;
 
         // Allow override via localStorage for debugging production builds
-        const storedLevel = typeof window !== 'undefined'
-            ? localStorage.getItem('LOG_LEVEL')
-            : null;
+        let storedLevel = null;
+        try {
+            storedLevel = typeof window !== 'undefined'
+                ? localStorage.getItem('LOG_LEVEL')
+                : null;
+        } catch { /* localStorage may be unavailable in restricted contexts */ }
 
         if (storedLevel && LOG_LEVELS[storedLevel] !== undefined) {
             this.level = LOG_LEVELS[storedLevel];
@@ -64,16 +67,22 @@ class Logger {
             const timestamp = new Date().toISOString();
             const prefix = `[${timestamp}] [${levelName}]`;
 
+            // Select the appropriate console method
+            let method = console.log;
+            if (level >= LOG_LEVELS.ERROR) method = console.error;
+            else if (level >= LOG_LEVELS.WARN) method = console.warn;
+
             if (typeof window !== 'undefined' && window.console) {
                 // Browser environment - use colors
-                console.log(
+                method.call(
+                    console,
                     `%c${prefix}`,
                     `color: ${color}; font-weight: bold;`,
                     ...args
                 );
             } else {
                 // Node environment - plain text
-                console.log(prefix, ...args);
+                method.call(console, prefix, ...args);
             }
         }
     }

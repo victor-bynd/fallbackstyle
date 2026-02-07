@@ -90,7 +90,7 @@ const FontLanguageModal = ({ pendingFonts, onConfirm, onCancel, initialMappings 
                     buffer,
                     url,
                     file,
-                    id: `pending-added-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+                    id: `pending-added-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
                 });
             } catch (err) {
                 console.error("Failed to parse added font", err);

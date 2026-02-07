@@ -8,15 +8,13 @@ import BrandFontPreview from './components/BrandFontPreview';
 import SideBar from './components/SideBar';
 import MetricSidebar from './components/MetricSidebar';
 
-import BufferedInput from '../../shared/components/BufferedInput';
 import { calculateOverrides, extractFontMetrics } from '../../shared/utils/MetricCalculator';
 import { parseFontFile, createFontUrl } from '../../shared/services/FontLoader';
 import systemFonts from '../../shared/constants/systemFonts.json';
-import InfoTooltip from '../../shared/components/InfoTooltip';
 import { usePersistence } from '../../shared/context/usePersistence';
 import ResetConfirmModal from '../../shared/components/ResetConfirmModal';
 import ResetLoadingScreen from '../../shared/components/ResetLoadingScreen';
-// import { DEFAULT_PALETTE } from '../../shared/data/constants'; // This import is no longer needed
+import ErrorBoundary from '../../shared/components/ErrorBoundary';
 
 // High-contrast palette for easy distinction with 35% alpha (#RRGGBB59)
 const HIGH_CONTRAST_PALETTE = [
@@ -37,7 +35,7 @@ const HIGH_CONTRAST_PALETTE = [
     '#A855F759', // Purple-500
     '#EC489959', // Pink-500
     '#22C55E59', // Green-500
-    '#06B6D459', // Cyan-500
+    '#0EA5E959', // Sky-500
     '#F9731659', // Orange-500
     '#14B8A659', // Teal-500
     '#71717A59', // Zinc-500
@@ -307,7 +305,10 @@ const BrandFontFallback = () => {
         };
 
         const timeoutId = setTimeout(saveConfig, 800); // 800ms debounce
-        return () => clearTimeout(timeoutId);
+        return () => {
+            clearTimeout(timeoutId);
+            saveConfig(); // Flush on unmount to avoid data loss
+        };
     }, [isInitialized, customFonts, selectedFallback, overrides, configMode, showBrowserGuides, showPrimaryGuides, limitToSizeAdjust, fontColors, fontDisplay, fallbackConfigs]);
 
     // Internal Persistence: Sync current settings to fallbackConfigs map
@@ -320,11 +321,20 @@ const BrandFontFallback = () => {
             // Determine if we should update manualOverrides
             const nextManualOverrides = configMode === 'manual' ? overrides : current?.manualOverrides;
 
+            const shallowEqual = (a, b) => {
+                if (a === b) return true;
+                if (!a || !b) return false;
+                const keysA = Object.keys(a);
+                const keysB = Object.keys(b);
+                if (keysA.length !== keysB.length) return false;
+                return keysA.every(k => a[k] === b[k]);
+            };
+
             if (current &&
                 current.configMode === configMode &&
                 current.limitToSizeAdjust === limitToSizeAdjust &&
-                JSON.stringify(current.overrides) === JSON.stringify(overrides) &&
-                JSON.stringify(current.manualOverrides) === JSON.stringify(nextManualOverrides)
+                shallowEqual(current.overrides, overrides) &&
+                shallowEqual(current.manualOverrides, nextManualOverrides)
             ) {
                 return prev;
             }
@@ -360,18 +370,6 @@ const BrandFontFallback = () => {
     }, [isInitialized, primaryFont]);
 
 
-
-    // Extract metrics when primary font loads
-    const getNextUniqueColor = (currentColors) => {
-        const usedColors = new Set(Object.values(currentColors));
-        // Find first color from HIGH_CONTRAST_PALETTE that isn't used
-        for (let i = 0; i < HIGH_CONTRAST_PALETTE.length; i++) {
-            const color = HIGH_CONTRAST_PALETTE[i];
-            if (!usedColors.has(color)) return color;
-        }
-        // Fallback to cycling if all are used
-        return HIGH_CONTRAST_PALETTE[usedColors.size % HIGH_CONTRAST_PALETTE.length];
-    };
 
     const handleFontLoaded = (fontData) => {
         setPrimaryFont(fontData);
@@ -788,7 +786,7 @@ const BrandFontFallback = () => {
                             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
                                 <button
                                     onClick={() => {
-                                        navigator.clipboard.writeText(cssOutput);
+                                        navigator.clipboard.writeText(cssOutput).catch(() => {});
                                     }}
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
                                 >
@@ -814,4 +812,10 @@ const BrandFontFallback = () => {
     );
 };
 
-export default BrandFontFallback;
+const BrandFontFallbackWithBoundary = () => (
+    <ErrorBoundary>
+        <BrandFontFallback />
+    </ErrorBoundary>
+);
+
+export default BrandFontFallbackWithBoundary;

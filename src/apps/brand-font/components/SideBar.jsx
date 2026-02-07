@@ -494,7 +494,7 @@ const SideBar = ({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setShowSettings(!showSettings)}
-                            className={`flex.1 w-full flex items-center gap-3 px-2 py-1.5 rounded-lg border transition-all ${showSettings
+                            className={`flex-1 w-full flex items-center gap-3 px-2 py-1.5 rounded-lg border transition-all ${showSettings
                                 ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
                                 : 'bg-white border-transparent hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                                 }`}

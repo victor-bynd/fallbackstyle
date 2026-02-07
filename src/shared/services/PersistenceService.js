@@ -4,40 +4,48 @@ const DB_VERSION = 1;
 const STORE_CONFIG = 'config';
 const STORE_FONTS = 'fonts';
 
+/** Cached database connection */
+let _dbInstance = null;
+
 /**
  * Service to handle IndexedDB interactions for state persistence.
  */
 export const PersistenceService = {
     /**
-     * Open (and upgrade) the database.
+     * Open (and upgrade) the database. Reuses existing connection.
      * @returns {Promise<IDBDatabase>}
      */
     initDB: () => {
+        if (_dbInstance) return Promise.resolve(_dbInstance);
+
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onerror = (event) => {
                 console.error('[PersistenceService] Error opening DB', event);
-                reject('Error opening database');
+                reject(new Error('Error opening database'));
             };
 
             request.onupgradeneeded = (event) => {
-                console.log('[PersistenceService] Upgrading DB');
                 const db = event.target.result;
 
-                // Config store (key-value)
                 if (!db.objectStoreNames.contains(STORE_CONFIG)) {
                     db.createObjectStore(STORE_CONFIG);
                 }
 
-                // Fonts store (key-value, storing Blobs)
                 if (!db.objectStoreNames.contains(STORE_FONTS)) {
                     db.createObjectStore(STORE_FONTS);
                 }
             };
 
             request.onsuccess = (event) => {
-                resolve(event.target.result);
+                _dbInstance = event.target.result;
+                _dbInstance.onclose = () => { _dbInstance = null; };
+                _dbInstance.onversionchange = () => {
+                    _dbInstance.close();
+                    _dbInstance = null;
+                };
+                resolve(_dbInstance);
             };
         });
     },

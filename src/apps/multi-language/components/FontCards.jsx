@@ -133,7 +133,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 try {
                     const { font, metadata } = await parseFontFile(file);
                     const url = createFontUrl(file);
-                    const fontId = `fallback - ${Date.now()} -${Math.random().toString(36).substr(2, 9)} `;
+                    const fontId = `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
                     return {
                         id: fontId,
@@ -367,7 +367,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
                 // Filter out if matches Primary Name (Robust)
                 const fName = normalizeFontName(f.fileName || f.name);
-                const pNameNormalized = normalizeFontName(p.fileName || p.name);
+                const pNameNormalized = p ? normalizeFontName(p.fileName || p.name) : null;
                 if (pNameNormalized && fName === pNameNormalized) return false;
 
                 // Filter out if matches any Mapped Font ID or Name (already in Targeted section)

@@ -13,7 +13,6 @@ export const LANGUAGE_GROUP_SHORT_NAMES = {
     'Western Latin (Americas & Western Europe)': 'Western Latin',
     'APAC - CJK (East Asia)': 'APAC - CJK',
     'EEMEA - Right-to-Left (Middle East & South Asia)': 'EEMEA - RTL',
-    'EEMEA - Cyrillic, Greek & Eastern Europe)': 'EEMEA - Cyrillic', // Corrected key to match array? No wait, array is "EEMEA - Cyrillic, Greek & Eastern Europe"
     'EEMEA - Cyrillic, Greek & Eastern Europe': 'EEMEA - Cyrillic',
     'APAC - South & Southeast Asia (Complex Scripts)': 'APAC - SE Asia',
     'Sub-Saharan Africa': 'Africa',
@@ -79,10 +78,10 @@ const GROUP_MAPPING = {
     'kn-IN': 'APAC - South & Southeast Asia (Complex Scripts)',
     'ml-IN': 'APAC - South & Southeast Asia (Complex Scripts)',
     'th-TH': 'APAC - South & Southeast Asia (Complex Scripts)',
-    'vi-VN': 'APAC - South & Southeast Asia (Complex Scripts)',
-    'id-ID': 'APAC - South & Southeast Asia (Complex Scripts)',
-    'ms-MY': 'APAC - South & Southeast Asia (Complex Scripts)',
-    'tl-PH': 'APAC - South & Southeast Asia (Complex Scripts)',
+    'vi-VN': 'Western Latin (Americas & Western Europe)',
+    'id-ID': 'Western Latin (Americas & Western Europe)',
+    'ms-MY': 'Western Latin (Americas & Western Europe)',
+    'tl-PH': 'Western Latin (Americas & Western Europe)',
 
     // 6. Sub-Saharan Africa
     'sw-KE': 'Sub-Saharan Africa',

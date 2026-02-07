@@ -289,7 +289,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
                     try {
                         const { font, metadata, buffer } = await parseFontFile(file);
                         const url = createFontUrl(file);
-                        const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                        const id = `uploaded-setup-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
                         const fontData = {
                             id,
@@ -385,7 +385,7 @@ const FontUploader = ({ importConfig, preselectedLanguages = null, initialFiles 
             // 1. Process All Fonts
             orderedFonts.forEach((item, index) => {
                 const fontData = {
-                    id: `uploaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    id: `uploaded-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
                     type: 'fallback',
                     fontObject: item.font,
                     fontUrl: item.url,

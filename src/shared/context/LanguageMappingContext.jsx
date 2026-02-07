@@ -375,44 +375,24 @@ export const LanguageMappingProvider = ({ children }) => {
     const unmapLanguage = useCallback((langId) => {
         logger.debug('Unmapping language:', langId);
 
+        // Remove language-specific fonts outside the style updater
+        setFonts(prevFonts => prevFonts.filter(f => {
+            if (!f) return false;
+            if (!(f.isLangSpecific || f.isClone || f.id.startsWith('lang-'))) return true;
+            if (!f.id.includes(`lang-${langId}`)) return true;
+            return false;
+        }));
+
         updateStyleState(activeFontStyleId, prev => {
-            const primaryOverrideId = prev.primaryFontOverrides?.[langId];
-            const fallbackOverrideId = prev.fallbackFontOverrides?.[langId];
-
-            // Check if fonts are used elsewhere
-            const primaryOverrideUsedElsewhere = primaryOverrideId &&
-                Object.entries(prev.primaryFontOverrides || {}).some(
-                    ([id, fid]) => id !== langId && fid === primaryOverrideId
-                );
-
-            const fallbackOverrideUsedElsewhere = fallbackOverrideId &&
-                Object.entries(prev.fallbackFontOverrides || {}).some(
-                    ([id, fid]) => id !== langId && fid === fallbackOverrideId
-                );
-
-            // Remove fonts if not used elsewhere
-            setFonts(prevFonts => prevFonts.filter(f => {
-                if (!f) return false;
-                if (!(f.isLangSpecific || f.isClone || f.id.startsWith('lang-'))) return true;
-                if (!f.id.includes(`lang-${langId}`)) return true;
-
-                // Check if this font is the override
-                if (f.id === primaryOverrideId && primaryOverrideUsedElsewhere) return true;
-                if (f.id === fallbackOverrideId && fallbackOverrideUsedElsewhere) return true;
-
-                return false;
-            }));
-
             // Remove overrides
             const nextPrimaryOverrides = { ...prev.primaryFontOverrides };
             const nextFallbackOverrides = { ...prev.fallbackFontOverrides };
             delete nextPrimaryOverrides[langId];
             delete nextFallbackOverrides[langId];
 
-            // Remove from configured if no overrides and not primary
+            // Remove from configured if not primary
             const hasPrimaryStatus = prev.primaryLanguages?.includes(langId);
-            const hasOverrides = nextPrimaryOverrides[langId] || nextFallbackOverrides[langId];
-            const nextConfigured = (!hasPrimaryStatus && !hasOverrides)
+            const nextConfigured = (!hasPrimaryStatus)
                 ? (prev.configuredLanguages || []).filter(id => id !== langId)
                 : prev.configuredLanguages;
 
@@ -436,6 +416,19 @@ export const LanguageMappingProvider = ({ children }) => {
 
         const isPrimary = targetFont.type === 'primary';
 
+        // Clean up old language-specific fonts outside the style updater
+        targetLangIds.forEach(langId => {
+            setFonts(prevFonts => prevFonts.filter(f =>
+                !(f && (f.isLangSpecific || f.isClone || f.id.startsWith('lang-')) &&
+                    f.id.includes(`lang-${langId}`))
+            ));
+        });
+
+        // Set visibility outside the style updater
+        targetLangIds.forEach(langId => {
+            setLanguageVisibility(langId, true);
+        });
+
         updateStyleState(activeFontStyleId, prev => {
             const draft = { ...prev };
             const nextPrimaryOverrides = { ...draft.primaryFontOverrides };
@@ -443,12 +436,6 @@ export const LanguageMappingProvider = ({ children }) => {
             const nextConfigured = new Set(draft.configuredLanguages || []);
 
             targetLangIds.forEach(langId => {
-                // Clean up old overrides
-                setFonts(prevFonts => prevFonts.filter(f =>
-                    !(f && (f.isLangSpecific || f.isClone || f.id.startsWith('lang-')) &&
-                        f.id.includes(`lang-${langId}`))
-                ));
-
                 if (isPrimary) {
                     nextPrimaryOverrides[langId] = fontId;
                     delete nextFallbackOverrides[langId];
@@ -458,7 +445,6 @@ export const LanguageMappingProvider = ({ children }) => {
                 }
 
                 nextConfigured.add(langId);
-                setLanguageVisibility(langId, true);
             });
 
             return {
@@ -902,7 +888,7 @@ export const LanguageMappingProvider = ({ children }) => {
             staticWeight: metadata?.staticWeight || null,
             isLangSpecific: true,
             isClone: true,
-            color: DEFAULT_PALETTE[Math.floor(Math.random() * DEFAULT_PALETTE.length)],
+            color: getNextUniqueColor(fonts),
             lineHeight: 'normal'
         };
 
@@ -922,7 +908,7 @@ export const LanguageMappingProvider = ({ children }) => {
         addConfiguredLanguage(langId);
 
         return fontId;
-    }, [activeFontStyleId, setFonts, updateStyleState, addConfiguredLanguage]);
+    }, [activeFontStyleId, fonts, setFonts, updateStyleState, addConfiguredLanguage]);
 
     // Create context value
     const value = useMemo(() => ({

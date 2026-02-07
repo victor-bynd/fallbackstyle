@@ -216,7 +216,7 @@ export const FontManagementProvider = ({ children }) => {
             const firstSystemIndex = prev.findIndex(f => f && f.type === 'fallback' && isSystemFont(f));
 
             // Ensure a stable unique id for persistence
-            const newFontId = fontData.id || `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const newFontId = fontData.id || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
             const newFont = {
                 id: newFontId,
                 ...fontData,
@@ -264,7 +264,7 @@ export const FontManagementProvider = ({ children }) => {
                     return true;
                 })
                 .reduce((acc, fontData, i) => {
-                    const id = fontData.id || `fallback-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 6)}`;
+                    const id = fontData.id || `fallback-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
                     const newFont = {
                         id,
                         ...fontData,
@@ -289,7 +289,7 @@ export const FontManagementProvider = ({ children }) => {
         fontsDataArray.forEach((fontData, i) => {
             const newFont = {
                 ...fontData,
-                id: `fallback-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+                id: `fallback-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 11)}`,
                 type: 'fallback',
                 isClone: true,
                 isLangSpecific: true,
@@ -354,6 +354,9 @@ export const FontManagementProvider = ({ children }) => {
     const removeFallbackFont = useCallback((fontId) => {
         logger.debug('Removing fallback font:', fontId);
 
+        // Collect URLs to revoke outside the state updater (side-effect safety)
+        const urlsToRevoke = [];
+
         setFonts(prev => {
             const fontToRemove = prev.find(f => f && f.id === fontId);
             if (!fontToRemove) return prev;
@@ -368,23 +371,25 @@ export const FontManagementProvider = ({ children }) => {
                 return false;
             };
 
-            // Revoke blob URLs for fonts being removed
+            // Collect blob URLs for revocation after state update
             prev.forEach(f => {
                 if (isRelated(f) && f.fontUrl) {
-                    revokeFontUrl(f.fontUrl);
-                    logger.debug('Revoked blob URL for font:', f.id);
+                    urlsToRevoke.push(f.fontUrl);
                 }
             });
 
             const filtered = prev.filter(f => !isRelated(f));
 
-            // Re-assign types (index 0 = current primary selection or first font)
-            // Note: In some styles, the first font might not be the primary if it's a multi-primary app,
-            // but for this app the first element of fonts array is always type='primary'.
             return filtered.map((f, i) => ({
                 ...f,
                 type: i === 0 ? 'primary' : 'fallback'
             }));
+        });
+
+        // Revoke blob URLs outside the state updater
+        urlsToRevoke.forEach(url => {
+            revokeFontUrl(url);
+            logger.debug('Revoked blob URL for font');
         });
 
         // Note: Caller should clean up override maps
@@ -401,7 +406,7 @@ export const FontManagementProvider = ({ children }) => {
             if (oldIndex < 0 || oldIndex >= prev.length) return prev;
             if (newIndex < 0 || newIndex >= prev.length) return prev;
 
-            const reordered = [...prev];
+            const reordered = prev.map(f => ({ ...f }));
             const [moved] = reordered.splice(oldIndex, 1);
             reordered.splice(newIndex, 0, moved);
 
@@ -411,9 +416,9 @@ export const FontManagementProvider = ({ children }) => {
                 const newPrimary = reordered[0];
                 if (oldPrimary && newPrimary && oldPrimary.id !== newPrimary.id) {
                     const tempColor = newPrimary.color;
-                    newPrimary.color = oldPrimary.color;
+                    reordered[0] = { ...reordered[0], color: oldPrimary.color };
                     if (oldIndex === 0) {
-                        reordered[newIndex].color = tempColor;
+                        reordered[newIndex] = { ...reordered[newIndex], color: tempColor };
                     }
                 }
             }

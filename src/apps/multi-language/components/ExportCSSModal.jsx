@@ -225,8 +225,9 @@ const ExportCSSModal = ({ onClose }) => {
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(generateCSS);
-        // Show toast? relying on button text change for now
+        navigator.clipboard.writeText(generateCSS).catch(() => {
+            // Fallback: silent failure if clipboard is unavailable
+        });
     };
 
     const [copyBtnText, setCopyBtnText] = useState('Copy to Clipboard');

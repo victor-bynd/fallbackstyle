@@ -174,7 +174,7 @@ const OverridesManager = ({ iconMode = false }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Font Management
-    const { fontStyles, getFontsForStyle } = useFontManagement();
+    const { fontStyles, getFontsForStyle, updateFontProperty } = useFontManagement();
 
     // Language Mapping
     const {
@@ -196,7 +196,15 @@ const OverridesManager = ({ iconMode = false }) => {
         resetAllHeaderStyles,
         resetGlobalFallbackScaleForStyle,
         resetAllLineHeightOverridesForStyle,
+        resetLineHeightOverride,
     } = useTypography();
+
+    const resetFontMetrics = (fontId) => {
+        ['scale', 'lineHeight', 'letterSpacing', 'weightOverride', 'fontSizeAdjust',
+         'ascentOverride', 'descentOverride', 'lineGapOverride'].forEach(prop => {
+            updateFontProperty(fontId, prop, undefined);
+        });
+    };
 
     // 1. Grouping Logic
     const getGroupedOverrides = (styleId) => {
@@ -243,7 +251,7 @@ const OverridesManager = ({ iconMode = false }) => {
                         id: `font-${f.id}`,
                         label: f.fileName?.replace(/\.[^/.]+$/, '') || f.name || 'Unnamed Font',
                         details: changes,
-                        onReset: () => resetFallbackFontOverridesForStyle(styleId, f.id)
+                        onReset: () => resetFontMetrics(f.id)
                     });
                 }
             });
@@ -281,7 +289,7 @@ const OverridesManager = ({ iconMode = false }) => {
                         id: `primary-metrics-${font.id}`,
                         label: `Metrics: ${fontName}`,
                         details: changes,
-                        onReset: () => resetFallbackFontOverridesForStyle(styleId, font.id)
+                        onReset: () => resetFontMetrics(font.id)
                     });
                 }
             }
@@ -324,7 +332,7 @@ const OverridesManager = ({ iconMode = false }) => {
                             id: `fallback-metrics-${fId}`,
                             label: `Metrics: ${fontName}`,
                             details: changes,
-                            onReset: () => resetFallbackFontOverridesForStyle(styleId, fId)
+                            onReset: () => resetFontMetrics(fId)
                         });
                     }
                 });
@@ -341,7 +349,7 @@ const OverridesManager = ({ iconMode = false }) => {
                 id: `lh-${langId}`,
                 label: 'Custom Base L-Height',
                 details: [{ label: 'Value', value }],
-                onReset: () => updateLineHeightOverrideForStyle(styleId, langId, null)
+                onReset: () => resetLineHeightOverride(langId)
             });
         });
 

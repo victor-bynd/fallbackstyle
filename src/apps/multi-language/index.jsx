@@ -250,6 +250,7 @@ const MainContent = ({
   const [showComparisonSelector, setShowComparisonSelector] = useState(false);
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [comparisonFontIds, setComparisonFontIds] = useState([]);
+  const scrollIntervalRef = useRef(null);
 
   const handleStartComparison = (selectedIds) => {
     setComparisonFontIds(selectedIds);
@@ -313,9 +314,9 @@ const MainContent = ({
     const maxAttempts = 10; // 500ms max wait
 
     // Clear any previous interval
-    if (window._mainScrollInterval) clearInterval(window._mainScrollInterval);
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
 
-    window._mainScrollInterval = setInterval(() => {
+    scrollIntervalRef.current = setInterval(() => {
       const element = document.getElementById(`language-card-${targetId}`);
       if (element) {
         // Element found - scroll and clear
@@ -328,21 +329,21 @@ const MainContent = ({
           behavior: "smooth"
         });
 
-        clearInterval(window._mainScrollInterval);
-        window._mainScrollInterval = null;
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
       } else {
         attempts++;
         if (attempts >= maxAttempts) {
-          clearInterval(window._mainScrollInterval);
-          window._mainScrollInterval = null;
+          clearInterval(scrollIntervalRef.current);
+          scrollIntervalRef.current = null;
         }
       }
     }, 50);
 
     return () => {
-      if (window._mainScrollInterval) {
-        clearInterval(window._mainScrollInterval);
-        window._mainScrollInterval = null;
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
       }
     };
   }, [activeConfigTab, highlitLanguageId, primaryLanguages]);

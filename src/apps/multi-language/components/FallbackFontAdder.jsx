@@ -45,7 +45,7 @@ const FallbackFontAdder = ({ onClose, onAdd }) => {
                 try {
                     const { font, metadata } = await parseFontFile(file);
                     const url = createFontUrl(file);
-                    const fontId = `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const fontId = `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
                     return {
                         id: fontId,
