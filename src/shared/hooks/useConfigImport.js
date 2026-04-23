@@ -153,7 +153,7 @@ export const useConfigImport = () => {
             setExistingFiles(foundFiles);
             setPendingConfig(rawConfig); // Save raw config to restore later
         } else {
-            restoreConfiguration(rawConfig, {});
+            restoreConfiguration(rawConfig);
         }
     };
 
@@ -172,10 +172,10 @@ export const useConfigImport = () => {
         reader.readAsText(file);
     };
 
-    const handleResolveMissingFonts = async (fileMap) => {
+    const handleResolveMissingFonts = async () => {
         if (pendingConfig) {
             try {
-                await restoreConfiguration(pendingConfig, fileMap);
+                await restoreConfiguration(pendingConfig);
             } catch (error) {
                 console.error("Error restoring configuration with missing fonts:", error);
                 alert("There was a problem restoring the configuration. Some settings may be missing.");

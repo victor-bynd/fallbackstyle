@@ -246,20 +246,24 @@ export const PersistenceProvider = ({ children }) => {
             if (scope === 'all') {
                 // Delete all IndexedDB databases to be absolutely sure
                 try {
-                    const databases = await indexedDB.databases();
-                    for (const db of databases) {
-                        if (db.name) {
-                            logger.debug('Deleting database:', db.name);
-                            await new Promise((resolve, reject) => {
-                                const request = indexedDB.deleteDatabase(db.name);
-                                request.onsuccess = () => resolve();
-                                request.onerror = () => reject(request.error);
-                                request.onblocked = () => {
-                                    logger.warn('Database deletion blocked:', db.name);
-                                    resolve(); // Continue anyway
-                                };
-                            });
+                    if (typeof indexedDB.databases === 'function') {
+                        const databases = await indexedDB.databases();
+                        for (const db of databases) {
+                            if (db.name) {
+                                logger.debug('Deleting database:', db.name);
+                                await new Promise((resolve, reject) => {
+                                    const request = indexedDB.deleteDatabase(db.name);
+                                    request.onsuccess = () => resolve();
+                                    request.onerror = () => reject(request.error);
+                                    request.onblocked = () => {
+                                        logger.warn('Database deletion blocked:', db.name);
+                                        resolve(); // Continue anyway
+                                    };
+                                });
+                            }
                         }
+                    } else {
+                        logger.warn('indexedDB.databases() is not supported in this browser. Skipping full DB enumeration.');
                     }
                 } catch (err) {
                     logger.warn('Failed to enumerate/delete IndexedDB databases:', err);
@@ -286,8 +290,18 @@ export const PersistenceProvider = ({ children }) => {
     }, []);
 
     /**
-     * Auto-save configuration (debounced)
+     * Auto-save configuration (debounced).
+     *
+     * The effect reschedules a 500ms timer whenever any serializable state changes.
+     * To keep the timer from resetting on every parent re-render, we do NOT put
+     * the whole context objects or the unstable getExportConfiguration callback
+     * in the dep list. Instead we track the specific primitive/reference values
+     * that actually end up in the serialized payload, and read the latest
+     * getExportConfiguration / fontContext from a ref inside the timer body.
      */
+    const autoSaveRef = useRef({ getExportConfiguration, fontContext });
+    autoSaveRef.current = { getExportConfiguration, fontContext };
+
     useEffect(() => {
         // Don't auto-save during reset or initial load
         if (isResetting.current || isSessionLoading) {
@@ -299,14 +313,20 @@ export const PersistenceProvider = ({ children }) => {
             clearTimeout(autoSaveTimeoutRef.current);
         }
 
-        // Debounce save by 2 seconds
+        // Debounce save by 500ms - invisible to the user, cuts IDB writes
+        // by two orders of magnitude during slider drags and typing.
         autoSaveTimeoutRef.current = setTimeout(async () => {
             try {
-                const config = getExportConfiguration();
+                const {
+                    getExportConfiguration: latestGetExport,
+                    fontContext: latestFontContext
+                } = autoSaveRef.current;
+
+                const config = latestGetExport();
                 await PersistenceService.saveConfig(config);
 
                 // Save fonts to IndexedDB (save buffer, not fontObject)
-                const { fonts, persistedFontIds } = fontContext;
+                const { fonts, persistedFontIds } = latestFontContext;
                 for (const font of fonts) {
                     if (font.fontBuffer && !persistedFontIds.current.has(font.id)) {
                         await PersistenceService.saveFont(font.id, {
@@ -319,24 +339,45 @@ export const PersistenceProvider = ({ children }) => {
             } catch (error) {
                 logger.error('Auto-save failed:', error);
             }
-        }, 2000);
+        }, 500);
 
         return () => {
             if (autoSaveTimeoutRef.current) {
                 clearTimeout(autoSaveTimeoutRef.current);
             }
         };
+        // Deps: every serializable value that appears in getExportConfiguration.
+        // Whole context objects and callbacks are intentionally excluded -
+        // they'd churn the timer on every unrelated parent re-render.
     }, [
-        fontContext.fontStyles,
+        // Font Management
+        fontContext?.fontStyles,
+        fontContext?.activeFontStyleId,
+        fontContext?.fonts,
+
+        // Language Mapping
         languageContext?.visibleLanguageIds,
         languageContext?.hiddenLanguageIds,
+
+        // Typography
         typographyContext?.headerStyles,
+        typographyContext?.headerOverrides,
+        typographyContext?.headerFontStyleMap,
         typographyContext?.textOverrides,
+
+        // UI State
         uiContext?.viewMode,
+        uiContext?.textCase,
+        uiContext?.gridColumns,
+        uiContext?.activeConfigTab,
+        uiContext?.showFallbackColors,
+        uiContext?.showAlignmentGuides,
+        uiContext?.showBrowserGuides,
+        uiContext?.showFallbackOrder,
         uiContext?.colors,
-        isSessionLoading,
-        getExportConfiguration,
-        fontContext
+
+        // Load gate
+        isSessionLoading
     ]);
 
     // Track if session has been loaded to prevent re-loading

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useFontManagement } from '../context/useFontManagement';
 import { useLanguageMapping } from '../context/useLanguageMapping';
 import { useTypography } from '../context/useTypography';
+import { getFallbackFontFamily, getSystemFallbackFamily } from '../utils/fontFamilyUtils';
 import { normalizeFontName } from '../utils/fontNameUtils';
 
 export const useFontStack = () => {
@@ -26,26 +27,27 @@ export const useFontStack = () => {
 
         const excludedFontIds = new Set();
 
-        // Add Fallback Overrides (Values logic)
-        Object.values(fallbackOverrides).forEach(val => {
-            if (typeof val === 'string') {
-                excludedFontIds.add(val);
-            } else if (val && typeof val === 'object') {
-                // Add keys (Base Font IDs) and values (Override Font IDs)
-                Object.keys(val).forEach(k => excludedFontIds.add(k));
-                Object.values(val).forEach(v => excludedFontIds.add(v));
-            }
-        });
+        // Only exclude override-related font IDs for the CURRENT language.
+        // This prevents a mapping in language A from incorrectly stripping
+        // fallback candidates when rendering language B.
+        const fallbackOverrideForLanguage = fallbackOverrides?.[languageId];
+        if (typeof fallbackOverrideForLanguage === 'string') {
+            excludedFontIds.add(fallbackOverrideForLanguage);
+        } else if (fallbackOverrideForLanguage && typeof fallbackOverrideForLanguage === 'object') {
+            // Granular override map: { [baseFontId]: overrideFontId }
+            Object.keys(fallbackOverrideForLanguage).forEach(k => excludedFontIds.add(k));
+            Object.values(fallbackOverrideForLanguage).forEach(v => excludedFontIds.add(v));
+        }
 
-        // Add Primary Overrides (Values logic)
-        Object.values(primaryOverrides).forEach(val => {
-            if (typeof val === 'string') excludedFontIds.add(val);
-        });
+        const primaryOverrideForLanguage = primaryOverrides?.[languageId];
+        if (typeof primaryOverrideForLanguage === 'string') {
+            excludedFontIds.add(primaryOverrideForLanguage);
+        }
 
         const primaryFont = fonts.find(f => f && f.type === 'primary');
         const pNameNormalized = normalizeFontName(primaryFont?.fileName || primaryFont?.name);
 
-        // Filter out fallback fonts that are used as overrides in ANY language
+        // Filter out fallback fonts that are used as overrides for the current language
         // AND ensure we don't duplicate the primary font in the fallback stack (same ID or same Name)
         const fallbackFonts = fonts.filter(f =>
             f &&
@@ -65,7 +67,7 @@ export const useFontStack = () => {
         const buildStackItem = (font) => {
             if (font.fontUrl || font.name) {
                 return {
-                    fontFamily: `'FallbackFont-${styleId}-${font.id}'`,
+                    fontFamily: getFallbackFontFamily(styleId, font.id),
                     fontId: font.id,
                     fontObject: font.fontObject,
                     settings: getEffectiveFontSettingsForStyle(styleId, font.id)
@@ -81,7 +83,7 @@ export const useFontStack = () => {
             sysOverrides.ascentOverride !== undefined ||
             sysOverrides.descentOverride !== undefined
         );
-        const sysFontFamily = hasSysOverrides ? `'SystemFallback-${styleId}-${languageId}'` : fallbackFont;
+        const sysFontFamily = hasSysOverrides ? getSystemFallbackFamily(styleId, languageId) : fallbackFont;
 
         if (overrideFontId) {
             if (overrideFontId === 'legacy') {

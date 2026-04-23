@@ -389,5 +389,35 @@ describe('ConfigService', () => {
             expect(result.fontStyles.primary.primaryFontOverrides['ja-JP']).toBe('lang-primary-ja-JP-123');
             expect(result.fontStyles.primary.primaryFontOverrides['ko-KR']).toBeUndefined();
         });
+
+        it('should validate overrides for all styles, not only primary', () => {
+            const data = {
+                fontStyles: {
+                    primary: {
+                        fonts: [{ id: 'primary-a', type: 'primary' }],
+                        primaryFontOverrides: {
+                            'en-US': 'primary-a',
+                            'ja-JP': 'missing-primary-font'
+                        }
+                    },
+                    secondary: {
+                        fonts: [{ id: 'secondary-a', type: 'fallback' }],
+                        fallbackFontOverrides: {
+                            'fr-FR': 'secondary-a',
+                            'de-DE': 'missing-secondary-font'
+                        }
+                    }
+                }
+            };
+
+            const result = ConfigService.validateConfig(data);
+
+            expect(result.fontStyles.primary.primaryFontOverrides).toEqual({
+                'en-US': 'primary-a'
+            });
+            expect(result.fontStyles.secondary.fallbackFontOverrides).toEqual({
+                'fr-FR': 'secondary-a'
+            });
+        });
     });
 });

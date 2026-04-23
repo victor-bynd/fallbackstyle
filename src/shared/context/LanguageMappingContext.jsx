@@ -3,6 +3,7 @@ import { DEFAULT_PALETTE } from '../data/constants';
 import languagesData from '../data/languages.json';
 import sampleSentences from '../data/sampleSentences.json';
 import { normalizeFontName } from '../utils/fontNameUtils';
+import { generateUniqueId } from '../utils/idUtils';
 import { createLogger } from '../services/Logger';
 import { useFontManagement } from './useFontManagement';
 import { getNextUniqueColor } from '../utils/colorUtils';
@@ -637,7 +638,7 @@ export const LanguageMappingProvider = ({ children }) => {
             }
         }
 
-        const fontId = `lang-primary-${langId}-${Date.now()}`;
+        const fontId = generateUniqueId(`lang-primary-${langId}`);
 
         setFonts(prev => {
             // Get the LATEST global primary font to clone
@@ -688,7 +689,7 @@ export const LanguageMappingProvider = ({ children }) => {
     const addLanguageSpecificPrimaryFontFromId = useCallback((sourceFontId, langId) => {
         logger.debug('Creating language-specific primary font from:', sourceFontId, 'for', langId);
 
-        const fontId = `lang-primary-${langId}-${Date.now()}`;
+        const fontId = generateUniqueId(`lang-primary-${langId}`);
 
         // Add to fonts array using functional update to avoid stale fonts from closure
         setFonts(prev => {
@@ -832,7 +833,7 @@ export const LanguageMappingProvider = ({ children }) => {
 
                     // Create Clone for primary override
                     if (sourceFont) {
-                        const cloneId = `lang-primary-${langId}-${Date.now()}`;
+                        const cloneId = generateUniqueId(`lang-primary-${langId}`);
                         const newClone = {
                             ...sourceFont,
                             id: cloneId,
@@ -875,7 +876,7 @@ export const LanguageMappingProvider = ({ children }) => {
     const addLanguageSpecificFallbackFont = useCallback((font, url, name, metadata, langId, buffer) => {
         logger.debug('Adding language-specific fallback font:', name, 'for', langId);
 
-        const fontId = `lang-fallback-${langId}-${Date.now()}`;
+        const fontId = generateUniqueId(`lang-fallback-${langId}`);
 
         // Create the font object
         const newFont = {

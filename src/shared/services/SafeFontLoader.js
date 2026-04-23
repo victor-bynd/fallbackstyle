@@ -1,44 +1,33 @@
 import { parseFontFile } from './FontLoader';
 
-// We can reuse a single worker instance if we want, or create one per request.
-// For now, creating one per request ensures clean state, but one per session is more efficient.
-// Let's use a lazy singleton approach.
-let workerInstance = null;
+// Track active workers so tests/devtools can force cleanup.
+const activeWorkers = new Set();
 
-const getWorker = () => {
-    if (!workerInstance) {
-        workerInstance = new Worker(new URL('../workers/fontValidation.worker.js', import.meta.url), {
-            type: 'module'
-        });
-    }
-    return workerInstance;
+const createWorker = () => {
+    const worker = new Worker(new URL('../workers/fontValidation.worker.js', import.meta.url), {
+        type: 'module'
+    });
+    activeWorkers.add(worker);
+    return worker;
 };
 
 // For testing purposes
 export const resetWorker = () => {
-    if (workerInstance) {
-        workerInstance.terminate();
-    }
-    workerInstance = null;
+    activeWorkers.forEach((worker) => worker.terminate());
+    activeWorkers.clear();
 };
 
 export const safeParseFontFile = async (file, timeoutMs = 3000) => {
     const buffer = await file.arrayBuffer();
     return new Promise((resolve, reject) => {
+        const worker = createWorker();
+
         try {
-            const worker = getWorker();
-
-            // Unique ID for this request (simple random string)
-            // Actually, since we are sending one message, we can just track by fileName for now
-            // or better, just use a one-off event listener.
-
             let isResolved = false;
             let timer = null;
 
             const handleMessage = (e) => {
-                const { success, fileName, error } = e.data;
-                // Ensure this message matches our file (basic check)
-                if (fileName !== file.name) return;
+                const { success, error } = e.data;
 
                 cleanup();
 
@@ -64,6 +53,8 @@ export const safeParseFontFile = async (file, timeoutMs = 3000) => {
                 clearTimeout(timer);
                 worker.removeEventListener('message', handleMessage);
                 worker.removeEventListener('error', handleError);
+                worker.terminate();
+                activeWorkers.delete(worker);
             };
 
             worker.addEventListener('message', handleMessage);
@@ -77,22 +68,14 @@ export const safeParseFontFile = async (file, timeoutMs = 3000) => {
                 if (!isResolved) {
                     cleanup();
                     // If we time out, we assume the worker is stuck.
-                    // We might want to terminate the worker to be safe?
-                    // For now, just reject.
                     console.warn(`SafeFontLoader: Timed out validating ${file.name}`);
-
-                    // Force terminate and recreate worker if it hangs?
-                    // This is robust:
-                    if (workerInstance) {
-                        workerInstance.terminate();
-                        workerInstance = null;
-                    }
-
                     reject(new Error("Font validation timed out"));
                 }
             }, timeoutMs);
 
         } catch (e) {
+            worker.terminate();
+            activeWorkers.delete(worker);
             reject(e);
         }
     });

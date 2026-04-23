@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { DEFAULT_PALETTE } from '../data/constants';
 import { resolveWeightForFont } from '../utils/weightUtils';
 import { normalizeFontName } from '../utils/fontNameUtils';
+import { generateUniqueId } from '../utils/idUtils';
 import { revokeFontUrl } from '../services/FontLoader';
 import { createLogger } from '../services/Logger';
 
@@ -216,7 +217,7 @@ export const FontManagementProvider = ({ children }) => {
             const firstSystemIndex = prev.findIndex(f => f && f.type === 'fallback' && isSystemFont(f));
 
             // Ensure a stable unique id for persistence
-            const newFontId = fontData.id || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+            const newFontId = fontData.id || generateUniqueId('fallback');
             const newFont = {
                 id: newFontId,
                 ...fontData,
@@ -263,8 +264,8 @@ export const FontManagementProvider = ({ children }) => {
                     existingNames.add(nName);
                     return true;
                 })
-                .reduce((acc, fontData, i) => {
-                    const id = fontData.id || `fallback-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
+                .reduce((acc, fontData) => {
+                    const id = fontData.id || generateUniqueId('fallback');
                     const newFont = {
                         id,
                         ...fontData,
@@ -286,10 +287,10 @@ export const FontManagementProvider = ({ children }) => {
         logger.debug('Adding strictly mapped fonts for language:', langId, fontsDataArray.length);
 
         const newFonts = [];
-        fontsDataArray.forEach((fontData, i) => {
+        fontsDataArray.forEach((fontData) => {
             const newFont = {
                 ...fontData,
-                id: `fallback-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 11)}`,
+                id: generateUniqueId('fallback'),
                 type: 'fallback',
                 isClone: true,
                 isLangSpecific: true,
@@ -326,7 +327,7 @@ export const FontManagementProvider = ({ children }) => {
             const clone = {
                 ...original,
                 ...initialUpdates,
-                id: `lang-${langId}-${Date.now()}`,
+                id: generateUniqueId(`lang-${langId}`),
                 isClone: true,
                 isLangSpecific: true,
                 parentId: originalFontId,

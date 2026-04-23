@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useFontManagement } from '../context/useFontManagement';
 import { useTypography } from '../context/useTypography';
+import { getFallbackFontFamily, getSystemFallbackFamily, getUploadedFontFamily } from '../utils/fontFamilyUtils';
 
 /** Escape a string for safe use inside CSS url() or font-family quotes */
 const escapeCSSString = (str) => {
@@ -50,7 +51,7 @@ export const useFontFaceStyles = () => {
                 const primaryRule = !primary?.hidden && (primary?.fontUrl || primary?.name)
                     ? `
           @font-face {
-            font-family: 'UploadedFont-${styleId}';
+            font-family: ${getUploadedFontFamily(styleId)};
             src: ${primary.fontUrl ? `url('${escapeCSSString(primary.fontUrl)}')` : `local('${escapeCSSString(primary.name)}')`};
             ${primarySizeAdjust}
             ${primaryVariationSettings}
@@ -137,7 +138,7 @@ export const useFontFaceStyles = () => {
 
                         return `
             @font-face {
-              font-family: 'FallbackFont-${styleId}-${font.id}';
+              font-family: ${getFallbackFontFamily(styleId, font.id)};
               src: ${src};
               ${sizeAdjust}
               ${variationSettings}
@@ -178,7 +179,7 @@ export const useFontFaceStyles = () => {
 
                     return `
             @font-face {
-              font-family: 'SystemFallback-${styleId}-${langId}';
+              font-family: ${getSystemFallbackFamily(styleId, langId)};
               src: local('${escapeCSSString(fontName)}');
               ${sizeAdjust}
               ${lineGapOverride}

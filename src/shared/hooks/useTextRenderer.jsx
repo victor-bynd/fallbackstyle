@@ -3,6 +3,7 @@ import { useLanguageMapping } from '../context/useLanguageMapping';
 import { useTypography } from '../context/useTypography';
 import { useUI } from '../context/UIContext';
 import { useFontStack } from './useFontStack';
+import { getFallbackFontFamily, getUploadedFontFamily } from '../utils/fontFamilyUtils';
 
 export const useTextRenderer = () => {
     const { fontStyles, getFontsForStyle, getPrimaryFontFromStyle } = useFontManagement();
@@ -105,10 +106,10 @@ export const useTextRenderer = () => {
         let primaryFamily = 'sans-serif';
         if (!isHidden && (effectivePrimaryFont?.fontUrl || effectivePrimaryFont?.name)) {
             if (isGlobalPrimary) {
-                primaryFamily = `'UploadedFont-${styleId}'`;
+                primaryFamily = getUploadedFontFamily(styleId);
             } else {
                 // If it's a primary override, it was generated in the 'fallbackRules' loop with this ID
-                primaryFamily = `'FallbackFont-${styleId}-${effectivePrimaryFont.id}'`;
+                primaryFamily = getFallbackFontFamily(styleId, effectivePrimaryFont.id);
             }
         }
 
