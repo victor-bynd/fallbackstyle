@@ -1,31 +1,8 @@
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
-import { vi } from 'vitest';
+import { FontManagementProvider } from '../../shared/context/FontManagementContext';
 import { LanguageMappingProvider } from '../../shared/context/LanguageMappingContext';
 import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
-import { FontManagementContext } from '../../shared/context/useFontManagement';
-
-// Mock FontManagementContext
-const mockFontContext = {
-    fonts: [],
-    activeFontStyleId: 'primary',
-    fontStyles: {
-        primary: {
-            configuredLanguages: [],
-            primaryLanguages: [],
-            primaryFontOverrides: {},
-            fallbackFontOverrides: {}
-        }
-    },
-    updateStyleState: vi.fn((styleId, updater) => {
-        // Simple mock implementation to simulate state update for testing if needed
-        // For this test, we mostly care about visibleLanguageIds which is local to LanguageMappingContext
-        if (typeof updater === 'function') {
-            updater(mockFontContext.fontStyles.primary);
-        }
-    }),
-    setFonts: vi.fn(),
-};
 
 // Test component to consume context
 const TestComponent = ({ langId }) => {
@@ -49,11 +26,11 @@ describe('LanguageMappingContext - Removal Bug', () => {
         const langId = 'es-ES';
 
         render(
-            <FontManagementContext.Provider value={mockFontContext}>
+            <FontManagementProvider>
                 <LanguageMappingProvider>
                     <TestComponent langId={langId} />
                 </LanguageMappingProvider>
-            </FontManagementContext.Provider>
+            </FontManagementProvider>
         );
 
         // Initial state should be hidden (or whatever default is, but we'll add it first)

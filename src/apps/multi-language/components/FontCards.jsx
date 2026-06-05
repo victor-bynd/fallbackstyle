@@ -131,7 +131,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         try {
             const promises = uniqueFiles.map(async (file) => {
                 try {
-                    const { font, metadata } = await parseFontFile(file);
+                    const { font, metadata, buffer } = await parseFontFile(file);
                     const url = createFontUrl(file);
                     const fontId = `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
@@ -140,6 +140,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                         type: 'fallback',
                         fontObject: font,
                         fontUrl: url,
+                        fontBuffer: buffer,
                         fileName: file.name,
                         name: file.name,
                         axes: metadata.axes,

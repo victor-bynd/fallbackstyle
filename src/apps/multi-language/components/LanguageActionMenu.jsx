@@ -44,7 +44,7 @@ const LanguageActionMenu = ({
         if (!file) return;
 
         try {
-            const { font: parsedFont, metadata } = await parseFontFile(file);
+            const { font: parsedFont, metadata, buffer } = await parseFontFile(file);
             const url = createFontUrl(file);
 
             addLanguageSpecificFallbackFont(
@@ -52,7 +52,8 @@ const LanguageActionMenu = ({
                 url,
                 file.name,
                 metadata,
-                language.id
+                language.id,
+                buffer
             );
 
             onClose();

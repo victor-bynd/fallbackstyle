@@ -50,7 +50,7 @@ const AddLanguageModal = ({ onClose, onConfirm, filterGroup = null }) => {
 
         const file = files[0];
         try {
-            const { font, metadata } = await parseFontFile(file);
+            const { font, metadata, buffer } = await parseFontFile(file);
             const url = createFontUrl(file);
 
             // Create font object consistent with TypoContext structure
@@ -59,6 +59,7 @@ const AddLanguageModal = ({ onClose, onConfirm, filterGroup = null }) => {
                 type: 'fallback', // Initially add as fallback to make it available
                 fontObject: font,
                 fontUrl: url,
+                fontBuffer: buffer,
                 fileName: file.name,
                 name: file.name,
                 axes: metadata.axes,

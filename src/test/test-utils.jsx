@@ -29,9 +29,11 @@ export const mockUseTypo = (overrides = {}) => ({
 
 export const mockUseFontManagement = (overrides = {}) => ({
     fonts: [],
+    fontObject: null,
     activeFontStyleId: 'primary',
     fontStyles: {
         primary: {
+            fonts: [],
             configuredLanguages: [],
             primaryLanguages: [],
             primaryFontOverrides: {},
@@ -40,6 +42,9 @@ export const mockUseFontManagement = (overrides = {}) => ({
     },
     updateStyleState: vi.fn(),
     setFonts: vi.fn(),
+    loadFont: vi.fn(),
+    addFallbackFont: vi.fn(),
+    addFallbackFonts: vi.fn(),
     getPrimaryFont: vi.fn(),
     getPrimaryFontFromStyle: vi.fn(),
     getFontsForStyle: vi.fn(),
@@ -69,6 +74,9 @@ export const mockUseLanguageMapping = (overrides = {}) => ({
     hideAllLanguages: vi.fn(),
     togglePrimaryLanguage: vi.fn(),
     isLanguageVisible: vi.fn(() => true),
+    batchAddConfiguredLanguages: vi.fn(),
+    batchAddFontsAndMappings: vi.fn(),
+    addLanguageSpecificFallbackFont: vi.fn(),
     ...overrides
 });
 
@@ -84,9 +92,11 @@ export const mockUseTypography = (overrides = {}) => ({
 
 export const mockUsePersistence = (overrides = {}) => ({
     isSessionLoading: false,
+    isAppResetting: false,
     saveSession: vi.fn(),
     loadSession: vi.fn(),
     getExportConfiguration: vi.fn(),
+    resetApp: vi.fn(),
     ...overrides
 });
 
@@ -95,7 +105,15 @@ export const mockUseUI = (overrides = {}) => ({
     setViewMode: vi.fn(),
     showBrowserGuides: false,
     setShowBrowserGuides: vi.fn(),
+    showAlignmentGuides: false,
+    setShowAlignmentGuides: vi.fn(),
+    showFallbackOrder: false,
+    setShowFallbackOrder: vi.fn(),
+    showFallbackColors: false,
+    setShowFallbackColors: vi.fn(),
     activeConfigTab: 'ALL',
     setActiveConfigTab: vi.fn(),
+    gridColumns: 1,
+    setGridColumns: vi.fn(),
     ...overrides
 });

@@ -1,14 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import AddLanguageModal from '../../apps/multi-language/components/AddLanguageModal';
-import { useTypo } from '../../shared/context/useTypo';
-import { useUI } from '../../shared/context/UIContext';
+import { useFontManagement } from '../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
 import { vi } from 'vitest';
-import { mockUseTypo } from '../test-utils';
+import { mockUseFontManagement, mockUseLanguageMapping } from '../test-utils';
 
 // Mock dependencies
-vi.mock('../../shared/context/useTypo');
-vi.mock('../../shared/context/UIContext');
+vi.mock('../../shared/context/useFontManagement');
+vi.mock('../../shared/context/useLanguageMapping');
 
 vi.mock('framer-motion', () => ({
     motion: {
@@ -21,12 +21,17 @@ describe('AddLanguageModal', () => {
     const mockOnClose = vi.fn();
 
     beforeEach(() => {
-        useTypo.mockReturnValue(mockUseTypo());
-        useUI.mockReturnValue({});
+        useFontManagement.mockReturnValue(mockUseFontManagement());
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({
+            supportedLanguages: [
+                { id: 'en-US', name: 'English (US)', sampleSentence: 'Hello', dir: 'ltr' },
+                { id: 'fr-FR', name: 'French', sampleSentence: 'Bonjour', dir: 'ltr' }
+            ]
+        }));
     });
 
     it('should render the modal when open', () => {
-        render(<AddLanguageModal isOpen={true} onClose={mockOnClose} />);
+        render(<AddLanguageModal onClose={mockOnClose} onConfirm={vi.fn()} />);
         expect(screen.getByPlaceholderText(/search/i)).toBeInTheDocument();
         // Check for title loosely or specifically
         expect(screen.getByRole('heading', { name: /add language/i })).toBeInTheDocument();

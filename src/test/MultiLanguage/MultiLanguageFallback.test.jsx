@@ -39,9 +39,6 @@ vi.mock('../../shared/services/SafeFontLoader', () => ({
 }));
 
 // Mock child components that are complex or not focus of this test
-vi.mock('../../apps/landing/index', () => ({
-    default: () => <div>Landing Page</div>
-}));
 vi.mock('../../apps/multi-language/components/SideBar', () => ({
     default: () => <div>Sidebar</div>
 }));
@@ -106,7 +103,7 @@ describe('MultiLanguageFallback Page', () => {
         expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
 
-    it('should render LandingPage when no fonts or languages configured', () => {
+    it('should render onboarding when no fonts or languages are configured', () => {
         useFontManagement.mockReturnValue(mockUseFontManagement({
             fontObject: null,
             fontStyles: { primary: { fonts: [] } }
@@ -123,6 +120,6 @@ describe('MultiLanguageFallback Page', () => {
                 <MultiLanguageFallback />
             </MemoryRouter>
         );
-        expect(screen.getByText('Landing Page')).toBeInTheDocument();
+        expect(screen.getByText('Multi-Language Fallback Styles')).toBeInTheDocument();
     });
 });

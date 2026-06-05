@@ -5,7 +5,7 @@ import { useUI } from '../../shared/context/UIContext';
 import { vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../context/UIContext');
+vi.mock('../../shared/context/UIContext');
 
 describe('ViewModeSelector', () => {
     const mockSetViewMode = vi.fn();

@@ -71,7 +71,10 @@ const LandingPage = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a8 8 0 100 16 8 8 0 000-16z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 9h14.5M4.75 15h14.5" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 4.5c-1.15 1.5-1.75 3.8-1.75 6.5s.6 5 1.75 6.5M14.25 4.5c1.15 1.5 1.75 3.8 1.75 6.5s-.6 5-1.75 6.5" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6" />
                                     </svg>
                                 </div>
                                 {sessions.multiLanguage && (
@@ -113,7 +116,11 @@ const LandingPage = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 18h16" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 15l3.25-8h1.5L15 15" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12h5.5" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 8v7" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8h3M15.5 15h3" />
                                     </svg>
                                 </div>
                                 {sessions.brandFont && (

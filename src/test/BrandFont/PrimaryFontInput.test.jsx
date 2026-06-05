@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import PrimaryFontInput from '../../apps/brand-font/components/PrimaryFontInput';
+import { MemoryRouter } from 'react-router-dom';
+import Onboarding from '../../apps/brand-font/components/Onboarding';
 import * as FontLoader from '../../shared/services/FontLoader';
 
 // Mock FontLoader
@@ -14,19 +15,25 @@ vi.mock('../../shared/components/InfoTooltip', () => ({
     default: ({ text }) => <div data-testid="info-tooltip">{text}</div>
 }));
 
-describe('PrimaryFontInput', () => {
+describe('Brand Font Onboarding', () => {
+    const renderOnboarding = (props = {}) => render(
+        <MemoryRouter>
+            <Onboarding {...props} />
+        </MemoryRouter>
+    );
+
     afterEach(() => {
         vi.clearAllMocks();
     });
 
     it('renders correctly', () => {
-        render(<PrimaryFontInput />);
+        renderOnboarding();
         expect(screen.getByText(/Upload Brand Font/i)).toBeInTheDocument();
         expect(screen.getByText(/Drag & drop your font file/i)).toBeInTheDocument();
     });
 
     it('shows error for unsupported file type', async () => {
-        render(<PrimaryFontInput />);
+        renderOnboarding();
 
         const file = new File(['dummy content'], 'test.txt', { type: 'text/plain' });
 
@@ -53,7 +60,7 @@ describe('PrimaryFontInput', () => {
         FontLoader.parseFontFile.mockResolvedValue({ font: mockFont, metadata: mockMetadata });
         FontLoader.createFontUrl.mockReturnValue('blob:url');
 
-        render(<PrimaryFontInput onFontLoaded={mockOnFontLoaded} />);
+        renderOnboarding({ onFontLoaded: mockOnFontLoaded });
 
         const file = new File(['(binary)'], 'test.ttf', { type: 'font/ttf' });
         const fileInput = document.querySelector('input[type="file"]');
@@ -80,7 +87,7 @@ describe('PrimaryFontInput', () => {
         const mockOnFontLoaded = vi.fn();
         FontLoader.parseFontFile.mockRejectedValue(new Error('Parse error'));
 
-        render(<PrimaryFontInput onFontLoaded={mockOnFontLoaded} />);
+        renderOnboarding({ onFontLoaded: mockOnFontLoaded });
 
         const file = new File(['(binary)'], 'corrupt.ttf', { type: 'font/ttf' });
         const fileInput = document.querySelector('input[type="file"]');

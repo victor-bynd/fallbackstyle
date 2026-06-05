@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveWeightForFont } from '../../utils/weightUtils';
+import { resolveWeightForFont } from '../../shared/utils/weightUtils';
 
 describe('weightUtils', () => {
     describe('resolveWeightForFont', () => {

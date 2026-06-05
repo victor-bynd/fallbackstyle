@@ -3,12 +3,14 @@ import { useFontManagement } from '../../../shared/context/useFontManagement';
 import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import { useTypography } from '../../../shared/context/useTypography';
 import { useFontStack } from '../../../shared/hooks/useFontStack';
+import { getFallbackFontFamily, getUploadedFontFamily } from '../../../shared/utils/fontFamilyUtils';
 
 const ExportCSSModal = ({ onClose }) => {
     const { fontStyles, getPrimaryFontFromStyle } = useFontManagement();
     const {
         configuredLanguages,
         hiddenLanguageIds,
+        getPrimaryFontOverrideForStyle,
     } = useLanguageMapping();
     const { getEffectiveFontSettingsForStyle } = useTypography();
 
@@ -31,17 +33,12 @@ const ExportCSSModal = ({ onClose }) => {
 
             // Primary Font
             const primary = style.fonts?.find(f => f.type === 'primary');
-            // Allow if fontUrl exists OR if it's a system font (name exists) AND has overrides
+            // Always define the primary alias when a source is available because
+            // language selectors reference this family directly.
             if (primary && !processedFonts.has(`primary-${styleId}`)) {
                 const primarySettings = getEffectiveFontSettingsForStyle(styleId, primary.id);
 
-                const hasOverrides = (
-                    (primarySettings?.lineGapOverride !== undefined && primarySettings.lineGapOverride !== '') ||
-                    (primarySettings?.ascentOverride !== undefined && primarySettings.ascentOverride !== '') ||
-                    (primarySettings?.descentOverride !== undefined && primarySettings.descentOverride !== '')
-                );
-
-                if (primary.fontUrl || (primary.name && hasOverrides)) {
+                if (primary.fontUrl || primary.name) {
                     const sizeAdjust = (primarySettings?.scale && primarySettings.scale !== 100)
                         ? `  size-adjust: ${primarySettings.scale}%;\n` : '';
                     const variationSettings = (primary.isVariable || primary.axes?.weight)
@@ -55,7 +52,7 @@ const ExportCSSModal = ({ onClose }) => {
 
                     const src = primary.fontUrl ? `url('${primary.fontUrl}')` : `local('${primary.name}')`;
 
-                    css += `@font-face {\n  font-family: 'UploadedFont-${styleId}';\n  src: ${src};\n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent}}\n\n`;
+                    css += `@font-face {\n  font-family: ${getUploadedFontFamily(styleId)};\n  src: ${src};\n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent}}\n\n`;
                     processedFonts.add(`primary-${styleId}`);
                 }
             }
@@ -84,7 +81,7 @@ const ExportCSSModal = ({ onClose }) => {
                     // If URL, use url() 
                     const src = font.fontUrl ? `url('${font.fontUrl}')` : `local('${font.name}')`;
 
-                    css += `@font-face {\n  font-family: 'FallbackFont-${styleId}-${font.id}';\n  src: ${src};\n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent}}\n\n`;
+                    css += `@font-face {\n  font-family: ${getFallbackFontFamily(styleId, font.id)};\n  src: ${src};\n${sizeAdjust}${variationSettings}${lineGap}${ascent}${descent}}\n\n`;
                     processedFonts.add(key);
                 }
             });
@@ -155,14 +152,28 @@ const ExportCSSModal = ({ onClose }) => {
 
                 const selector = parts.join(', ');
                 const stack = buildFallbackFontStackForStyle(styleId, langId);
-                const fontFamily = stack.length > 0 ? stack.map(f => f.fontFamily).join(', ') : 'sans-serif';
 
                 // Get the style's primary font settings
+                const style = fontStyles[styleId];
                 const globalPrimaryFont = getPrimaryFontFromStyle(styleId);
-                const primarySettings = getEffectiveFontSettingsForStyle(styleId, globalPrimaryFont?.id || 'primary');
+                const primaryOverrideId = getPrimaryFontOverrideForStyle(styleId, langId);
+                const effectivePrimaryFont = (primaryOverrideId
+                    ? style?.fonts?.find(font => font?.id === primaryOverrideId)
+                    : null) || globalPrimaryFont;
+                const primaryFamily = effectivePrimaryFont &&
+                    !effectivePrimaryFont.hidden &&
+                    (effectivePrimaryFont.fontUrl || effectivePrimaryFont.name)
+                    ? effectivePrimaryFont.id === globalPrimaryFont?.id
+                        ? getUploadedFontFamily(styleId)
+                        : getFallbackFontFamily(styleId, effectivePrimaryFont.id)
+                    : null;
+                const fontFamily = [
+                    primaryFamily,
+                    ...stack.map(font => font.fontFamily)
+                ].filter(Boolean).join(', ') || 'sans-serif';
+                const primarySettings = getEffectiveFontSettingsForStyle(styleId, effectivePrimaryFont?.id || globalPrimaryFont?.id || 'primary');
                 
                 // Get the style-level line-height
-                const style = fontStyles[styleId];
                 const primaryLineHeight = style?.lineHeight ?? 'normal';
 
                 // Check for metric overrides in primary settings
@@ -210,7 +221,7 @@ const ExportCSSModal = ({ onClose }) => {
 
         return css;
 
-    }, [configuredLanguages, hiddenLanguageIds, fontStyles, getEffectiveFontSettingsForStyle, buildFallbackFontStackForStyle, getPrimaryFontFromStyle, useLangAttribute, useUtilityClasses]);
+    }, [configuredLanguages, hiddenLanguageIds, fontStyles, getEffectiveFontSettingsForStyle, buildFallbackFontStackForStyle, getPrimaryFontFromStyle, getPrimaryFontOverrideForStyle, useLangAttribute, useUtilityClasses]);
 
     const handleDownload = () => {
         const blob = new Blob([generateCSS], { type: 'text/css' });

@@ -1,156 +1,159 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { get, set, del } from 'idb-keyval';
+import { usePersistence } from '../../shared/context/usePersistence';
 import BrandFontFallback from '../../apps/brand-font/index';
 
-// Mock child components to isolate App logic
-vi.mock('../../apps/brand-font/components/PrimaryFontInput', () => ({
+vi.mock('idb-keyval', () => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn()
+}));
+
+vi.mock('../../shared/context/usePersistence');
+
+vi.mock('../../apps/brand-font/components/Onboarding', () => ({
     default: ({ onFontLoaded }) => (
-        <button
-            data-testid="mock-upload-btn"
-            onClick={() => onFontLoaded({
-                font: {
-                    unitsPerEm: 1000,
-                    tables: { hhea: { ascender: 800, descender: -200, lineGap: 0 } },
-                    charToGlyph: () => ({ yMax: 500 }) // mock x-height lookup
-                },
-                metadata: { staticWeight: 400 },
-                fileName: 'MyBrandFont.ttf'
-            })}
-        >
-            Upload Mock Font
-        </button>
+        <div>
+            <h1>Brand Font Fallback</h1>
+            <button
+                data-testid="mock-upload-btn"
+                onClick={() => onFontLoaded({
+                    font: {
+                        unitsPerEm: 1000,
+                        tables: {
+                            hhea: { ascender: 800, descender: -200, lineGap: 0 },
+                            os2: { sxHeight: 500 }
+                        },
+                        charToGlyph: () => ({ yMax: 500 })
+                    },
+                    metadata: { staticWeight: 400 },
+                    file: new File(['font'], 'MyBrandFont.ttf', { type: 'font/ttf' }),
+                    fileName: 'MyBrandFont.ttf'
+                })}
+            >
+                Upload Mock Font
+            </button>
+        </div>
     )
+}));
+
+vi.mock('../../apps/brand-font/components/SideBar', () => ({
+    default: ({ primaryFont, onExport, onResetApp }) => (
+        <aside>
+            <div>{primaryFont.fileName}</div>
+            <button onClick={onExport}>Export CSS</button>
+            <button onClick={onResetApp}>Reset App</button>
+        </aside>
+    )
+}));
+
+vi.mock('../../apps/brand-font/components/MetricSidebar', () => ({
+    default: () => <div>Metrics Configuration</div>
 }));
 
 vi.mock('../../apps/brand-font/components/BrandFontPreview', () => ({
-    default: ({ showBrowserGuides, showPrimaryGuides }) => (
-        <div data-testid="brand-font-preview">
-            Preview Area
-            {showBrowserGuides && <span>Browser Guides On</span>}
-            {showPrimaryGuides && <span>Primary Guides On</span>}
-        </div>
-    )
+    default: () => <div data-testid="brand-font-preview">Preview Area</div>
 }));
 
-vi.mock('../../apps/brand-font/components/FallbackSelector', () => ({
-    default: ({ selectedFontId, onSelect, onAddCustomFont }) => (
-        <div data-testid="fallback-selector">
-            <button onClick={() => onSelect({ id: 'arial', name: 'Arial', isCustom: false })}>Select Arial</button>
-            <button onClick={() => onSelect({ id: 'custom-new', name: 'New Custom', isCustom: true })}>Select Custom</button>
-            <button onClick={() => onAddCustomFont('Brand New Custom')}>Add Custom</button>
-            <div data-testid="selected-font-id">{selectedFontId}</div>
-        </div>
-    )
-}));
-
-// Mock clipboard
 const mockClipboard = {
-    writeText: vi.fn(),
+    writeText: vi.fn().mockResolvedValue(undefined)
 };
-global.navigator.clipboard = mockClipboard;
+
+const createLocalStorageMock = () => {
+    let store = {};
+
+    return {
+        getItem: vi.fn((key) => store[key] ?? null),
+        setItem: vi.fn((key, value) => {
+            store[key] = String(value);
+        }),
+        removeItem: vi.fn((key) => {
+            delete store[key];
+        }),
+        clear: vi.fn(() => {
+            store = {};
+        })
+    };
+};
+
+const renderApp = () => render(
+    <MemoryRouter>
+        <BrandFontFallback />
+    </MemoryRouter>
+);
 
 describe('BrandFontFallback App', () => {
-    it('renders initial state correctly', () => {
-        render(
-            <MemoryRouter>
-                <BrandFontFallback />
-            </MemoryRouter>
-        );
+    beforeEach(() => {
+        vi.clearAllMocks();
+        const localStorageMock = createLocalStorageMock();
+        Object.defineProperty(globalThis, 'localStorage', {
+            value: localStorageMock,
+            configurable: true
+        });
+        Object.defineProperty(window, 'localStorage', {
+            value: localStorageMock,
+            configurable: true
+        });
+        get.mockResolvedValue(null);
+        set.mockResolvedValue(undefined);
+        del.mockResolvedValue(undefined);
+        usePersistence.mockReturnValue({
+            resetApp: vi.fn().mockResolvedValue(undefined),
+            isAppResetting: false
+        });
+        Object.defineProperty(navigator, 'clipboard', {
+            value: mockClipboard,
+            configurable: true
+        });
+    });
+
+    it('renders initial state correctly', async () => {
+        renderApp();
 
         expect(screen.getByText('Brand Font Fallback')).toBeInTheDocument();
         expect(screen.getByTestId('mock-upload-btn')).toBeInTheDocument();
-        // Preview should not be visible yet
         expect(screen.queryByTestId('brand-font-preview')).not.toBeInTheDocument();
+        await waitFor(() => {
+            expect(get).toHaveBeenCalledWith('brand-font-file');
+        });
     });
 
     it('transitions to editor when font is loaded', async () => {
-        render(
-            <MemoryRouter>
-                <BrandFontFallback />
-            </MemoryRouter>
-        );
+        renderApp();
 
         fireEvent.click(screen.getByTestId('mock-upload-btn'));
 
-        await waitFor(() => {
-            expect(screen.getByText('MyBrandFont.ttf')).toBeInTheDocument();
-        });
-
-        // Preview should be visible
+        expect(await screen.findByText('MyBrandFont.ttf')).toBeInTheDocument();
         expect(screen.getByTestId('brand-font-preview')).toBeInTheDocument();
-        expect(screen.getByText('Configuration')).toBeInTheDocument();
+        expect(screen.getByText('Metrics Configuration')).toBeInTheDocument();
     });
 
-    it('handles manual override toggle', async () => {
-        render(
-            <MemoryRouter>
-                <BrandFontFallback />
-            </MemoryRouter>
-        );
+    it('opens CSS modal and copies generated CSS', async () => {
+        renderApp();
 
-        // Load font
         fireEvent.click(screen.getByTestId('mock-upload-btn'));
         await screen.findByText('MyBrandFont.ttf');
 
-        // Check if Auto is active (default)
-        // Auto button logic: checking class names or disabled state of manual inputs
-        const autoButton = screen.getByRole('button', { name: /Auto/i });
-        // It's hard to check style, but we can check if manual inputs are disabled/less opaque
-        // Index.jsx: <div className={`... ${isAuto ? 'opacity-70 pointer-events-none' : ...}`}>
-
-        // Switch to Manual
-        const manualButton = screen.getByRole('button', { name: /Manual/i });
-        fireEvent.click(manualButton);
-
-        // Check if reset button appears (it only appears in manual mode)
-        expect(screen.getByTitle('Reset to Defaults')).toBeInTheDocument();
-
-        // Switch back to Auto
-        fireEvent.click(autoButton);
-        expect(screen.queryByTitle('Reset to Defaults')).not.toBeInTheDocument();
-    });
-
-    it('opens CSS modal', async () => {
-        render(
-            <MemoryRouter>
-                <BrandFontFallback />
-            </MemoryRouter>
-        );
-
-        // Load font
-        fireEvent.click(screen.getByTestId('mock-upload-btn'));
-        await screen.findByText('MyBrandFont.ttf');
-
-        // Click Get CSS
-        const getCssBtn = screen.getByRole('button', { name: /Get CSS/i });
-        fireEvent.click(getCssBtn);
+        fireEvent.click(screen.getByRole('button', { name: /Export CSS/i }));
 
         expect(screen.getByText('CSS Code')).toBeInTheDocument();
 
-        // Verify Copy Code
-        const copyBtn = screen.getByRole('button', { name: /Copy Code/i });
-        fireEvent.click(copyBtn);
-        expect(mockClipboard.writeText).toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: /Copy Code/i }));
+        await waitFor(() => {
+            expect(mockClipboard.writeText).toHaveBeenCalled();
+        });
     });
 
-    it('removes font and resets state', async () => {
-        render(
-            <MemoryRouter>
-                <BrandFontFallback />
-            </MemoryRouter>
-        );
+    it('opens reset confirmation from the sidebar', async () => {
+        renderApp();
 
-        // Load font
         fireEvent.click(screen.getByTestId('mock-upload-btn'));
         await screen.findByText('MyBrandFont.ttf');
 
-        // Click Remove Font
-        const removeBtn = screen.getByRole('button', { name: /Remove Font/i });
-        fireEvent.click(removeBtn);
+        fireEvent.click(screen.getByRole('button', { name: /Reset App/i }));
 
-        // Should return to initial state
-        expect(screen.getByTestId('mock-upload-btn')).toBeInTheDocument();
-        expect(screen.queryByText('MyBrandFont.ttf')).not.toBeInTheDocument();
+        expect(screen.getByText('Reset Application?')).toBeInTheDocument();
     });
 });

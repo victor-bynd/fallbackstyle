@@ -569,33 +569,50 @@ const BrandFontFallback = () => {
         }
         css += `}\n\n`;
 
-        // Helper to get effective overrides for a font
-        const getEffectiveOverrides = (font) => {
-            // Priority:
-            // 1. Currently active overrides state (if this is the selected font)
-            if (selectedFallback?.id === font.id) {
-                if (configMode === 'manual') return overrides;
-                if (configMode === 'default') return { sizeAdjust: 1.0, letterSpacing: 0, wordSpacing: 0 };
-            }
+        const defaultOverrides = {
+            sizeAdjust: 1.0,
+            letterSpacing: 0,
+            wordSpacing: 0,
+            lineHeight: 'normal'
+        };
 
-            // 2. Persisted config in fallbackConfigs
+        // Resolve each font independently so inactive fallbacks retain their saved mode.
+        const getEffectiveFallbackConfig = (font) => {
+            const isSelected = selectedFallback?.id === font.id;
             const persisted = fallbackConfigs[font.id];
-            if (persisted && persisted.configMode === 'manual') {
-                return persisted.overrides;
+            const mode = isSelected ? configMode : (persisted?.configMode || 'auto');
+            const fontLimitToSizeAdjust = isSelected
+                ? limitToSizeAdjust
+                : !!persisted?.limitToSizeAdjust;
+
+            if (mode === 'default') {
+                return {
+                    overrides: defaultOverrides,
+                    limitToSizeAdjust: fontLimitToSizeAdjust
+                };
             }
 
-            // 3. Fallback to auto-calculated (or default 1.0)
-            const auto = calculateOverrides(primaryMetrics, font) || { sizeAdjust: 1.0 };
+            if (mode === 'manual') {
+                return {
+                    overrides: (isSelected ? overrides : (persisted?.manualOverrides || persisted?.overrides)) || defaultOverrides,
+                    limitToSizeAdjust: fontLimitToSizeAdjust
+                };
+            }
+
+            const auto = calculateOverrides(primaryMetrics, font) || defaultOverrides;
             return {
-                ...auto,
-                letterSpacing: 0,
-                wordSpacing: 0
+                overrides: {
+                    ...auto,
+                    letterSpacing: 0,
+                    wordSpacing: 0
+                },
+                limitToSizeAdjust: fontLimitToSizeAdjust
             };
         };
 
         // Helper to generate @font-face block for fallbacks
-        const generateFontFaceBlock = (fallbackName, familyName, ov) => {
-            const hasOverriddenVerticals = !limitToSizeAdjust && (ov.ascentOverride || ov.descentOverride || ov.lineGapOverride);
+        const generateFontFaceBlock = (fallbackName, familyName, ov, fontLimitToSizeAdjust) => {
+            const hasOverriddenVerticals = !fontLimitToSizeAdjust && (ov.ascentOverride || ov.descentOverride || ov.lineGapOverride);
             const hasSizeAdjust = ov.sizeAdjust !== undefined && Math.abs(ov.sizeAdjust - 1) > 0.0001;
 
             if (!hasSizeAdjust && !hasOverriddenVerticals) return '';
@@ -608,7 +625,7 @@ const BrandFontFallback = () => {
             if (hasSizeAdjust) {
                 block += `  size-adjust: ${pct(ov.sizeAdjust)};\n`;
             }
-            if (!limitToSizeAdjust) {
+            if (!fontLimitToSizeAdjust) {
                 if (ov.ascentOverride) block += `  ascent-override: ${pct(ov.ascentOverride)};\n`;
                 if (ov.descentOverride) block += `  descent-override: ${pct(ov.descentOverride)};\n`;
                 if (ov.lineGapOverride) block += `  line-gap-override: ${pct(ov.lineGapOverride)};\n`;
@@ -629,11 +646,11 @@ const BrandFontFallback = () => {
         };
 
         // Helper to generate usage class
-        const generateUsageClass = (suffix, fallbackName, familyName, ov) => {
+        const generateUsageClass = (suffix, fallbackName, familyName, ov, fontLimitToSizeAdjust) => {
             const ls = ov.letterSpacing || 0;
             const ws = ov.wordSpacing || 0;
             const lh = ov.lineHeight || 'normal';
-            const fontFaceBlock = generateFontFaceBlock(fallbackName, familyName, ov);
+            const fontFaceBlock = generateFontFaceBlock(fallbackName, familyName, ov, fontLimitToSizeAdjust);
 
             // Only generate class if there are overrides OR a specific fallback font-face exists
             if (ls === 0 && ws === 0 && lh === 'normal' && !fontFaceBlock) return '';
@@ -664,23 +681,23 @@ const BrandFontFallback = () => {
 
         // 1. Simulated Fallbacks (System Fonts)
         systemFonts.forEach(font => {
-            const ov = getEffectiveOverrides(font);
-            if (ov) {
+            const fallbackConfig = getEffectiveFallbackConfig(font);
+            if (fallbackConfig.overrides) {
                 const suffix = font.name.replace(/\s+/g, '');
                 const familyName = `${primaryFamily} Fallback ${suffix}`;
-                fontFaceBlocks += generateFontFaceBlock(font.name, familyName, ov);
-                usageClasses += generateUsageClass(suffix, font.name, familyName, ov);
+                fontFaceBlocks += generateFontFaceBlock(font.name, familyName, fallbackConfig.overrides, fallbackConfig.limitToSizeAdjust);
+                usageClasses += generateUsageClass(suffix, font.name, familyName, fallbackConfig.overrides, fallbackConfig.limitToSizeAdjust);
             }
         });
 
         // 2. Custom Fonts
         customFonts.forEach(font => {
-            const ov = getEffectiveOverrides(font);
-            if (ov) {
+            const fallbackConfig = getEffectiveFallbackConfig(font);
+            if (fallbackConfig.overrides) {
                 const suffix = font.name.replace(/\s+/g, '');
                 const familyName = `${primaryFamily} Fallback ${suffix}`;
-                fontFaceBlocks += generateFontFaceBlock(font.name, familyName, ov);
-                usageClasses += generateUsageClass(suffix, font.name, familyName, ov);
+                fontFaceBlocks += generateFontFaceBlock(font.name, familyName, fallbackConfig.overrides, fallbackConfig.limitToSizeAdjust);
+                usageClasses += generateUsageClass(suffix, font.name, familyName, fallbackConfig.overrides, fallbackConfig.limitToSizeAdjust);
             }
         });
 

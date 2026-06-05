@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import FallbackSelector from '../../apps/brand-font/components/FallbackSelector';
+import SideBar from '../../apps/brand-font/components/SideBar';
 
 // Mock system fonts to have predictable data
 vi.mock('../../shared/constants/systemFonts.json', () => ({
@@ -10,28 +10,47 @@ vi.mock('../../shared/constants/systemFonts.json', () => ({
     ]
 }));
 
-describe('FallbackSelector', () => {
+vi.mock('../../shared/components/InfoTooltip', () => ({
+    default: () => <span data-testid="info-tooltip" />
+}));
+
+const renderSideBar = (props = {}) => render(
+    <SideBar
+        primaryFont={{ fileName: 'Brand.ttf' }}
+        selectedFallback={{ id: 'arial', name: 'Arial', isCustom: false }}
+        onSelectFallback={vi.fn()}
+        customFonts={[]}
+        onAddCustomFont={vi.fn()}
+        onRemoveFallback={vi.fn()}
+        onCopyOverrides={vi.fn()}
+        onResetApp={vi.fn()}
+        onReplacePrimaryFont={vi.fn()}
+        fontColors={{ primary: '#00000059', arial: '#11111159', times: '#22222259' }}
+        onUpdateFontColor={vi.fn()}
+        onExport={vi.fn()}
+        {...props}
+    />
+);
+
+describe('Brand Font SideBar fallback selection', () => {
     it('renders system fonts', () => {
-        render(<FallbackSelector selectedFontId="arial" onSelect={() => { }} />);
+        renderSideBar();
         expect(screen.getByText('Arial')).toBeInTheDocument();
         expect(screen.getByText('Times New Roman')).toBeInTheDocument();
     });
 
     it('highlights selected font', () => {
-        render(<FallbackSelector selectedFontId="arial" onSelect={() => { }} />);
-        // Tailwind classes hard to test perfectly, but we can check if it has the "active" style classes or unique indicator
-        // In the code: selected has `bg-indigo-50`
-        // We can look for the button containing "Arial" and check class.
-        const arialButton = screen.getByText('Arial').closest('button');
+        renderSideBar();
+        const arialButton = screen.getByText('Arial').closest('[role="button"]');
         expect(arialButton.className).toContain('bg-indigo-50');
 
-        const timesButton = screen.getByText('Times New Roman').closest('button');
+        const timesButton = screen.getByText('Times New Roman').closest('[role="button"]');
         expect(timesButton.className).not.toContain('bg-indigo-50');
     });
 
     it('calls onSelect when a font is clicked', () => {
         const handleSelect = vi.fn();
-        render(<FallbackSelector selectedFontId="arial" onSelect={handleSelect} />);
+        renderSideBar({ onSelectFallback: handleSelect });
 
         fireEvent.click(screen.getByText('Times New Roman'));
 
@@ -41,17 +60,17 @@ describe('FallbackSelector', () => {
 
     it('renders custom fonts', () => {
         const customFonts = [{ id: 'custom-1', name: 'MyFont', isCustom: true }];
-        render(<FallbackSelector selectedFontId="arial" onSelect={() => { }} customFonts={customFonts} />);
+        renderSideBar({ customFonts });
 
         expect(screen.getByText('MyFont')).toBeInTheDocument();
-        expect(screen.getByText('Custom')).toBeInTheDocument();
+        expect(screen.getByText('SYSTEM FALLBACKS')).toBeInTheDocument();
     });
 
     it('allows adding a custom font', () => {
         const handleAddCustom = vi.fn();
-        render(<FallbackSelector selectedFontId="arial" onSelect={() => { }} onAddCustomFont={handleAddCustom} />);
+        renderSideBar({ onAddCustomFont: handleAddCustom });
 
-        const input = screen.getByPlaceholderText('e.g. Comic Sans MS');
+        const input = screen.getByPlaceholderText('e.g. Comic Sans');
         const addButton = screen.getByText('Add');
 
         // Button should be disabled initially

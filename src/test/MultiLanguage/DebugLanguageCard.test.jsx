@@ -2,14 +2,19 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import LanguageCard from '../../apps/multi-language/components/LanguageCard';
-import { useTypo } from '../../shared/context/useTypo';
+import { useFontManagement } from '../../shared/context/useFontManagement';
+import { useLanguageMapping } from '../../shared/context/useLanguageMapping';
+import { useTypography } from '../../shared/context/useTypography';
 import { useUI } from '../../shared/context/UIContext';
 import { useFontStack } from '../../shared/hooks/useFontStack';
+import { mockUseFontManagement, mockUseLanguageMapping, mockUseTypography } from '../test-utils';
 
 import { vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../shared/context/useTypo');
+vi.mock('../../shared/context/useFontManagement');
+vi.mock('../../shared/context/useLanguageMapping');
+vi.mock('../../shared/context/useTypography');
 vi.mock('../../shared/context/UIContext');
 vi.mock('../../shared/hooks/useFontStack');
 vi.mock('../../shared/hooks/useTextRenderer', () => ({
@@ -27,6 +32,25 @@ describe('DebugLanguageCard', () => {
     };
 
     beforeEach(() => {
+        useFontManagement.mockReturnValue(mockUseFontManagement({
+            getFontsForStyle: () => [{ id: 'font1', type: 'primary' }],
+            getPrimaryFontFromStyle: () => ({
+                id: 'font1',
+                fontObject: { charToGlyphIndex: () => 0 }
+            }),
+            activeFontStyleId: 'primary'
+        }));
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({
+            getPrimaryFontOverrideForStyle: () => null,
+            getFallbackFontOverrideForStyle: () => null
+        }));
+        useTypography.mockReturnValue(mockUseTypography({
+            getEffectiveFontSettingsForStyle: () => ({
+                lineHeight: 'normal',
+                lineGapOverride: 0.5
+            }),
+            headerFontStyleMap: {}
+        }));
         useUI.mockReturnValue({
             viewMode: 'paragraph',
             activeConfigTab: 'primary',
@@ -39,36 +63,10 @@ describe('DebugLanguageCard', () => {
         });
     });
 
-    it('should use numeric line height when line-gap-override is present', () => {
-        useTypo.mockReturnValue({
-            primaryLanguages: ['en-US'],
-            textOverrides: {},
-            getFontsForStyle: () => [{ id: 'font1', type: 'primary' }],
-            getPrimaryFontFromStyle: () => ({
-                id: 'font1',
-                fontObject: { charToGlyphIndex: () => 0 }
-            }),
-            getEffectiveFontSettingsForStyle: () => ({
-                lineHeight: 'normal',
-                lineGapOverride: 0.5 // 50% override
-            }),
-            // Mock other necessary functions
-            getPrimaryFontOverrideForStyle: () => null,
-            getFallbackFontOverrideForStyle: () => null,
-            headerFontStyleMap: {},
-            activeFontStyleId: 'primary'
-        });
-
+    it('preserves normal line height when normal is explicitly configured', () => {
         render(<LanguageCard language={mockLanguage} />);
 
-        // We expect the line-height to be NUMERIC, not 'normal'
-        // Because hasVerticalMetricOverrides should be true
         const container = screen.getByText('The quick brown fox.').closest('div').parentElement;
-
-        // In the component:
-        // lineHeight: (mainViewLineHeight === 'normal' && !hasVerticalMetricOverrides) ? 'normal' : mainViewNumericLineHeight,
-
-        console.log('Computed Line Height:', container.style.lineHeight);
         expect(container.style.lineHeight).toBe('normal');
     });
 });

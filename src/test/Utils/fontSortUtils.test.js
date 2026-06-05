@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { groupAndSortFonts, getVisualFontIdOrder, isSystemFont } from '../../utils/fontSortUtils';
+import { groupAndSortFonts, getVisualFontIdOrder, isSystemFont } from '../../shared/utils/fontSortUtils';
 
 // Mock languages data if possible, but the utility imports it directly. 
 // Ideally we should mock the module, but for unit testing logic with internal data it might be okay if data is stable.
