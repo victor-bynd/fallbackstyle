@@ -355,8 +355,8 @@ export const FontManagementProvider = ({ children }) => {
     const removeFallbackFont = useCallback((fontId) => {
         logger.debug('Removing fallback font:', fontId);
 
-        // Collect URLs to revoke outside the state updater (side-effect safety)
-        const urlsToRevoke = [];
+        // Use let so the updater can reassign (not push) — idempotent under StrictMode double-invocation
+        let urlsToRevoke = [];
 
         setFonts(prev => {
             const fontToRemove = prev.find(f => f && f.id === fontId);
@@ -372,12 +372,8 @@ export const FontManagementProvider = ({ children }) => {
                 return false;
             };
 
-            // Collect blob URLs for revocation after state update
-            prev.forEach(f => {
-                if (isRelated(f) && f.fontUrl) {
-                    urlsToRevoke.push(f.fontUrl);
-                }
-            });
+            // Assign (not push) so StrictMode's double-invocation overwrites rather than appending duplicates
+            urlsToRevoke = prev.filter(f => isRelated(f) && f.fontUrl).map(f => f.fontUrl);
 
             const filtered = prev.filter(f => !isRelated(f));
 

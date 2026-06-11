@@ -97,6 +97,18 @@ const MainContent = ({
 
   // const [fontFilter, setFontFilter] = useState([]); // Lifted to App
 
+  // Pre-compute coverage for all configured languages once per (fonts, overrides) change.
+  // This avoids re-running expensive glyph checks inside visibleLanguagesList on every
+  // filter change (searchQuery, selectedGroup, expandedGroups, etc.).
+  const coverageMap = useMemo(() => {
+    if (!hideFullSupport) return null;
+    const map = new Map();
+    configuredLanguages.forEach(id => {
+      map.set(id, computeLanguageCoverage(id, fonts, primaryFontOverrides, fallbackFontOverrides));
+    });
+    return map;
+  }, [hideFullSupport, configuredLanguages, fonts, primaryFontOverrides, fallbackFontOverrides]);
+
   const visibleLanguagesList = useMemo(() => {
     // 1. Base List: strict Configured Order
     const baseList = configuredLanguages
@@ -231,14 +243,9 @@ const MainContent = ({
       });
     }
 
-    // 6. Coverage filter — hide languages with full character support
-    if (hideFullSupport) {
-      visible = visible.filter(lang => {
-        const { isFullSupport } = computeLanguageCoverage(
-          lang.id, fonts, primaryFontOverrides, fallbackFontOverrides
-        );
-        return !isFullSupport;
-      });
+    // 6. Coverage filter — hide languages with full character support (uses pre-computed map)
+    if (hideFullSupport && coverageMap) {
+      visible = visible.filter(lang => !coverageMap.get(lang.id)?.isFullSupport);
     }
 
     // 7. Filter Hidden Languages (Main View only)
@@ -247,7 +254,7 @@ const MainContent = ({
     }
 
     return visible;
-  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hiddenLanguageIds, hideFullSupport]);
+  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hiddenLanguageIds, hideFullSupport, coverageMap]);
 
   // Unused variables removed
 
