@@ -26,7 +26,7 @@ import { safeParseFontFile } from '../../shared/services/SafeFontLoader';
 import { useConfigImport } from '../../shared/hooks/useConfigImport';
 import { useFontFaceStyles } from '../../shared/hooks/useFontFaceStyles';
 
-import { getLanguageGroup } from '../../shared/utils/languageUtils';
+import { getLanguageGroup, computeLanguageCoverage } from '../../shared/utils/languageUtils';
 import { PersistenceService } from '../../shared/services/PersistenceService';
 import ResetConfirmModal from '../../shared/components/ResetConfirmModal';
 import ResetLoadingScreen from '../../shared/components/ResetLoadingScreen';
@@ -50,7 +50,9 @@ const MainContent = ({
   setSearchQuery,
   expandedGroups, // New Prop
   fontFilter, // Lifted Prop
-  setFontFilter // Lifted Prop
+  setFontFilter, // Lifted Prop
+  hideFullSupport, // Lifted Prop
+  setHideFullSupport // Lifted Prop
 }) => {
   // Font Management Context
   const {
@@ -229,13 +231,23 @@ const MainContent = ({
       });
     }
 
-    // 6. Filter Hidden Languages (Main View only)
+    // 6. Coverage filter — hide languages with full character support
+    if (hideFullSupport) {
+      visible = visible.filter(lang => {
+        const { isFullSupport } = computeLanguageCoverage(
+          lang.id, fonts, primaryFontOverrides, fallbackFontOverrides
+        );
+        return !isFullSupport;
+      });
+    }
+
+    // 7. Filter Hidden Languages (Main View only)
     if (hiddenLanguageIds && hiddenLanguageIds.length > 0) {
       visible = visible.filter(l => !hiddenLanguageIds.includes(l.id));
     }
 
     return visible;
-  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hiddenLanguageIds]);
+  }, [configuredLanguages, supportedLanguages, primaryLanguages, searchQuery, selectedGroup, mappedLanguageIds, expandedGroups, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hiddenLanguageIds, hideFullSupport]);
 
   // Unused variables removed
 
@@ -622,6 +634,20 @@ const MainContent = ({
 
 
 
+                  <button
+                    /* UI: GAPS ONLY */
+                    onClick={() => setHideFullSupport(p => !p)}
+                    className={`
+                  px-2.5 h-[34px] rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border
+                  ${hideFullSupport
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-200/50'
+                        : 'bg-white text-slate-500 border-gray-200 hover:text-slate-700 hover:border-gray-300 hover:bg-slate-50'
+                      }
+                `}
+                  >
+                    GAPS ONLY
+                  </button>
+
                   {/* Font Filter Component */}
                   <FontFilter
                     fonts={fonts}
@@ -772,7 +798,8 @@ const MainContent = ({
                               { label: 'Type Grid', active: showAlignmentGuides, toggle: () => setShowAlignmentGuides(p => !p) },
                               { label: 'Linebox View', active: showBrowserGuides, toggle: () => setShowBrowserGuides(p => !p) },
                               { label: 'Color Guide', active: showFallbackColors, toggle: () => setShowFallbackColors(!showFallbackColors) },
-                              { label: 'Fallback Order', active: showFallbackOrder, toggle: () => setShowFallbackOrder(!showFallbackOrder) }
+                              { label: 'Fallback Order', active: showFallbackOrder, toggle: () => setShowFallbackOrder(!showFallbackOrder) },
+                              { label: 'Gaps Only', active: hideFullSupport, toggle: () => setHideFullSupport(p => !p) }
                             ].map((guide) => (
                               <button
                                 key={guide.label}
@@ -935,6 +962,7 @@ function MultiLanguageFallback() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
   const [fontFilter, setFontFilter] = useState([]); // Lifted State (Multi-select)
+  const [hideFullSupport, setHideFullSupport] = useState(false); // Lifted State
   // Force HMR Update
 
   const { resetApp, isAppResetting } = usePersistence();
@@ -979,6 +1007,7 @@ function MultiLanguageFallback() {
             setExpandedGroups={setExpandedGroups}
             fontFilter={fontFilter}
             setFontFilter={setFontFilter}
+            hideFullSupport={hideFullSupport}
           />
         )}
 
@@ -1002,6 +1031,8 @@ function MultiLanguageFallback() {
           expandedGroups={expandedGroups}
           fontFilter={fontFilter} // New Sync Prop
           setFontFilter={setFontFilter} // Lifted Prop
+          hideFullSupport={hideFullSupport}
+          setHideFullSupport={setHideFullSupport}
         // showResetConfirm and setShowResetConfirm are no longer needed here as App handles the modal
         />
 
@@ -1024,6 +1055,7 @@ function MultiLanguageFallback() {
             expandedGroups={expandedGroups}
             setExpandedGroups={setExpandedGroups}
             fontFilter={fontFilter}
+            hideFullSupport={hideFullSupport}
           />
         )}
       </div>

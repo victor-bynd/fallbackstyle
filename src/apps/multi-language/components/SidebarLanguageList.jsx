@@ -2,7 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import languagesData from '../../../shared/data/languages.json';
 
-import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES } from '../../../shared/utils/languageUtils';
+import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES, computeLanguageCoverage } from '../../../shared/utils/languageUtils';
 
 const SidebarLanguageList = ({
     activeTab,
@@ -23,7 +23,8 @@ const SidebarLanguageList = ({
     hiddenLanguageIds, // New
     onToggleHidden, // New
     fontFilter, // New prop
-    fonts // Restored prop
+    fonts, // Restored prop
+    hideFullSupport // New prop
 }) => {
     // const [expandedGroups, setExpandedGroups] = useState({}); // Lifted to App
 
@@ -79,6 +80,14 @@ const SidebarLanguageList = ({
                 if (!hasMatch) return false;
             }
 
+            // Coverage filter
+            if (hideFullSupport) {
+                const { isFullSupport } = computeLanguageCoverage(
+                    lang.id, fonts, primaryFontOverrides, fallbackFontOverrides
+                );
+                if (isFullSupport) return false;
+            }
+
             const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
             const isTargeted = mappedLanguageIds?.includes(lang.id);
             const group = getLanguageGroup(lang);
@@ -98,7 +107,7 @@ const SidebarLanguageList = ({
         });
 
         return groups;
-    }, [languagesToList, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, fontFilter, primaryFontOverrides, fallbackFontOverrides, fonts]);
+    }, [languagesToList, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, fontFilter, primaryFontOverrides, fallbackFontOverrides, fonts, hideFullSupport]);
 
     // Update expanded groups when selectedGroup changes or search is active
     useEffect(() => {

@@ -4,7 +4,7 @@ import SidebarHeaderConfig from './SidebarHeaderConfig';
 import SidebarLanguages from './SidebarLanguages';
 import SidebarFonts from './SidebarFonts';
 
-const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, onAddLanguage, highlitLanguageId, setHighlitLanguageId, onManageLanguages, searchQuery, setSearchQuery, fontFilter, ...props }) => {
+const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, onAddLanguage, highlitLanguageId, setHighlitLanguageId, onManageLanguages, searchQuery, setSearchQuery, fontFilter, hideFullSupport, ...props }) => {
     // Unused context value removed
 
     // Constraint removed: Sidebar should be visible if App decides to render it (e.g. ghost font state)
@@ -34,6 +34,7 @@ const SideBar = ({ sidebarMode, setSidebarMode, selectedGroup, onSelectGroup, on
                         expandedGroups={props.expandedGroups}
                         setExpandedGroups={props.setExpandedGroups}
                         fontFilter={fontFilter}
+                    hideFullSupport={hideFullSupport}
                     />
                     <SidebarFonts
                         selectedGroup={selectedGroup}
