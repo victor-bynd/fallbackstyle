@@ -12,13 +12,15 @@ const FontCardTabs = ({
     fallbackFontOverrides,
     fonts,
     getOverrideState,
-    mapLanguageToFont,
+    resetLanguageFontSettings,
+    removeLanguageFontOverride,
+    isActive,
     font,
     onMap,
     activeTab
 }) => {
     // Determine available tabs
-    const showTabs = languageTags && languageTags.length > 0;
+    const showTabs = isActive && languageTags && languageTags.length > 0;
 
     return (
         <>
@@ -60,19 +62,13 @@ const FontCardTabs = ({
 
                         const targetId = isPrimaryCard ? pId : fId;
                         const targetFont = targetId ? fonts.find(f => f.id === targetId) : null;
+                        const canRemoveMapping = Boolean(targetId);
 
                         const hasOverride = getOverrideState(langId);
 
                         return (
-                            <button
+                            <div
                                 key={langId}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSetScope(langId);
-                                    const isPrimary = primaryLanguages?.includes(langId);
-                                    setActiveConfigTab(isPrimary ? 'primary' : langId);
-                                    if (setHighlitLanguageId) setHighlitLanguageId(langId);
-                                }}
                                 className={`
                                     relative px-3 py-1.5 rounded-t-lg text-[10px] font-bold uppercase tracking-wide transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5
                                     ${isSelected
@@ -81,19 +77,33 @@ const FontCardTabs = ({
                                     }
                                 `}
                             >
-                                {langId}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSetScope(langId);
+                                        const isPrimary = primaryLanguages?.includes(langId);
+                                        setActiveConfigTab(isPrimary ? 'primary' : langId);
+                                        if (setHighlitLanguageId) setHighlitLanguageId(langId);
+                                    }}
+                                    className="font-bold uppercase tracking-wide"
+                                >
+                                    {langId}
+                                </button>
                                 {hasOverride && (
-                                    <div
+                                    <button
+                                        type="button"
                                         className="group ml-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             // Reset logic: Map back to the BASE font of this card (or parent of clone)
                                             // This removes the "dirty" clone but keeps the mapping to the font family.
                                             const baseId = targetFont?.parentId || font.id;
-                                            mapLanguageToFont(langId, baseId);
+                                            resetLanguageFontSettings(baseId, langId, {
+                                                role: isPrimaryCard ? 'primary' : 'fallback'
+                                            });
                                         }}
                                         title="Reset to global"
-                                        role="button"
                                         aria-label={`Reset ${langId} override`}
                                     >
                                         {/* Dot (default) */}
@@ -108,9 +118,29 @@ const FontCardTabs = ({
                                         >
                                             <path fillRule="evenodd" d="M7.793 2.232a.75.75 0 01-.025 1.06L3.622 7.25h10.003a5.375 5.375 0 010 10.75H10.75a.75.75 0 010-1.5h2.875a3.875 3.875 0 000-7.75H3.622l4.146 3.957a.75.75 0 01-1.036 1.085l-5.5-5.25a.75.75 0 010-1.085l5.5-5.25a.75.75 0 011.061.025z" clipRule="evenodd" />
                                         </svg>
-                                    </div>
+                                    </button>
                                 )}
-                            </button>
+                                {canRemoveMapping && (
+                                    <button
+                                        type="button"
+                                        className="flex items-center justify-center w-3.5 h-3.5 rounded-full text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const baseId = targetFont?.parentId || font.id;
+                                            removeLanguageFontOverride(baseId, langId, {
+                                                role: isPrimaryCard ? 'primary' : 'fallback'
+                                            });
+                                            if (editScope === langId) onSetScope('ALL');
+                                        }}
+                                        title={`Remove ${langId} mapping`}
+                                        aria-label={`Remove ${langId} mapping from this font`}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
                         );
                     })}
                 </div>
@@ -145,7 +175,9 @@ FontCardTabs.propTypes = {
     fallbackFontOverrides: PropTypes.object,
     fonts: PropTypes.array.isRequired,
     getOverrideState: PropTypes.func.isRequired,
-    mapLanguageToFont: PropTypes.func.isRequired,
+    resetLanguageFontSettings: PropTypes.func.isRequired,
+    removeLanguageFontOverride: PropTypes.func.isRequired,
+    isActive: PropTypes.bool.isRequired,
     font: PropTypes.object.isRequired,
     onMap: PropTypes.func,
     activeTab: PropTypes.string

@@ -2,7 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import languagesData from '../../../shared/data/languages.json';
 
-import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES } from '../../../shared/utils/languageUtils';
+import { getLanguageGroup, LANGUAGE_GROUP_SHORT_NAMES, computeLanguageCoverage } from '../../../shared/utils/languageUtils';
 
 const SidebarLanguageList = ({
     activeTab,
@@ -23,7 +23,8 @@ const SidebarLanguageList = ({
     hiddenLanguageIds, // New
     onToggleHidden, // New
     fontFilter, // New prop
-    fonts // Restored prop
+    fonts, // Restored prop
+    hideFullSupport // New prop
 }) => {
     // const [expandedGroups, setExpandedGroups] = useState({}); // Lifted to App
 
@@ -49,6 +50,16 @@ const SidebarLanguageList = ({
             return 0;
         });
     }, [configuredLanguages, primaryLanguages]);
+
+    // Pre-compute coverage once per (fonts, overrides) change rather than inside every filter sweep
+    const coverageMap = useMemo(() => {
+        if (!hideFullSupport) return null;
+        const map = new Map();
+        (configuredLanguages || []).forEach(id => {
+            map.set(id, computeLanguageCoverage(id, fonts, primaryFontOverrides, fallbackFontOverrides));
+        });
+        return map;
+    }, [hideFullSupport, configuredLanguages, fonts, primaryFontOverrides, fallbackFontOverrides]);
 
     // 2. Filter and Group by Region
     const groupedList = useMemo(() => {
@@ -79,6 +90,11 @@ const SidebarLanguageList = ({
                 if (!hasMatch) return false;
             }
 
+            // Coverage filter — use pre-computed map (lookup only, no glyph checks here)
+            if (hideFullSupport && coverageMap) {
+                if (coverageMap.get(lang.id)?.isFullSupport) return false;
+            }
+
             const isPrimary = primaryLanguages.includes(lang.id) || (primaryLanguages.length === 0 && lang.id === 'en-US');
             const isTargeted = mappedLanguageIds?.includes(lang.id);
             const group = getLanguageGroup(lang);
@@ -98,21 +114,29 @@ const SidebarLanguageList = ({
         });
 
         return groups;
-    }, [languagesToList, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, fontFilter, primaryFontOverrides, fallbackFontOverrides, fonts]);
+    }, [languagesToList, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, fontFilter, primaryFontOverrides, fallbackFontOverrides, fonts, hideFullSupport, coverageMap]);
 
     // Update expanded groups when selectedGroup changes or search is active
+    // Effect 1: expand the selected tab's group when the user switches group tabs.
+    // Does not depend on groupedList, so filter changes (coverage, fontFilter) won't
+    // accidentally trigger a group expand/collapse reset.
     useEffect(() => {
-        if (searchQuery) {
-            // Expand all groups that have results
-            const allGroups = Object.keys(groupedList).reduce((acc, key) => {
-                acc[key] = true;
-                return acc;
-            }, {});
-            setExpandedGroups(allGroups);
-        } else if (selectedGroup !== 'ALL' && selectedGroup !== 'MAPPED' && selectedGroup !== 'UNMAPPED') {
+        if (selectedGroup !== 'ALL' && selectedGroup !== 'MAPPED' && selectedGroup !== 'UNMAPPED') {
             setExpandedGroups(prev => ({ ...prev, [selectedGroup]: true }));
         }
-    }, [selectedGroup, searchQuery, groupedList, setExpandedGroups]);
+    }, [selectedGroup, setExpandedGroups]);
+
+    // Effect 2: when a search query is active, expand all groups that have matching results.
+    // Intentionally depends on groupedList so the expansion stays in sync as results change,
+    // but is guarded by searchQuery so it never fires during normal (non-search) navigation.
+    useEffect(() => {
+        if (!searchQuery) return;
+        const allGroups = Object.keys(groupedList).reduce((acc, key) => {
+            acc[key] = true;
+            return acc;
+        }, {});
+        setExpandedGroups(allGroups);
+    }, [searchQuery, groupedList, setExpandedGroups]);
 
     const isSidebarInteraction = React.useRef(false); // Ref to track source of change
 

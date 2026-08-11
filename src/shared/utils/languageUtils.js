@@ -1,3 +1,75 @@
+import { languageCharacters } from '../data/languageCharacters';
+
+/**
+ * Computes character coverage for a language against the currently loaded fonts.
+ *
+ * Checks the global primary font, any language-specific primary/fallback override,
+ * and all global (non-cloned) fallback fonts — mirroring the effective CSS font stack.
+ *
+ * Returns { isFullSupport: bool, supportedPercent: number }.
+ * Returns { isFullSupport: true } when no verifiable font objects are loaded (can't determine).
+ */
+export const computeLanguageCoverage = (langId, fonts, primaryFontOverrides, fallbackFontOverrides) => {
+    const rawChars = languageCharacters[langId] || '';
+    const chars = rawChars.replace(/\s/g, '').split('').filter(Boolean);
+
+    if (chars.length === 0) return { isFullSupport: true, supportedPercent: 100 };
+
+    // Collect unique font objects to check (in stack order)
+    const fontObjects = [];
+    const seen = new Set();
+
+    const addFont = (f) => {
+        if (f?.fontObject && !seen.has(f.fontObject)) {
+            seen.add(f.fontObject);
+            fontObjects.push(f.fontObject);
+        }
+    };
+
+    // 1. Language-specific primary override (takes precedence)
+    const primaryOverrideId = primaryFontOverrides?.[langId];
+    if (primaryOverrideId) {
+        addFont(fonts.find(f => f && f.id === primaryOverrideId));
+    }
+
+    // 2. Global primary font
+    addFont(fonts.find(f => f && f.type === 'primary' && !f.isPrimaryOverride));
+
+    // 3. Language-specific fallback override
+    const fallbackOverrideId = fallbackFontOverrides?.[langId];
+    if (fallbackOverrideId && typeof fallbackOverrideId === 'string') {
+        addFont(fonts.find(f => f && f.id === fallbackOverrideId));
+    } else if (fallbackOverrideId && typeof fallbackOverrideId === 'object') {
+        Object.values(fallbackOverrideId).forEach(id => {
+            addFont(fonts.find(f => f && f.id === id));
+        });
+    }
+
+    // 4. All global fallback fonts (non-lang-specific, non-clone)
+    fonts
+        .filter(f => f && f.type === 'fallback' && !f.isLangSpecific && !f.isClone)
+        .forEach(addFont);
+
+    // Can't verify support without uploaded font objects — treat as fully supported
+    if (fontObjects.length === 0) return { isFullSupport: true, supportedPercent: 100 };
+
+    let missing = 0;
+    for (const char of chars) {
+        let covered = false;
+        for (const fontObj of fontObjects) {
+            try {
+                if (fontObj.charToGlyphIndex(char) !== 0) { covered = true; break; }
+            } catch { /* ignore */ }
+        }
+        if (!covered) missing++;
+    }
+
+    return {
+        isFullSupport: missing === 0,
+        supportedPercent: Math.round(((chars.length - missing) / chars.length) * 100)
+    };
+};
+
 export const LANGUAGE_GROUPS = [
     'Western Latin (Americas & Western Europe)',
     'APAC - CJK (East Asia)',

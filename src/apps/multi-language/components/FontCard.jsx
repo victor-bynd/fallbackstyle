@@ -18,6 +18,7 @@ const FontCardContent = ({
     getFontColor,
     updateFontColor,
     getEffectiveFontSettings,
+    setActiveFont,
     // duplicate removed
     // unused onRemoveOverride removed
     // unused onSelectLanguage removed
@@ -32,7 +33,6 @@ const FontCardContent = ({
     // duplicate removed
     // unused lineHeight removed
 
-    // unused setActiveFont removed
     consolidatedIds = null,
 
     // NEW PROPS
@@ -46,9 +46,7 @@ const FontCardContent = ({
     const {
         fonts,
         toggleFontVisibility,
-        addLanguageSpecificFont,
         updateFontProperty,
-        updateLanguageSpecificSetting,
     } = useFontManagement();
 
     // Language Mapping Context
@@ -56,8 +54,10 @@ const FontCardContent = ({
         primaryLanguages,
         primaryFontOverrides,
         fallbackFontOverrides,
-        mapLanguageToFont,
-        addLanguageSpecificPrimaryFont,
+        ensureLanguageFontOverride,
+        updateLanguageFontSetting,
+        resetLanguageFontSettings,
+        removeLanguageFontOverride,
     } = useLanguageMapping();
 
     // Typography Context
@@ -184,10 +184,9 @@ const FontCardContent = ({
                 // Normalization for comparisons
                 // 1. Scale: 
                 // If override is undefined/null, it means INHERIT. We should NOT force it to 1.
-                // If base is undefined/null, it implies default 1. We SHOULD force it to 1 for comparison against explicit override.
+                // If base is undefined/null, it implies the default 100%.
                 if (prop === 'scale') {
-                    // if (val === undefined || val === null) val = 1; // <--- REMOVED (Caused Regression)
-                    if (baseVal === undefined || baseVal === null) baseVal = 1;
+                    if (baseVal === undefined || baseVal === null) baseVal = 100;
                 }
 
                 // If value is undefined/null (after potential normalization), it's inheriting.
@@ -319,9 +318,15 @@ const FontCardContent = ({
                 }
             }
         } else {
-            // Scoped Update (Specific Language)
-            // Use updateLanguageSpecificSetting which find the clone for this font and language
-            updateLanguageSpecificSetting(font.id, editScope, targetProperty, value);
+            // Scoped updates atomically create/reuse a clone, map it to the
+            // highlighted language, and store the language-level value.
+            updateLanguageFontSetting(
+                font.id,
+                editScope,
+                targetProperty,
+                value,
+                { role: font.type === 'primary' || font.isPrimaryOverride ? 'primary' : 'fallback' }
+            );
         }
     };
 
@@ -333,11 +338,12 @@ const FontCardContent = ({
     const handleSplit = () => {
         if (editScope === 'ALL') return;
 
-        if (font.type === 'primary' && !font.isPrimaryOverride) {
-            addLanguageSpecificPrimaryFont(editScope);
-        } else {
-            addLanguageSpecificFont(font.id, editScope);
-        }
+        ensureLanguageFontOverride(
+            font.id,
+            editScope,
+            {},
+            { role: font.type === 'primary' || font.isPrimaryOverride ? 'primary' : 'fallback' }
+        );
     };
 
     const isPrimary = font.type === 'primary' || (fonts && fonts.length > 0 && fonts[0].id === font.id);
@@ -379,10 +385,21 @@ const FontCardContent = ({
     return (
         <div
             style={{ opacity }}
+            onClick={() => {
+                if (!isReference) setActiveFont(isActive ? null : font.id);
+            }}
+            onKeyDown={(event) => {
+                if (!isReference && event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    setActiveFont(isActive ? null : font.id);
+                }
+            }}
+            role={isReference ? undefined : 'button'}
+            tabIndex={isReference ? undefined : 0}
+            aria-pressed={isReference ? undefined : isActive}
             className={`
-                bg-white rounded-xl border transition-all duration-300 relative
-                ${isPrimary ? 'ring-1 ring-slate-200' : 'cursor-pointer'}
-                ${isActive && !isPrimary && !isReference
+                bg-white rounded-xl border transition-all duration-300 relative cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40
+                ${isActive && !isReference
                     ? 'border-indigo-500 ring-2 ring-indigo-500/10 shadow-lg'
                     : 'border-gray-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)]'
                 }
@@ -498,7 +515,9 @@ const FontCardContent = ({
                     fallbackFontOverrides={fallbackFontOverrides}
                     fonts={fonts}
                     getOverrideState={getOverrideState}
-                    mapLanguageToFont={mapLanguageToFont}
+                    resetLanguageFontSettings={resetLanguageFontSettings}
+                    removeLanguageFontOverride={removeLanguageFontOverride}
+                    isActive={isActive}
                     font={font}
                     onMap={onMap}
                     activeTab={activeTab}

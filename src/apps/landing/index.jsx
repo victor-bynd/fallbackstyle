@@ -70,11 +70,10 @@ const LandingPage = () => {
                         <div className="mb-8">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a8 8 0 100 16 8 8 0 000-16z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 9h14.5M4.75 15h14.5" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 4.5c-1.15 1.5-1.75 3.8-1.75 6.5s.6 5 1.75 6.5M14.25 4.5c1.15 1.5 1.75 3.8 1.75 6.5s-.6 5-1.75 6.5" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <circle cx="12" cy="12" r="9" />
+                                        <path strokeLinecap="round" d="M3 12h18" />
+                                        <path strokeLinecap="round" d="M12 3c-3 2-4.5 5.4-4.5 9S9 18 12 21c3-2 4.5-5.4 4.5-9S15 5 12 3z" />
                                     </svg>
                                 </div>
                                 {sessions.multiLanguage && (
@@ -115,12 +114,8 @@ const LandingPage = () => {
                         <div className="mb-8">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 18h16" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 15l3.25-8h1.5L15 15" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12h5.5" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 8v7" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8h3M15.5 15h3" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h5m6 0h5M6.5 20L12 5l5.5 15M8.75 13.5h6.5" />
                                     </svg>
                                 </div>
                                 {sessions.brandFont && (

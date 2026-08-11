@@ -5,7 +5,7 @@ import { useLanguageMapping } from '../../../shared/context/useLanguageMapping';
 import { useUI } from '../../../shared/context/UIContext';
 
 import languagesData from '../../../shared/data/languages.json';
-import { getLanguageGroup } from '../../../shared/utils/languageUtils';
+import { getLanguageGroup, computeLanguageCoverage } from '../../../shared/utils/languageUtils';
 import LanguageGroupFilter from './LanguageGroupFilter';
 import SidebarLanguageList from './SidebarLanguageList';
 import pkg from '../../../shared/version.json';
@@ -23,7 +23,8 @@ const SidebarLanguages = ({
     setSearchQuery,
     expandedGroups,
     setExpandedGroups,
-    fontFilter // New prop
+    fontFilter, // New prop
+    hideFullSupport // New prop
 }) => {
     // Font Management Context
     const { fonts } = useFontManagement();
@@ -111,6 +112,14 @@ const SidebarLanguages = ({
                 if (!hasMatch) return false;
             }
 
+            // Coverage filter
+            if (hideFullSupport) {
+                const { isFullSupport } = computeLanguageCoverage(
+                    lang.id, fonts, primaryFontOverrides, fallbackFontOverrides
+                );
+                if (isFullSupport) return false;
+            }
+
             // Respect collapse state for count, unless searching
             const shouldCheckCollapse = !searchQuery && ['ALL', 'MAPPED', 'UNMAPPED'].includes(selectedGroup);
             if (shouldCheckCollapse && !isGroupExpanded) return false;
@@ -120,7 +129,7 @@ const SidebarLanguages = ({
             if (selectedGroup === 'UNMAPPED') return !isTargeted && !isPrimary;
             return group === selectedGroup;
         }).length;
-    }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups, hiddenLanguageIds, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides]);
+    }, [configuredLanguages, selectedGroup, mappedLanguageIds, primaryLanguages, searchQuery, expandedGroups, hiddenLanguageIds, fontFilter, fonts, primaryFontOverrides, fallbackFontOverrides, hideFullSupport]);
 
     const totalCount = (configuredLanguages?.length || 0) - (hiddenLanguageIds?.length || 0);
 
@@ -284,6 +293,7 @@ const SidebarLanguages = ({
                     fonts={fonts} // Pass fonts for resolution
                     hiddenLanguageIds={hiddenLanguageIds}
                     onToggleHidden={toggleLanguageHidden}
+                    hideFullSupport={hideFullSupport}
                 />
             </div >
 

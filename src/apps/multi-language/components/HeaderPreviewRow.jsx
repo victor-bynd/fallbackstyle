@@ -54,11 +54,7 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
         const currentFallbackFontId = getFallbackFontOverrideForStyle(styleIdForTag, language.id);
 
         let pFont = null;
-        if (currentFallbackFontId && currentFallbackFontId !== 'cascade' && currentFallbackFontId !== 'legacy') {
-            pFont = fonts.find(f => f && f.id === currentFallbackFontId);
-        }
-
-        if (!pFont && primaryOverrideId) {
+        if (primaryOverrideId) {
             pFont = fonts.find(f => f && f.id === primaryOverrideId);
         }
 
@@ -77,12 +73,13 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
             weight: 400
         };
 
-        const styleBaseRem = pSettings.baseFontSize;
+        const styleBaseRem = style?.baseFontSize ?? 16;
 
-        const fontScale = (pSettings.scale || 100) / 100;
-        let sizePx = headerStyle.scale * styleBaseRem * fontScale;
+        // The element keeps the style's base size. Each face applies its own scale
+        // through @font-face size-adjust, avoiding a second stack-wide multiplier.
+        let sizePx = headerStyle.scale * styleBaseRem;
         if (tag === 'h1' && pFont?.isPrimaryOverride && pSettings?.h1Rem) {
-            sizePx = pSettings.h1Rem * styleBaseRem * fontScale;
+            sizePx = pSettings.h1Rem * styleBaseRem;
         }
 
         const hasLineHeightOverride = pFont?.isPrimaryOverride && (
@@ -113,7 +110,10 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
             ?? style?.lineHeight
             ?? 'normal';
 
-        const numLineHeight = calculateNumericLineHeight(effLineHeight, pFont?.fontObject, pSettings);
+        const numLineHeight = calculateNumericLineHeight(effLineHeight, pFont?.fontObject, {
+            ...pSettings,
+            sizeAdjust: (pSettings.scale ?? 100) / 100
+        });
 
         // Fix: Use explicit 'normal' for CSS if the effective setting is 'normal' or if we have overrides that might rely on it.
         const cssIsNormal = effLineHeight === 'normal' ||
@@ -183,6 +183,7 @@ const HeaderPreviewRow = ({ tag, language, headerStyle, hideLabel }) => {
                     ascentOverride={primarySettings?.ascentOverride}
                     descentOverride={primarySettings?.descentOverride}
                     lineGapOverride={primarySettings?.lineGapOverride}
+                    sizeAdjust={(primarySettings?.scale ?? 100) / 100}
                 />
             </div>
         </div>

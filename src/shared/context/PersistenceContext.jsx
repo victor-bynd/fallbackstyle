@@ -113,41 +113,66 @@ export const PersistenceProvider = ({ children }) => {
             // Restore Font Management
             const { fontStyles, activeFontStyleId } = normalized;
             if (fontStyles) {
-                // Hydrate fonts from IndexedDB
-                for (const styleId of Object.keys(fontStyles)) {
-                    const style = fontStyles[styleId];
-                    if (style.fonts) {
-                        for (let i = 0; i < style.fonts.length; i++) {
-                            const font = style.fonts[i];
-                            // Only hydrate if font has an ID and fontObject is missing (meaning it was stripped during save)
-                            if (font.id && !font.fontObject) {
-                                try {
-                                    const storedData = await PersistenceService.getFont(font.id);
-                                    if (storedData && storedData.fontBuffer) {
-                                        // Recreate fontObject from buffer
-                                        const fontObject = opentype.parse(storedData.fontBuffer);
-                                        // Create new blob URL from buffer
-                                        const blob = new Blob([storedData.fontBuffer], { type: 'font/ttf' });
-                                        const fontUrl = URL.createObjectURL(blob);
+                // Fix: deep-clone fontStyles so we never mutate the normalised config object
+                const hydratedFontStyles = Object.fromEntries(
+                    Object.entries(fontStyles).map(([styleId, style]) => [
+                        styleId,
+                        { ...style, fonts: style.fonts ? [...style.fonts] : [] }
+                    ])
+                );
 
-                                        style.fonts[i] = {
-                                            ...font,
-                                            fontObject: fontObject,
-                                            fontUrl: fontUrl,
-                                            fontBuffer: storedData.fontBuffer
-                                        };
-                                        fontContext.persistedFontIds.current.add(font.id);
+                // Track newly-created blob URLs so we can revoke them if the update fails
+                const newBlobUrls = [];
+
+                try {
+                    // Hydrate fonts from IndexedDB
+                    for (const styleId of Object.keys(hydratedFontStyles)) {
+                        const style = hydratedFontStyles[styleId];
+                        if (style.fonts) {
+                            for (let i = 0; i < style.fonts.length; i++) {
+                                const font = style.fonts[i];
+                                // Only hydrate if font has an ID and fontObject is missing (meaning it was stripped during save)
+                                if (font.id && !font.fontObject) {
+                                    try {
+                                        const storedData = await PersistenceService.getFont(font.id);
+                                        if (storedData && storedData.fontBuffer) {
+                                            // Recreate fontObject from buffer
+                                            const fontObject = opentype.parse(storedData.fontBuffer);
+                                            // Create new blob URL from buffer
+                                            const blob = new Blob([storedData.fontBuffer], { type: 'font/ttf' });
+                                            const fontUrl = URL.createObjectURL(blob);
+                                            newBlobUrls.push(fontUrl);
+
+                                            style.fonts[i] = {
+                                                ...font,
+                                                fontObject,
+                                                fontUrl,
+                                                fontBuffer: storedData.fontBuffer
+                                            };
+                                            fontContext.persistedFontIds.current.add(font.id);
+                                        }
+                                    } catch (error) {
+                                        logger.error('Failed to hydrate font:', font.id, error);
                                     }
-                                } catch (error) {
-                                    logger.error('Failed to hydrate font:', font.id, error);
                                 }
                             }
                         }
                     }
-                }
 
-                // Set font styles (batch update)
-                fontContext.updateStyleState('__batch__', () => fontStyles);
+                    // Fix: revoke existing blob URLs before replacing fontStyles to prevent leaks
+                    Object.values(fontContext.fontStyles).forEach(style => {
+                        style.fonts?.forEach(font => {
+                            if (font?.fontUrl) URL.revokeObjectURL(font.fontUrl);
+                        });
+                    });
+
+                    // Set font styles (batch update)
+                    fontContext.updateStyleState('__batch__', () => hydratedFontStyles);
+                } catch (err) {
+                    // Revoke any blob URLs we created if the batch update fails
+                    newBlobUrls.forEach(url => URL.revokeObjectURL(url));
+                    throw err;
+                }
             }
 
             if (activeFontStyleId) {

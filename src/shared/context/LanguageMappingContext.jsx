@@ -374,40 +374,345 @@ export const LanguageMappingProvider = ({ children }) => {
     }, [activeFontStyleId, fonts, setFonts, updateStyleState, setLanguageVisibility]);
 
     /**
+     * Create or reuse a language-specific font clone and register it in the
+     * appropriate override map. Optional updates are applied in the same state
+     * transaction so a styled clone can never exist without its language map.
+     */
+    const ensureLanguageFontOverride = useCallback((sourceFontId, langId, updates = {}, options = {}) => {
+        if (!sourceFontId || !langId || langId === 'ALL' || langId === 'primary') return null;
+
+        const targetStyleId = options.styleId || activeFontStyleId;
+        const generatedId = generateUniqueId(
+            options.role === 'primary' ? `lang-primary-${langId}` : `lang-${langId}`
+        );
+
+        updateStyleState(targetStyleId, prev => {
+            const previousFonts = prev.fonts || [];
+            const requestedFont = previousFonts.find(font => font?.id === sourceFontId);
+            if (!requestedFont) {
+                logger.warn('Cannot create language override; source font not found:', sourceFontId);
+                return prev;
+            }
+
+            const baseFont = requestedFont.parentId
+                ? previousFonts.find(font => font?.id === requestedFont.parentId) || requestedFont
+                : requestedFont;
+            const baseFontId = baseFont.id;
+            const isPrimary = options.role === 'primary' ||
+                requestedFont.type === 'primary' ||
+                requestedFont.isPrimaryOverride;
+
+            const primaryOverrides = { ...(prev.primaryFontOverrides || {}) };
+            const fallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+
+            let existingOverrideId = null;
+            if (isPrimary) {
+                existingOverrideId = primaryOverrides[langId] || null;
+            } else {
+                const languageOverrides = fallbackOverrides[langId];
+                if (typeof languageOverrides === 'string') {
+                    const mappedFont = previousFonts.find(font => font?.id === languageOverrides);
+                    const mappedBaseId = mappedFont?.parentId || mappedFont?.id;
+                    if (mappedBaseId === baseFontId) existingOverrideId = languageOverrides;
+                } else if (languageOverrides && typeof languageOverrides === 'object') {
+                    existingOverrideId = languageOverrides[baseFontId] || null;
+                }
+            }
+
+            const existingOverride = previousFonts.find(font => font?.id === existingOverrideId);
+            const canReuseOverride = existingOverride &&
+                (existingOverride.isClone || existingOverride.isLangSpecific) &&
+                (existingOverride.parentId || existingOverride.id) === baseFontId;
+
+            let overrideId = existingOverrideId;
+            let nextFonts;
+
+            if (canReuseOverride) {
+                nextFonts = previousFonts.map(font =>
+                    font?.id === existingOverrideId
+                        ? { ...font, ...updates }
+                        : font
+                );
+            } else {
+                overrideId = generatedId;
+                const clone = {
+                    ...baseFont,
+                    id: overrideId,
+                    type: isPrimary ? 'primary' : 'fallback',
+                    isPrimaryOverride: isPrimary,
+                    isClone: true,
+                    isLangSpecific: true,
+                    parentId: baseFontId,
+                    // Style properties inherit from the global parent until the
+                    // language explicitly overrides them.
+                    scale: undefined,
+                    lineHeight: undefined,
+                    letterSpacing: undefined,
+                    baseFontSize: undefined,
+                    weightOverride: undefined,
+                    lineGapOverride: undefined,
+                    ascentOverride: undefined,
+                    descentOverride: undefined,
+                    fontSizeAdjust: undefined,
+                    sizeAdjust: undefined,
+                    h1Rem: undefined,
+                    color: undefined,
+                    ...updates
+                };
+
+                const obsoletePrimaryOverrideId = isPrimary && existingOverride &&
+                    (existingOverride.isClone || existingOverride.isLangSpecific)
+                    ? existingOverride.id
+                    : null;
+
+                nextFonts = [
+                    ...previousFonts.filter(font => !(
+                        font?.id === obsoletePrimaryOverrideId || (
+                            font?.id !== overrideId &&
+                            (font?.isClone || font?.isLangSpecific) &&
+                            font.parentId === baseFontId &&
+                            typeof font.id === 'string' &&
+                            (font.id.includes(`lang-${langId}`) || font.id.includes(`lang-primary-${langId}`))
+                        )
+                    )),
+                    clone
+                ];
+            }
+
+            if (isPrimary) {
+                primaryOverrides[langId] = overrideId;
+            } else {
+                const current = fallbackOverrides[langId];
+                const granularOverrides = current && typeof current === 'object'
+                    ? { ...current }
+                    : {};
+
+                if (typeof current === 'string') {
+                    const currentFont = previousFonts.find(font => font?.id === current);
+                    const currentBaseId = currentFont?.parentId || currentFont?.id;
+                    if (currentBaseId) granularOverrides[currentBaseId] = current;
+                }
+
+                granularOverrides[baseFontId] = overrideId;
+                fallbackOverrides[langId] = granularOverrides;
+            }
+
+            return {
+                ...prev,
+                fonts: nextFonts,
+                primaryFontOverrides: primaryOverrides,
+                fallbackFontOverrides: fallbackOverrides,
+                configuredLanguages: Array.from(new Set([...(prev.configuredLanguages || []), langId]))
+            };
+        });
+
+        setLanguageVisibility(langId, true);
+        return generatedId;
+    }, [activeFontStyleId, setLanguageVisibility, updateStyleState]);
+
+    const updateLanguageFontSetting = useCallback((sourceFontId, langId, property, value, options = {}) => {
+        return ensureLanguageFontOverride(sourceFontId, langId, { [property]: value }, options);
+    }, [ensureLanguageFontOverride]);
+
+    /**
+     * Clear language-level styling while preserving the language-to-font map.
+     * The clean clone continues to inherit any future global font changes.
+     */
+    const resetLanguageFontSettings = useCallback((sourceFontId, langId, options = {}) => {
+        return ensureLanguageFontOverride(sourceFontId, langId, {
+            scale: undefined,
+            lineHeight: undefined,
+            letterSpacing: undefined,
+            baseFontSize: undefined,
+            weightOverride: undefined,
+            lineGapOverride: undefined,
+            ascentOverride: undefined,
+            descentOverride: undefined,
+            fontSizeAdjust: undefined,
+            sizeAdjust: undefined,
+            h1Rem: undefined,
+            color: undefined
+        }, options);
+    }, [ensureLanguageFontOverride]);
+
+    /**
+     * Remove one font relationship from a language without disturbing other
+     * fonts mapped to that language.
+     */
+    const removeLanguageFontOverride = useCallback((sourceFontId, langId, options = {}) => {
+        if (!sourceFontId || !langId) return;
+
+        const targetStyleId = options.styleId || activeFontStyleId;
+
+        updateStyleState(targetStyleId, prev => {
+            const previousFonts = prev.fonts || [];
+            const requestedFont = previousFonts.find(font => font?.id === sourceFontId);
+            const baseFontId = requestedFont?.parentId || requestedFont?.id || sourceFontId;
+            const isPrimary = options.role === 'primary' ||
+                requestedFont?.type === 'primary' ||
+                requestedFont?.isPrimaryOverride;
+            const primaryOverrides = { ...(prev.primaryFontOverrides || {}) };
+            const fallbackOverrides = { ...(prev.fallbackFontOverrides || {}) };
+            const cloneIdsToRemove = new Set();
+            const fontIdsToPromote = new Set();
+
+            const detachMappedFont = (mappedFont, mappedId) => {
+                if (!mappedFont || (!mappedFont.isClone && !mappedFont.isLangSpecific)) return;
+
+                const hasGlobalParent = mappedFont.parentId && previousFonts.some(font =>
+                    font?.id === mappedFont.parentId && font.id !== mappedFont.id
+                );
+
+                // A font uploaded directly into a language has no global parent.
+                // Keep the asset and move it into the global fallback list.
+                if (!isPrimary && !hasGlobalParent) {
+                    fontIdsToPromote.add(mappedId);
+                } else {
+                    cloneIdsToRemove.add(mappedId);
+                }
+            };
+
+            if (isPrimary) {
+                const mappedId = primaryOverrides[langId];
+                const mappedFont = previousFonts.find(font => font?.id === mappedId);
+                const mappedBaseId = mappedFont?.parentId || mappedFont?.id;
+                if (mappedId && mappedBaseId === baseFontId) {
+                    detachMappedFont(mappedFont, mappedId);
+                    delete primaryOverrides[langId];
+                }
+            } else {
+                const current = fallbackOverrides[langId];
+
+                if (typeof current === 'string') {
+                    const mappedFont = previousFonts.find(font => font?.id === current);
+                    const mappedBaseId = mappedFont?.parentId || mappedFont?.id;
+                    if (mappedBaseId === baseFontId) {
+                        detachMappedFont(mappedFont, current);
+                        delete fallbackOverrides[langId];
+                    }
+                } else if (current && typeof current === 'object') {
+                    const nextLanguageOverrides = { ...current };
+
+                    Object.entries(current).forEach(([mappedBaseId, mappedId]) => {
+                        const mappedFont = previousFonts.find(font => font?.id === mappedId);
+                        const resolvedBaseId = mappedFont?.parentId || mappedFont?.id || mappedBaseId;
+                        if (mappedBaseId === baseFontId || resolvedBaseId === baseFontId) {
+                            detachMappedFont(mappedFont, mappedId);
+                            delete nextLanguageOverrides[mappedBaseId];
+                        }
+                    });
+
+                    if (Object.keys(nextLanguageOverrides).length > 0) {
+                        fallbackOverrides[langId] = nextLanguageOverrides;
+                    } else {
+                        delete fallbackOverrides[langId];
+                    }
+                }
+            }
+
+            return {
+                ...prev,
+                fonts: previousFonts
+                    .filter(font => !cloneIdsToRemove.has(font?.id))
+                    .map(font => fontIdsToPromote.has(font?.id)
+                        ? {
+                            ...font,
+                            type: 'fallback',
+                            isPrimaryOverride: false,
+                            isClone: false,
+                            isLangSpecific: false,
+                            parentId: undefined,
+                            scale: undefined,
+                            lineHeight: undefined,
+                            letterSpacing: undefined,
+                            baseFontSize: undefined,
+                            weightOverride: undefined,
+                            lineGapOverride: undefined,
+                            ascentOverride: undefined,
+                            descentOverride: undefined,
+                            fontSizeAdjust: undefined,
+                            sizeAdjust: undefined,
+                            h1Rem: undefined
+                        }
+                        : font),
+                primaryFontOverrides: primaryOverrides,
+                fallbackFontOverrides: fallbackOverrides
+            };
+        });
+    }, [activeFontStyleId, updateStyleState]);
+
+    /**
      * Unmap a language (remove all overrides)
      */
     const unmapLanguage = useCallback((langId) => {
         logger.debug('Unmapping language:', langId);
 
-        // Remove language-specific fonts outside the style updater
-        setFonts(prevFonts => prevFonts.filter(f => {
-            if (!f) return false;
-            if (!(f.isLangSpecific || f.isClone || f.id.startsWith('lang-'))) return true;
-            if (!f.id.includes(`lang-${langId}`)) return true;
-            return false;
-        }));
-
         updateStyleState(activeFontStyleId, prev => {
-            // Remove overrides
             const nextPrimaryOverrides = { ...prev.primaryFontOverrides };
             const nextFallbackOverrides = { ...prev.fallbackFontOverrides };
+            const mappedFontIds = new Set();
+
+            if (nextPrimaryOverrides[langId]) {
+                mappedFontIds.add(nextPrimaryOverrides[langId]);
+            }
+
+            const fallbackMapping = nextFallbackOverrides[langId];
+            if (typeof fallbackMapping === 'string') {
+                mappedFontIds.add(fallbackMapping);
+            } else if (fallbackMapping && typeof fallbackMapping === 'object') {
+                Object.values(fallbackMapping).forEach(fontId => mappedFontIds.add(fontId));
+            }
+
             delete nextPrimaryOverrides[langId];
             delete nextFallbackOverrides[langId];
 
-            // Remove from configured if not primary
             const hasPrimaryStatus = prev.primaryLanguages?.includes(langId);
             const nextConfigured = (!hasPrimaryStatus)
                 ? (prev.configuredLanguages || []).filter(id => id !== langId)
                 : prev.configuredLanguages;
 
+            const nextFonts = (prev.fonts || []).flatMap(font => {
+                if (!font || !mappedFontIds.has(font.id)) return [font];
+                if (!font.isClone && !font.isLangSpecific) return [font];
+
+                const hasGlobalParent = font.parentId && (prev.fonts || []).some(candidate =>
+                    candidate?.id === font.parentId && candidate.id !== font.id
+                );
+
+                if (font.type !== 'primary' && !hasGlobalParent) {
+                    return [{
+                        ...font,
+                        type: 'fallback',
+                        isPrimaryOverride: false,
+                        isClone: false,
+                        isLangSpecific: false,
+                        parentId: undefined,
+                        scale: undefined,
+                        lineHeight: undefined,
+                        letterSpacing: undefined,
+                        baseFontSize: undefined,
+                        weightOverride: undefined,
+                        lineGapOverride: undefined,
+                        ascentOverride: undefined,
+                        descentOverride: undefined,
+                        fontSizeAdjust: undefined,
+                        sizeAdjust: undefined,
+                        h1Rem: undefined
+                    }];
+                }
+
+                return [];
+            });
+
             return {
                 ...prev,
+                fonts: nextFonts,
                 primaryFontOverrides: nextPrimaryOverrides,
                 fallbackFontOverrides: nextFallbackOverrides,
                 configuredLanguages: nextConfigured
             };
         });
-    }, [activeFontStyleId, setFonts, updateStyleState]);
+    }, [activeFontStyleId, updateStyleState]);
 
     /**
      * Assign font to multiple languages (bulk operation)
@@ -629,7 +934,6 @@ export const LanguageMappingProvider = ({ children }) => {
     const addLanguageSpecificPrimaryFont = useCallback((langId, options = {}) => {
         logger.debug('Adding language-specific primary font for:', langId);
 
-        // If onlyIfMissing is true, check if override already exists
         if (options.onlyIfMissing) {
             const existing = primaryFontOverrides[langId];
             if (existing) {
@@ -638,41 +942,14 @@ export const LanguageMappingProvider = ({ children }) => {
             }
         }
 
-        const fontId = generateUniqueId(`lang-primary-${langId}`);
+        const primaryFont = fonts.find(font => font && font.type === 'primary' && !font.isPrimaryOverride);
+        if (!primaryFont) {
+            logger.warn('No primary font found to clone');
+            return null;
+        }
 
-        setFonts(prev => {
-            // Get the LATEST global primary font to clone
-            const primaryFont = prev.find(f => f && f.type === 'primary');
-            if (!primaryFont) {
-                logger.warn('No primary font found to clone');
-                return prev;
-            }
-
-            const newFont = {
-                ...primaryFont,
-                id: fontId,
-                type: 'primary',
-                isPrimaryOverride: true,
-                isClone: true,
-                parentId: primaryFont.id,
-                color: primaryFont.color
-            };
-
-            return [...prev.filter(f => !f.id.startsWith(`lang-primary-${langId}`)), newFont];
-        });
-
-        updateStyleState(activeFontStyleId, prev => ({
-            ...prev,
-            primaryFontOverrides: {
-                ...prev.primaryFontOverrides,
-                [langId]: fontId
-            }
-        }));
-
-        addConfiguredLanguage(langId);
-
-        return fontId;
-    }, [primaryFontOverrides, activeFontStyleId, setFonts, updateStyleState, addConfiguredLanguage]);
+        return ensureLanguageFontOverride(primaryFont.id, langId, {}, { role: 'primary' });
+    }, [primaryFontOverrides, fonts, ensureLanguageFontOverride]);
 
     /**
      * Add primary language overrides for multiple languages (batch)
@@ -688,46 +965,8 @@ export const LanguageMappingProvider = ({ children }) => {
      */
     const addLanguageSpecificPrimaryFontFromId = useCallback((sourceFontId, langId) => {
         logger.debug('Creating language-specific primary font from:', sourceFontId, 'for', langId);
-
-        const fontId = generateUniqueId(`lang-primary-${langId}`);
-
-        // Add to fonts array using functional update to avoid stale fonts from closure
-        setFonts(prev => {
-            const sourceFont = prev.find(f => f && f.id === sourceFontId);
-            if (!sourceFont) {
-                logger.warn('Source font not found for cloning:', sourceFontId);
-                return prev;
-            }
-
-            // Create clone
-            const newFont = {
-                ...sourceFont,
-                id: fontId,
-                type: 'primary',
-                isPrimaryOverride: true,
-                isClone: true,
-                parentId: sourceFontId,
-                color: sourceFont.color
-            };
-
-            // Filter out any existing primary overrides for this same language to be clean
-            return [...prev.filter(f => !f.id.startsWith(`lang-primary-${langId}`)), newFont];
-        });
-
-        // Map as primary override
-        updateStyleState(activeFontStyleId, prev => ({
-            ...prev,
-            primaryFontOverrides: {
-                ...prev.primaryFontOverrides,
-                [langId]: fontId
-            }
-        }));
-
-        // Ensure language is configured and visible
-        addConfiguredLanguage(langId);
-
-        return fontId;
-    }, [activeFontStyleId, setFonts, updateStyleState, addConfiguredLanguage]);
+        return ensureLanguageFontOverride(sourceFontId, langId, {}, { role: 'primary' });
+    }, [ensureLanguageFontOverride]);
 
     /**
      * Batch add fonts and mappings
@@ -953,6 +1192,10 @@ export const LanguageMappingProvider = ({ children }) => {
 
         // Mapping
         mapLanguageToFont,
+        ensureLanguageFontOverride,
+        updateLanguageFontSetting,
+        resetLanguageFontSettings,
+        removeLanguageFontOverride,
         unmapLanguage,
         assignFontToMultipleLanguages,
         batchAddFontsAndMappings,
@@ -1006,6 +1249,10 @@ export const LanguageMappingProvider = ({ children }) => {
         batchAddConfiguredLanguages,
         removeConfiguredLanguage,
         mapLanguageToFont,
+        ensureLanguageFontOverride,
+        updateLanguageFontSetting,
+        resetLanguageFontSettings,
+        removeLanguageFontOverride,
         unmapLanguage,
         assignFontToMultipleLanguages,
         batchAddFontsAndMappings,

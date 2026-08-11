@@ -162,6 +162,7 @@ MetricGuidesOverlay.propTypes = {
     ascentOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     descentOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     lineGapOverride: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    sizeAdjust: PropTypes.number,
     guideColor: PropTypes.string
 };
 

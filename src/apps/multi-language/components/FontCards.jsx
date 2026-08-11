@@ -30,21 +30,19 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
         addStrictlyMappedFonts,
         getFontColor,
         updateFontColor,
-        addLanguageSpecificPrimaryFont,
-        addLanguageSpecificFont,
     } = useFontManagement();
 
     // Language Mapping Context
     const {
         fallbackFontOverrides,
         primaryFontOverrides,
+        primaryLanguages,
         systemFallbackOverrides,
         updateSystemFallbackOverride,
         resetSystemFallbackOverride,
-        setFallbackFontOverride,
         updateFallbackFontOverride,
         resetFallbackFontOverrides,
-        linkFontToLanguage,
+        ensureLanguageFontOverride,
     } = useLanguageMapping();
 
     // Typography Context
@@ -64,6 +62,50 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
     const { setActiveConfigTab } = useUI();
 
     const fonts = useMemo(() => rawFonts || [], [rawFonts]);
+
+    const highlightedMappedFamilyIds = useMemo(() => {
+        const familyIds = new Set();
+        const langId = highlitLanguageId === 'primary'
+            ? primaryLanguages?.[0]
+            : highlitLanguageId;
+
+        if (!langId) return familyIds;
+
+        const addMappedFont = (fontId) => {
+            if (!fontId || fontId === 'legacy') return;
+            const mappedFont = fonts.find(font => font?.id === fontId);
+            familyIds.add(mappedFont?.parentId || mappedFont?.id || fontId);
+        };
+
+        addMappedFont(primaryFontOverrides?.[langId]);
+
+        const fallbackMapping = fallbackFontOverrides?.[langId];
+        if (typeof fallbackMapping === 'string') {
+            addMappedFont(fallbackMapping);
+        } else if (fallbackMapping && typeof fallbackMapping === 'object') {
+            Object.values(fallbackMapping).forEach(addMappedFont);
+        }
+
+        if (primaryLanguages?.includes(langId)) {
+            const globalPrimary = fonts.find(font => font?.type === 'primary' && !font.isPrimaryOverride);
+            addMappedFont(globalPrimary?.id);
+        }
+
+        return familyIds;
+    }, [fallbackFontOverrides, fonts, highlitLanguageId, primaryFontOverrides, primaryLanguages]);
+
+    const isFontFamilyActive = (font) => {
+        if (!font) return false;
+
+        const cardFamilyId = font.parentId || font.id;
+        if (highlightedMappedFamilyIds.has(cardFamilyId)) return true;
+        if (!activeFont) return false;
+        if (font.id === activeFont) return true;
+
+        const selectedFont = fonts.find(candidate => candidate?.id === activeFont);
+        const selectedFamilyId = selectedFont?.parentId || selectedFont?.id || activeFont;
+        return selectedFamilyId === cardFamilyId;
+    };
 
 
 
@@ -91,9 +133,9 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
     const handleExistingFontSelect = (fontId) => {
         if (fontId === 'legacy') {
             // Handle legacy if needed, or just ignore for now as it's targeted
-            // Actually addLanguageSpecificFont supports handling specific IDs.
+            // System fallback handling remains separate from uploaded font mapping.
         }
-        addLanguageSpecificFont(fontId, activeTab);
+        ensureLanguageFontOverride(fontId, activeTab);
         setShowFontSelector(false);
     };
 
@@ -181,28 +223,13 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
     const handleLanguageSelected = (langId) => {
         if (mappingFontId && langId) {
-            // Check if this is an existing font that should just be linked
-            // (like system fonts or existing fallbacks)
             const existingFont = fonts.find(f => f && f.id === mappingFontId);
-
-            if (existingFont) {
-                // If it's a primary font being mapped -> Create a Primary Override
-                if (existingFont.type === 'primary') {
-                    addLanguageSpecificPrimaryFont(langId);
-                }
-                // If it's a system font -> Use fallback override
-                else if (!existingFont.fontObject) {
-                    setFallbackFontOverride(langId, mappingFontId);
-                } else {
-                    // It's a loaded fallback font - LINK IT (Map to itself)
-                    // This enables inheritance until manually overridden
-                    // Note: linkFontToLanguage expects (langId, fontId) order
-                    linkFontToLanguage(langId, mappingFontId);
-                }
-            } else {
-                // Fallback for unknown ID?
-                addLanguageSpecificFont(mappingFontId, langId);
-            }
+            ensureLanguageFontOverride(
+                mappingFontId,
+                langId,
+                {},
+                { role: existingFont?.type === 'primary' ? 'primary' : 'fallback' }
+            );
         }
         // setMappingFontId(null); // Managed by caller now for multi-select
     };
@@ -575,7 +602,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                 {primary && (
                     <FontCard
                         font={primary}
-                        isActive={activeFont === (primary ? primary.id : null)}
+                        isActive={isFontFamilyActive(primary)}
                         globalWeight={weight}
                         globalLineHeight={lineHeight}
                         setGlobalLineHeight={setLineHeight}
@@ -596,7 +623,8 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                         setHighlitLanguageId={setHighlitLanguageId}
                         activeTab={activeTab}
                         readOnly={readOnly}
-                        onMap={null}
+                        onMap={isAllTab ? handleMapLanguage : null}
+                        consolidatedIds={primary?.id ? consolidatedIdsMap?.[primary.id] : []}
                     />
                 )}
 
@@ -666,7 +694,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                             <FontCard
                                 key={font.id}
                                 font={font}
-                                isActive={activeFont === font.id}
+                                isActive={isFontFamilyActive(font)}
                                 getFontColor={getFontColor}
                                 updateFontColor={updateFontColor}
                                 getEffectiveFontSettings={getEffectiveFontSettings}
@@ -679,7 +707,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                 toggleFontVisibility={toggleFontVisibility}
                                 isInherited={false}
                                 onOverride={null}
-                                onMap={(!isAllTab && activeTab !== 'primary') ? (fid) => addLanguageSpecificFont(fid, activeTab) : handleMapLanguage}
+                                onMap={(!isAllTab && activeTab !== 'primary') ? (fid) => ensureLanguageFontOverride(fid, activeTab) : handleMapLanguage}
                                 onResetOverride={null}
                                 onSelectLanguage={setActiveConfigTab}
                                 setHighlitLanguageId={setHighlitLanguageId}
@@ -784,14 +812,14 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
 
                             // Detect if this font is physically 'linked' to the global stock (inherited)
                             // A font is inherited if it is NOT a clone (isLangSpecific is false)
-                            // But it appears in this list because it was mapped (via linkFontToLanguage self-reference)
+                            // But it appears in this list because it is mapped to this language.
                             const isInheritedMapped = !font.isLangSpecific && !isAllTab;
 
                             return (
                                 <FontCard
                                     key={font.id}
                                     font={font}
-                                    isActive={false} // Force unselected look as requested
+                                    isActive={isFontFamilyActive(font)}
                                     getFontColor={getFontColor}
                                     updateFontColor={updateFontColor}
                                     getEffectiveFontSettings={getEffectiveFontSettings}
@@ -803,7 +831,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                     updateFontWeight={updateFontWeight}
                                     toggleFontVisibility={toggleFontVisibility}
                                     isInherited={isInheritedMapped}
-                                    onOverride={isInheritedMapped ? () => addLanguageSpecificFont(font.id, activeTab) : null}
+                                    onOverride={isInheritedMapped ? () => ensureLanguageFontOverride(font.id, activeTab) : null}
                                     onMap={null} // Remove Map button
                                     // Enable deletion (unmap/remove clone) in language-specific view
                                     onResetOverride={null}
@@ -867,7 +895,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                     <FontCard
                                         key={font.id}
                                         font={font}
-                                        isActive={activeFont === font.id}
+                                        isActive={isFontFamilyActive(font)}
                                         getFontColor={getFontColor}
                                         updateFontColor={updateFontColor}
                                         getEffectiveFontSettings={getEffectiveFontSettings}
@@ -882,7 +910,7 @@ const FontCards = ({ activeTab, selectedGroup = 'ALL', highlitLanguageId, setHig
                                         activeTab={activeTab}
                                         isInherited={!isAllTab && activeTab !== 'primary' && !readOnly && !isOverridden}
                                         suppressInheritedOverlay={isInheritedSystemGroup}
-                                        onOverride={() => addLanguageSpecificFont(font.id, activeTab)}
+                                        onOverride={() => ensureLanguageFontOverride(font.id, activeTab)}
                                         onResetOverride={null}
                                         setHighlitLanguageId={setHighlitLanguageId}
                                     />

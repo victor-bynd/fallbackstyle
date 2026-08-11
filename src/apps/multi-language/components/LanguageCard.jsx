@@ -17,21 +17,23 @@ import { TOOLTIPS } from '../../../shared/constants/tooltips';
 const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHighlitLanguageId }) => {
     // Font Management Context
     const {
+        fontStyles,
         getFontsForStyle,
         getPrimaryFontFromStyle,
         activeFontStyleId,
+        setActiveFont,
     } = useFontManagement();
 
     // Language Mapping Context
     const {
         primaryLanguages,
         removeConfiguredLanguage,
-        mapLanguageToFont,
         unmapLanguage,
         getPrimaryFontOverrideForStyle,
         getFallbackFontOverrideForStyle,
         setFallbackFontOverrideForStyle,
         addLanguageSpecificFallbackFont,
+        ensureLanguageFontOverride,
     } = useLanguageMapping();
 
     // Typography Context
@@ -158,6 +160,10 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         const globalFallback = getFallbackFontOverrideForStyle('primary', language.id);
         if (globalFallback) fallbackOverrideFontId = globalFallback;
     }
+
+    // Preserve the explicit fallback mapping before the display fallback below
+    // substitutes a primary override into this value.
+    const explicitFallbackOverride = fallbackOverrideFontId;
 
     let primaryOverrideId = getPrimaryFontOverrideForStyle(activeMetricsStyleId, language.id);
 
@@ -328,7 +334,12 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         } else if (val === 'legacy') {
             setFallbackFontOverrideForStyle(activeMetricsStyleId, language.id, 'legacy');
         } else {
-            mapLanguageToFont(language.id, val);
+            const selectedFont = (getFontsForStyle(activeMetricsStyleId) || [])
+                .find(font => font?.id === val);
+            ensureLanguageFontOverride(val, language.id, {}, {
+                role: selectedFont?.type === 'primary' ? 'primary' : 'fallback',
+                styleId: activeMetricsStyleId
+            });
         }
     };
 
@@ -353,24 +364,30 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
     const isPrimary = primaryLanguages?.includes(language.id);
     const isActive = isHighlighted || activeConfigTab === language.id || (activeConfigTab === 'primary' && isPrimary);
 
+    const getMappedFontFamilyId = () => {
+        const fallbackMappedId = typeof explicitFallbackOverride === 'string'
+            ? (explicitFallbackOverride === 'legacy' ? null : explicitFallbackOverride)
+            : Object.values(explicitFallbackOverride || {})[0];
+        const mappedId = fallbackMappedId || primaryOverrideId ||
+            (primaryLanguages?.includes(language.id) ? metricsPrimaryFont?.id : null);
+
+        if (!mappedId) return null;
+
+        const mappedFont = (getFontsForStyle(activeMetricsStyleId) || [])
+            .find(font => font?.id === mappedId);
+        return mappedFont?.parentId || mappedFont?.id || mappedId;
+    };
+
     // Determine the actual font being used for the main view to get its metrics
     const mainViewStyleId = activeFontStyleId || 'primary';
     const mainViewAllFonts = getFontsForStyle(mainViewStyleId);
 
-    // Start with the specific choice for this language (the font shown in the badge)
-    let mainViewEffectiveFont = effectiveFallbackFont;
-
-    // If no specific choice, check for primary override (lang-specific split)
-    if (!mainViewEffectiveFont) {
-        const mainViewPrimaryOverrideId = getPrimaryFontOverrideForStyle(mainViewStyleId, language.id);
-        if (mainViewPrimaryOverrideId) {
-            console.log('[LanguageCard] Override ID:', mainViewPrimaryOverrideId, 'Fonts:', mainViewAllFonts);
-            mainViewEffectiveFont = mainViewAllFonts.find(f => {
-                if (!f) console.error('[LanguageCard] Found undefined font in mainViewAllFonts!');
-                return f && f.id === mainViewPrimaryOverrideId;
-            });
-        }
-    }
+    // The container metrics follow the effective primary face. A mapped fallback has
+    // its own @font-face size-adjust and must not redefine the whole stack's size.
+    const mainViewPrimaryOverrideId = getPrimaryFontOverrideForStyle(mainViewStyleId, language.id);
+    let mainViewEffectiveFont = mainViewPrimaryOverrideId
+        ? mainViewAllFonts.find(f => f?.id === mainViewPrimaryOverrideId)
+        : null;
 
     // Fallback to global primary
     if (!mainViewEffectiveFont) {
@@ -382,7 +399,10 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         return getEffectiveFontSettingsForStyle(mainViewStyleId, mainViewEffectiveFont?.id || 'primary');
     }, [getEffectiveFontSettingsForStyle, mainViewStyleId, mainViewEffectiveFont?.id]);
     
-    const mainViewFontSize = (mainViewSettings?.baseFontSize || 16) * (mainViewSettings?.scale || 100) / 100;
+    // Keep the element's font-size stable. Per-face visual scaling is applied once,
+    // through @font-face size-adjust, so primary and fallback faces stay independent.
+    const mainViewFontSize = fontStyles?.[mainViewStyleId]?.baseFontSize ?? 16;
+    const mainViewSizeAdjust = (mainViewSettings?.scale ?? 100) / 100;
     const mainViewLineHeight = mainViewSettings?.lineHeight || 'normal';
 
     const useNormalLineHeight = (mainViewLineHeight === 'normal');
@@ -391,8 +411,11 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
         // If we are forcing normal line height for rendering, we must also calculate the numeric value as 'normal'
         // so that the metric guides overlay matches the actual rendered text height.
         const effectiveLineHeight = useNormalLineHeight ? 'normal' : mainViewLineHeight;
-        return calculateNumericLineHeight(effectiveLineHeight, mainViewEffectiveFont?.fontObject, mainViewSettings);
-    }, [mainViewLineHeight, mainViewEffectiveFont, mainViewSettings, useNormalLineHeight]);
+        return calculateNumericLineHeight(effectiveLineHeight, mainViewEffectiveFont?.fontObject, {
+            ...mainViewSettings,
+            sizeAdjust: mainViewSizeAdjust
+        });
+    }, [mainViewLineHeight, mainViewEffectiveFont, mainViewSettings, mainViewSizeAdjust, useNormalLineHeight]);
 
     return (
         <div
@@ -402,9 +425,11 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                 e.stopPropagation(); // Prevent background click from firing
                 if (isActive) {
                     setActiveConfigTab('ALL');
+                    setActiveFont(null);
                     if (setHighlitLanguageId) setHighlitLanguageId(null);
                 } else {
                     setActiveConfigTab(isPrimary ? 'primary' : language.id);
+                    setActiveFont(getMappedFontFamilyId());
                     if (setHighlitLanguageId) setHighlitLanguageId(language.id);
                 }
             }}
@@ -486,6 +511,7 @@ const LanguageCard = ({ language, isHighlighted, isMenuOpen, onToggleMenu, setHi
                             ascentOverride={mainViewSettings?.ascentOverride}
                             descentOverride={mainViewSettings?.descentOverride}
                             lineGapOverride={mainViewSettings?.lineGapOverride}
+                            sizeAdjust={mainViewSizeAdjust}
                         />
                     </div>
                 )}

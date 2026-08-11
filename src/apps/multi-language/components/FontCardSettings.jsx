@@ -22,8 +22,8 @@ const FontCardSettings = ({
 }) => {
     return (
         <div className="space-y-2">
-            {/* Size Control: Show ONLY for global primary or primary overrides */}
-            {(isPrimary || font.isPrimaryOverride) && (
+            {/* The global base size belongs to the text container, so it affects the whole stack. */}
+            {(isPrimary || font.isPrimaryOverride) && editScope === 'ALL' && (
                 <div className="space-y-1">
                     <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         <span>Size (Base REM)</span>
@@ -73,6 +73,55 @@ const FontCardSettings = ({
                         }}
                         disabled={readOnly}
                         className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
+                    />
+                </div>
+            )}
+
+            {/* A scoped primary adjustment belongs to the font face, leaving fallbacks unchanged. */}
+            {(isPrimary || font.isPrimaryOverride) && editScope !== 'ALL' && (
+                <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <span>Primary Size-Adjust</span>
+                        <div className="flex items-center">
+                            {Math.abs((scopeFontSettings?.scale ?? 100) - 100) > 0.01 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleScopedUpdate('scale', 100);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors mr-1"
+                                    title="Reset primary size-adjust to 100%"
+                                    aria-label="Reset primary size-adjust to 100%"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                        <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.433l-.31-.31a7 7 0 00-11.712 3.138.75.75 0 001.449-.39 5.5 5.5 0 019.201-2.466l.312.311H12.42a.75.75 0 000-1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            )}
+                            <div className="flex items-center gap-1">
+                                <BufferedInput
+                                    type="number"
+                                    value={Math.round(scopeFontSettings?.scale ?? 100)}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value);
+                                        if (!isNaN(val)) handleScopedUpdate('scale', val);
+                                    }}
+                                    aria-label="Primary size-adjust percentage"
+                                    className="w-12 bg-transparent text-right outline-none text-indigo-600 font-mono border-b border-indigo-200 focus:border-indigo-500"
+                                />
+                                <span className="text-indigo-600 font-mono text-[9px]">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input
+                        type="range"
+                        min="20"
+                        max="200"
+                        value={scopeFontSettings?.scale ?? 100}
+                        onChange={(e) => handleScopedUpdate('scale', parseInt(e.target.value))}
+                        disabled={isReference || (isInherited && editScope !== 'ALL') || readOnly}
+                        aria-label="Primary size-adjust"
+                        className={`w-full h-1 bg-slate-100 rounded-lg appearance-none ${(isInherited && editScope !== 'ALL') || readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} accent-indigo-600`}
                     />
                 </div>
             )}

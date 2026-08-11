@@ -81,4 +81,46 @@ describe('LanguageCard', () => {
         const container = screen.getByText('The quick brown fox.').closest('div').parentElement;
         expect(container.style.lineHeight).toBe('normal');
     });
+
+    it('keeps the text container at the style base size when the primary face is size-adjusted', () => {
+        const fonts = [
+            { id: 'primary', type: 'primary', fontObject: { charToGlyphIndex: () => 1 } },
+            {
+                id: 'lang-primary-fr-FR',
+                type: 'primary',
+                isPrimaryOverride: true,
+                fontObject: { charToGlyphIndex: () => 1 }
+            },
+            { id: 'fallback-fr', type: 'fallback', fontObject: { charToGlyphIndex: () => 1 } }
+        ];
+
+        useFontManagement.mockReturnValue(mockUseFontManagement({
+            fontStyles: {
+                primary: {
+                    baseFontSize: 16,
+                    fonts
+                }
+            },
+            getFontsForStyle: () => fonts,
+            getPrimaryFontFromStyle: () => fonts[0],
+            activeFontStyleId: 'primary'
+        }));
+        useLanguageMapping.mockReturnValue(mockUseLanguageMapping({
+            primaryLanguages: [],
+            getPrimaryFontOverrideForStyle: () => 'lang-primary-fr-FR',
+            getFallbackFontOverrideForStyle: () => 'fallback-fr'
+        }));
+        useTypography.mockReturnValue(mockUseTypography({
+            getEffectiveFontSettingsForStyle: (_styleId, fontId) => ({
+                baseFontSize: fontId === 'lang-primary-fr-FR' ? 12 : 16,
+                scale: fontId === 'lang-primary-fr-FR' ? 80 : 100,
+                lineHeight: 'normal'
+            })
+        }));
+
+        render(<LanguageCard language={{ ...mockLanguage, id: 'fr-FR', name: 'French' }} />);
+
+        const container = screen.getByText('The quick brown fox.').closest('div').parentElement;
+        expect(container.style.fontSize).toBe('16px');
+    });
 });

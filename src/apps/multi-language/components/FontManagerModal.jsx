@@ -39,7 +39,8 @@ const FontManagerModal = ({ onClose }) => {
         supportedLanguages: languages,
         fallbackFontOverrides,
         primaryFontOverrides,
-        assignFontToMultipleLanguages,
+        ensureLanguageFontOverride,
+        removeLanguageFontOverride,
     } = useLanguageMapping();
 
     const [activeId, setActiveId] = useState(null);
@@ -269,14 +270,15 @@ const FontManagerModal = ({ onClose }) => {
 
         // Multi-select Logic: Toggle ID
         const currentSelected = Mappings[pickingForFontId] || [];
-        let newSelected;
         if (currentSelected.includes(langId)) {
-            newSelected = currentSelected.filter(id => id !== langId);
+            removeLanguageFontOverride(pickingForFontId, langId, {
+                role: pickingFont?.type === 'primary' ? 'primary' : 'fallback'
+            });
         } else {
-            newSelected = [...currentSelected, langId];
+            ensureLanguageFontOverride(pickingForFontId, langId, {}, {
+                role: pickingFont?.type === 'primary' ? 'primary' : 'fallback'
+            });
         }
-
-        assignFontToMultipleLanguages(pickingForFontId, newSelected);
 
         // Don't close view, keep picker open for multi-select
         // setView('list');

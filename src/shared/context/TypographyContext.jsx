@@ -447,6 +447,10 @@ export const TypographyProvider = ({ children }) => {
         if (!font) return null;
 
         const isPrimary = font.type === 'primary';
+        const parentFont = font.parentId
+            ? style.fonts?.find(candidate => candidate && candidate.id === font.parentId)
+            : null;
+        const inheritedFontValue = (property) => font[property] ?? parentFont?.[property];
         const scales = style.fontScales || { active: 100, fallback: 100 };
         
         // Primary font line-height (from style, defaults to 'normal')
@@ -455,8 +459,11 @@ export const TypographyProvider = ({ children }) => {
         // Determine effective line-height based on font type
         let effectiveLineHeight;
         if (isPrimary) {
-            // Primary font uses style's lineHeight
-            effectiveLineHeight = primaryLineHeight;
+            // A language-specific primary value overrides the global style;
+            // otherwise the clone inherits the global primary line-height.
+            effectiveLineHeight = (font.isPrimaryOverride || font.isClone)
+                ? font.lineHeight ?? primaryLineHeight
+                : primaryLineHeight;
         } else {
             // Fallback font behavior:
             // - If primary lineHeight is NOT 'normal', fallback inherits it
@@ -464,23 +471,23 @@ export const TypographyProvider = ({ children }) => {
             //   (this allows line-gap-override to work properly)
             if (primaryLineHeight !== 'normal') {
                 // Primary has explicit line-height, fallback inherits it
-                effectiveLineHeight = font.lineHeight ?? primaryLineHeight;
+                effectiveLineHeight = inheritedFontValue('lineHeight') ?? primaryLineHeight;
             } else {
                 // Primary is 'normal', fallback can use its own settings
-                effectiveLineHeight = font.lineHeight ?? style.fallbackLineHeight ?? 'normal';
+                effectiveLineHeight = inheritedFontValue('lineHeight') ?? style.fallbackLineHeight ?? 'normal';
             }
         }
 
         return {
-            baseFontSize: font.baseFontSize ?? style.baseFontSize ?? 16,
-            scale: font.scale ?? (isPrimary ? scales.active : scales.fallback) ?? 100,
+            baseFontSize: inheritedFontValue('baseFontSize') ?? style.baseFontSize ?? 16,
+            scale: inheritedFontValue('scale') ?? (isPrimary ? scales.active : scales.fallback) ?? 100,
             lineHeight: effectiveLineHeight,
-            letterSpacing: font.letterSpacing ?? (isPrimary ? style.letterSpacing : style.fallbackLetterSpacing) ?? 0,
-            weight: font.weightOverride ?? style.weight ?? 400,
-            ascentOverride: font.ascentOverride,
-            descentOverride: font.descentOverride,
-            lineGapOverride: font.lineGapOverride,
-            color: font.color,
+            letterSpacing: inheritedFontValue('letterSpacing') ?? (isPrimary ? style.letterSpacing : style.fallbackLetterSpacing) ?? 0,
+            weight: inheritedFontValue('weightOverride') ?? style.weight ?? 400,
+            ascentOverride: inheritedFontValue('ascentOverride'),
+            descentOverride: inheritedFontValue('descentOverride'),
+            lineGapOverride: inheritedFontValue('lineGapOverride'),
+            color: inheritedFontValue('color'),
             fontScales: scales
         };
     }, [fontStyles]);
