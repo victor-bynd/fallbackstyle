@@ -1,6 +1,6 @@
 # LLM Instructions for Multilang Tool
 
-This file contains strict instructions for any Large Language Model (LLM) or developer working on the **Multilang Tool** components (located in `src/components/MultiLanguage/` and `src/pages/MultiLanguageFallback.jsx`).
+This file contains strict instructions for any Large Language Model (LLM) or developer working on the Multilang Tool in `src/apps/multi-language/` and its shared contexts in `src/shared/context/`.
 
 ## 1. PRESERVE FUNCTIONALITY
 - **Do NOT remove or alter existing logic** unless explicitly requested.
@@ -22,16 +22,29 @@ This file contains strict instructions for any Large Language Model (LLM) or dev
 - Do not delete existing tests. Update them if the behavior intentionally changes.
 
 ## 4. CRITICAL COMPONENTS
-- `LanguageCard.jsx`: Handles complex font fallback visualization. Be extremely careful with metric overrides logic.
-- `MultiLanguageFallback.jsx`: The main coordinator. Ensure state management for selection/highlighting remains intact.
-- `AddLanguageModal.jsx`: Ensure interaction flows (select -> confirm) are preserved.
+- `src/apps/multi-language/components/LanguageCard.jsx`: Handles complex font fallback visualization and synchronizes language selection with mapped font cards.
+- `src/apps/multi-language/components/FontCard.jsx`: Handles global and language-scoped font editing.
+- `src/apps/multi-language/components/FontCards.jsx`: Resolves font families, mapped cards, and multi-card highlighting.
+- `src/shared/context/LanguageMappingContext.jsx`: Owns language-to-font relationships and language-specific font clones.
+- `src/shared/context/TypographyContext.jsx`: Resolves the effective global and inherited language settings.
 
-## 5. MOCKING
+## 5. LANGUAGE MAPPING INVARIANTS
+
+- Font-first and language-first mapping must both use `ensureLanguageFontOverride`.
+- A mapped language font is represented by a language-specific clone, except for the generic system fallback.
+- Undefined properties on a language clone inherit from its global parent.
+- Explicit language properties override global values.
+- Resetting language settings must preserve the mapping and return its properties to inheritance.
+- Removing a mapping may delete a disposable clone only when its global parent exists.
+- A language-only uploaded font must be promoted to the global fallback list when unmapped; it must not be deleted.
+- A highlighted language may activate multiple font cards when it maps to both primary and fallback families.
+
+## 6. MOCKING
 - Use `mockUseTypo` and `mockUseUI` from `src/test/test-utils.jsx`.
 - Update these mocks if you add new properties to the Contexts. Don't mock them locally in every file to avoid inconsistencies.
 
-## 6. COMMON COMPONENTS
-Components in `src/components/Common/` are SHARED across tools.
+## 7. COMMON COMPONENTS
+Components in `src/shared/components/` are shared across tools.
 - **Do NOT** introduce tool-specific logic (e.g. imports from `../BrandFont/`) into these components.
 - Any change to `BufferedInput.jsx` or `ViewModeSelector.jsx` MUST be verified in BOTH:
     1. Brand Font Tool

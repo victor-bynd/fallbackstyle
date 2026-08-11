@@ -31,11 +31,14 @@ This forces the browser to rely on **Fallback Fonts**, which often leads to:
 ### 2. Smart Font Stacking & Mapping
 - **Drag & Drop:** Upload your primary font (`.ttf`, `.otf`, `.woff`, `.woff2`) and any number of custom fallback fonts.
 - **Strict Language Mapping:** Explicitly assign specific fonts to specific languages (e.g., "Use *Noto Sans JP* for Japanese, *Inter* for everything else").
+- **Two-Way Mapping:** Start from a font and select its languages, or start from a language and select or edit its fonts. Both paths create the same mapping.
+- **Predictable Inheritance:** Language mappings inherit global font settings until a language-level value is changed. Explicit language settings always take precedence.
 - **Priority Management:** Drag to reorder fonts in the stack to control the fallback cascade priority.
 - **System Fonts:** Automatically handles standard system fallbacks (sans-serif, serif, monospace) if custom fonts aren't provided.
 
 ### 3. Metric Overrides & CSS Properties
 - **`size-adjust` logic:** Visually scale fallback fonts to match the x-height of your primary font without changing the CSS `font-size`.
+- **Independent Primary Scaling:** Reduce the primary brand font for a language without changing the mapped fallback font's size.
 - **`ascent-override`, `descent-override`, `line-gap-override`:** Fine-tune the vertical metrics of any font to prevent layout shifts and clipping, especially in languages with tall glyphs (Thai, Arabic).
 - **Letter Spacing & Line Height:** Override these per-font or per-language to ensure perfect rhythm.
 
@@ -50,6 +53,7 @@ This forces the browser to rely on **Fallback Fonts**, which often leads to:
 
 ### 6. Interactive Type Playground
 - **Edit Text:** Click any language card to edit the text and paste real production content.
+- **Mapping Visibility:** Selecting a language highlights every primary and fallback font mapped to it. Selecting a font reveals its mapped-language tabs.
 - **Case Switching:** Instantly toggle between Sentence Case, Title Case, UPPERCASE, and lowercase to stress-test your type.
 - **Search & Filter:** Quickly find languages by name, region, or script.
 
@@ -80,9 +84,11 @@ If a fallback font looks visually smaller or lighter than your primary font:
 
 ### Step 5: Handle Language Specifics
 If a specific language (like Arabic or Thai) still looks wrong:
-1.  Go to that language's card in the main view.
-2.  Use the **Override** dropdown to force a specific font for just this language.
-3.  Click **Edit** to paste real production content to verify fixes.
+1. Select the language card or map the language directly from a font card.
+2. Select the mapped-language tab on the primary or fallback font card.
+3. Change size, weight, spacing, line height, or font metrics for that language. Unchanged properties continue to inherit their global values.
+4. Use the close button on a mapped-language tab to remove that relationship. A font uploaded only for that language moves into the global fallback list instead of being deleted.
+5. Click **Edit** on the language card to paste production content and verify the result.
 
 ### Step 6: Export
 Click **Export CSS** in the sidebar to get the code.
